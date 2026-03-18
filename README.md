@@ -18,19 +18,9 @@ analysis-ready datasets for research in mechanical ventilation and lung monitori
 ## Installation
 
 ```bash
-git clone https://github.com/ric/fastEIT.git
+git clone https://github.com/Kernel236/fastEIT.git
 cd fastEIT
 pip install -e ".[dev]"
-```
-
-## Quickstart
-
-```python
-# Coming soon — parser implementation in progress (Fase 1-2)
-# import fasteit as eit
-# session = eit.Session.from_file("recording.bin")
-# df = session.to_dataframe()
-# df.to_csv("output.csv", index=False)
 ```
 
 ## Project status
