@@ -1,2 +1,47 @@
 # fastEIT
-Python library for parsing, preprocessing, and analyzing Electrical Impedance Tomography data from clinical ventilation monitoring. Extracts breath-level features into analysis-ready datasets.
+
+![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Status: Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-orange)
+
+Python library for parsing, preprocessing, and analyzing Electrical Impedance Tomography (EIT)
+data from the Dräger PulmoVista 500. Extracts breath-level clinical features into
+analysis-ready datasets for research in mechanical ventilation and lung monitoring.
+
+## What makes this different
+
+- **Native Dräger parser** — reads `.eit` (raw voltages) and `.bin` (reconstructed images) directly; no MATLAB required
+- **Breath-level database** — one row per breath with 30+ EIT features, PEEP step ID, and quality flags; ready for R/Python/ML
+- **Automatic PEEP step detection** — identifies PEEP trial steps from Medibus waveform or EELI signal
+- **pyEIT compatible** — export to pyEIT format for offline image reconstruction
+
+## Installation
+
+```bash
+git clone https://github.com/ric/fastEIT.git
+cd fastEIT
+pip install -e ".[dev]"
+```
+
+## Quickstart
+
+```python
+# Coming soon — parser implementation in progress (Fase 1-2)
+# import fasteit as eit
+# session = eit.Session.from_file("recording.bin")
+# df = session.to_dataframe()
+# df.to_csv("output.csv", index=False)
+```
+
+## Project status
+
+Fase 0 (scaffold) in progress. See `.claude/fastEIT_roadmap_DEFINITIVA_v3.md` for roadmap.
+
+## Disclaimer
+
+This software is for **research purposes only**. It is not a medical device and has not been
+validated for clinical decision-making. Use in clinical settings requires independent validation.
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
