@@ -40,8 +40,12 @@ dev = [
     "coverage[toml]>=7.3",
 ]
 
+tools = [
+    "streamlit>=1.32",
+]
+
 [project.urls]
-Repository = "https://github.com/ric/fastEIT"
+Repository = "https://github.com/Kernel236/fastEIT"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fasteit"]

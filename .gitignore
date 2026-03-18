@@ -3,10 +3,10 @@
 CLAUDE.md
 CHANGELOG.md
 
+# Internal tools (not part of the library)
+tools/
+
 # Placeholder modules — tracciati solo quando implementati
-src/fasteit/config.py
-src/fasteit/parsers/__init__.py
-src/fasteit/parsers/base.py
 src/fasteit/parsers/bin_parser.py
 src/fasteit/parsers/csv_parser.py
 src/fasteit/parsers/eit_parser.py
@@ -16,7 +16,6 @@ src/fasteit/preprocessing/lung_mask.py
 src/fasteit/preprocessing/breath_detection.py
 src/fasteit/features/__init__.py
 src/fasteit/features/clinical.py
-src/fasteit/models/__init__.py
 src/fasteit/models/session.py
 src/fasteit/models/breath.py
 src/fasteit/models/peep_step.py
@@ -38,6 +37,8 @@ __pycache__/
 dist/
 build/
 .eggs/
+
+.ruff_cache/
 
 # Virtual environments
 .venv/

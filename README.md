@@ -25,7 +25,12 @@ pip install -e ".[dev]"
 
 ## Project status
 
-Fase 0 (scaffold) in progress.
+Fase 0 scaffold complete. Core data model implemented:
+- `BaseParser` ABC (`parsers/base.py`)
+- `BaseData` + `BinData` dataclasses (`models/base_data.py`, `models/bin_data.py`)
+- `DeviceConfig` with PulmoVista hardware constants (`config.py`)
+
+Next: Fase 1 — `.bin` parser (frame autodetect, dtype, pixel extraction).
 
 ## Disclaimer
 
