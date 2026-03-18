@@ -25,7 +25,7 @@ pip install -e ".[dev]"
 
 ## Project status
 
-Fase 0 (scaffold) in progress. See `.claude/fastEIT_roadmap_DEFINITIVA_v3.md` for roadmap.
+Fase 0 (scaffold) in progress.
 
 ## Disclaimer
 
