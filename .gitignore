@@ -1,6 +1,7 @@
 # Claude project management (private)
 .claude/
 CLAUDE.md
+CHANGELOG.md
 
 # Python
 __pycache__/
