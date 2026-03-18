@@ -3,6 +3,31 @@
 CLAUDE.md
 CHANGELOG.md
 
+# Placeholder modules — tracciati solo quando implementati
+src/fasteit/config.py
+src/fasteit/parsers/__init__.py
+src/fasteit/parsers/base.py
+src/fasteit/parsers/bin_parser.py
+src/fasteit/parsers/csv_parser.py
+src/fasteit/parsers/eit_parser.py
+src/fasteit/preprocessing/__init__.py
+src/fasteit/preprocessing/filtering.py
+src/fasteit/preprocessing/lung_mask.py
+src/fasteit/preprocessing/breath_detection.py
+src/fasteit/features/__init__.py
+src/fasteit/features/clinical.py
+src/fasteit/models/__init__.py
+src/fasteit/models/session.py
+src/fasteit/models/breath.py
+src/fasteit/models/peep_step.py
+src/fasteit/models/study.py
+src/fasteit/export/__init__.py
+src/fasteit/export/dataframe.py
+src/fasteit/visualization/__init__.py
+src/fasteit/visualization/plots.py
+docs/eidors_analysis.md
+docs/eit_format.md
+
 # Python
 __pycache__/
 *.py[cod]
