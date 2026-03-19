@@ -118,9 +118,7 @@ _MEDIBUS_EXT_EXTRA: list[tuple[str, str, bool]] = [
     ("transpulmonary_pressure_pod", "mbar", True),
 ]
 
-MEDIBUS_EXT_FIELDS: list[tuple[str, str, bool]] = (
-    MEDIBUS_FIELDS + _MEDIBUS_EXT_EXTRA
-)
+MEDIBUS_EXT_FIELDS: list[tuple[str, str, bool]] = MEDIBUS_FIELDS + _MEDIBUS_EXT_EXTRA
 # 58 fields
 
 # Lookup dicts: name -> index
