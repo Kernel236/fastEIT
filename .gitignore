@@ -2,6 +2,9 @@
 .claude/
 CLAUDE.md
 
+#test files
+/src/fasteit/test_files/*
+
 
 # Internal tools (not part of the library)
 tools/
@@ -24,7 +27,6 @@ src/fasteit/export/__init__.py
 src/fasteit/export/dataframe.py
 src/fasteit/visualization/__init__.py
 src/fasteit/visualization/plots.py
-docs/eit_format.md
 
 # Python
 __pycache__/
