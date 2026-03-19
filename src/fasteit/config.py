@@ -5,18 +5,18 @@ read values from here — change once, propagates everywhere.
 
 Structure:
     DeviceConfig        — hardware specs (stable, rarely changes)
+    DRAEGER             — preset for Dräger PulmoVista 500
+    TIMPEL              — preset for Timpel Enlight 2100
     PreprocessingConfig — filter, lung mask, ROI params (TODO Task 0.6.1)
     AnalysisConfig      — breath detection, PEEP detection params (TODO Task 0.6.1)
     Config              — top-level container for all three sections
 
 Usage:
-    cfg = Config()                        # all defaults
-    cfg = Config(device=DeviceConfig(fs=20.0))  # override one value
+    from fasteit.config import DRAEGER, Config
 
-TODO (Task 0.6.2): Add evidence-based defaults with literature citations for
-    PreprocessingConfig and AnalysisConfig once those phases are reached.
-TODO (Task 0.6.3): Add preset_sensitive() and preset_permissive() factory
-    functions for ARDS and spontaneous breathing use cases.
+    cfg = Config()                             # defaults to Dräger
+    cfg = Config(device=DRAEGER)               # explicit preset
+    cfg = Config(device=DeviceConfig(name="draeger", fs=20.0))  # override
 """
 
 from __future__ import annotations
@@ -26,39 +26,69 @@ from dataclasses import dataclass, field
 
 @dataclass
 class DeviceConfig:
-    """Hardware specifications for the Dräger PulmoVista 500.
+    """Hardware specifications for one EIT device.
 
-    These values reflect the physical device and should not be changed
-    unless targeting a different EIT system.
+    Device-agnostic container. Use the module-level presets (DRAEGER, TIMPEL)
+    rather than constructing this directly.
+
+    Attributes:
+        name:            Device identifier string ("draeger", "timpel", ...).
+        fs:              Acquisition frame rate in Hz.
+        pixel_grid:      Reconstructed image size (rows, cols).
+        nan_value:       Sentinel for missing/invalid data in raw files.
+                         Dräger uses -1e30; Timpel uses -1000.0.
+        frame_size_base: Byte size of one base frame in binary formats.
+                         None for text/CSV devices (e.g. Timpel).
+        frame_size_ext:  Byte size of an extended frame (with PressurePod).
+                         None for devices without a binary extension mode.
     """
 
+    name: str = "draeger"
     fs: float = 50.0
-    """Acquisition frame rate in Hz. All file formats (.bin, .eit, .txt)
-    are recorded at 50 Hz by the PulmoVista 500."""
-
-    n_electrodes: int = 16
-    """Number of electrodes on the belt."""
-
-    n_measurements: int = 208
-    """Independent transimpedance measurements per frame.
-    16 injections × 13 measurements (adjacent-drive pattern,
-    auto-measurements excluded).
-    Ref: Frerichs I. et al., Thorax 2017;72:83-93
-         DOI 10.1136/thoraxjnl-2016-208357"""
-
     pixel_grid: tuple[int, int] = (32, 32)
-    """Reconstructed image size. PulmoVista outputs 32×32 pixel images."""
+    nan_value: float = -1e30
+    frame_size_base: int | None = 4358
+    frame_size_ext: int | None = 4382
 
-    frame_size_base: int = 4358
-    """Byte size of a base frame in .bin files.
-    Breakdown: ts1(4) + ts2(4) + dummy(4) + pixels(32×32×4=4096)
-               + minmax_event(2×4=8) + event_text(30) + timing_error(4)
-               + medibus_or_padding(208) = 4358 bytes."""
 
-    frame_size_ext: int = 4382
-    """Byte size of an extended frame in .bin files (with PressurePod).
-    = frame_size_base (4358) + pressurepod_extra (24) = 4382 bytes.
-    TODO (Task 1.3.4): verify pressurepod_extra field layout via xxd."""
+# ---------------------------------------------------------------------------
+# Device presets
+# ---------------------------------------------------------------------------
+
+DRAEGER = DeviceConfig(
+    name="draeger",
+    fs=50.0,
+    pixel_grid=(32, 32),
+    nan_value=-1e30,
+    frame_size_base=4358,
+    frame_size_ext=4382,
+)
+"""Preset for Dräger PulmoVista 500.
+
+Binary .bin format. Frame sizes confirmed via numpy structured dtype analysis.
+TODO (Task 1.1.1): verify frame_size_ext pressurepod layout via xxd.
+"""
+
+TIMPEL = DeviceConfig(
+    name="timpel",
+    fs=50.0,
+    pixel_grid=(32, 32),
+    nan_value=-1000.0,
+    frame_size_base=None,
+    frame_size_ext=None,
+)
+"""Preset for Timpel Enlight 2100.
+
+CSV format — no binary frame size. 1030 columns per frame:
+  cols 0–1023: pixel impedance, cols 1024–1029: airway pressure, flow,
+  volume, min-flag, max-flag, QRS marker.
+TODO (Task 1.x): implement TimpelParser once real files are available.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Pipeline configs (populated incrementally in Fase 4–5)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -93,12 +123,11 @@ class Config:
     """Top-level configuration container for the fasteit pipeline.
 
     Aggregates DeviceConfig, PreprocessingConfig, and AnalysisConfig.
-    Each section is instantiated with its own defaults automatically.
 
     Example:
         cfg = Config()
         cfg.device.fs          # → 50.0
-        cfg.device.n_electrodes  # → 16
+        cfg.device.nan_value   # → -1e30
     """
 
     device: DeviceConfig = field(default_factory=DeviceConfig)
