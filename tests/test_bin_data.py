@@ -1,41 +1,18 @@
-"""Tests for BinData dataclass (Task 0.5.2).
-
-Note: FRAME_BASE_DTYPE is defined inline here matching the corrected architecture.
-It will be replaced by `from fasteit.dtypes import FRAME_BASE_DTYPE` in Task 1.2.1.
-"""
+"""Tests for BinData dataclass (Task 0.5.2, updated Task 1.2.1)."""
 
 import numpy as np
 import pytest
 
+from fasteit.dtypes import FRAME_BASE_DTYPE
 from fasteit.models.bin_data import BinData
 
-# ── Minimal dtype matching corrected fastEIT_layerdata_class_architecture.md ──
-# 4 + 4 + 4 + 4096 + 8 + 30 + 4 + 208 = 4358 bytes
-_FRAME_BASE_DTYPE = np.dtype(
-    [
-        ("ts1", "<f4"),
-        ("ts2", "<f4"),
-        ("dummy", "<f4"),
-        ("pixels", "<f4", (32, 32)),
-        ("minmax_event", "<i4", (2,)),
-        ("event_text", "S30"),
-        ("timing_error", "<i4"),
-        ("medibus_or_padding", "u1", (208,)),
-    ]
-)
-
-assert _FRAME_BASE_DTYPE.itemsize == 4358, (
-    f"Dtype size mismatch: expected 4358, got {_FRAME_BASE_DTYPE.itemsize}"
-)
-
-
-# ── Fixtures ──────────────────────────────────────────────────────────────
+# ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture()
 def five_frames() -> np.ndarray:
-    frames = np.zeros(5, dtype=_FRAME_BASE_DTYPE)
-    frames["ts1"] = np.arange(5) * 0.05  # 0.00, 0.05, 0.10, 0.15, 0.20
+    frames = np.zeros(5, dtype=FRAME_BASE_DTYPE)
+    frames["ts"] = np.arange(5) * 0.05  # 0.00, 0.05, 0.10, 0.15, 0.20 (fraction of day)
     frames["pixels"][:, 16, 16] = 1.0  # one pixel lit per frame
     return frames
 
@@ -49,7 +26,7 @@ def bin_data(five_frames) -> BinData:
     )
 
 
-# ── Tests: __post_init__ ─────────────────────────────────────────────────
+# ── Tests: __post_init__ ──────────────────────────────────────────────────────
 
 
 def test_n_frames(bin_data):
@@ -66,7 +43,7 @@ def test_no_frames_gives_zero():
     assert d.duration == 0.0
 
 
-# ── Tests: property accessors ────────────────────────────────────────────
+# ── Tests: property accessors ─────────────────────────────────────────────────
 
 
 def test_timestamps_shape(bin_data):
@@ -74,6 +51,7 @@ def test_timestamps_shape(bin_data):
 
 
 def test_timestamps_values(bin_data):
+    # ts is fraction of day: frame 2 → 0.10
     assert bin_data.timestamps[2] == pytest.approx(0.10)
 
 
@@ -85,7 +63,19 @@ def test_event_texts_shape(bin_data):
     assert bin_data.event_texts.shape == (5,)
 
 
-# ── Tests: derived signals ────────────────────────────────────────────────
+def test_min_max_flags_shape(bin_data):
+    assert bin_data.min_max_flags.shape == (5,)
+
+
+def test_min_max_flags_default_zero(bin_data):
+    assert np.all(bin_data.min_max_flags == 0)
+
+
+def test_event_markers_shape(bin_data):
+    assert bin_data.event_markers.shape == (5,)
+
+
+# ── Tests: derived signals ────────────────────────────────────────────────────
 
 
 def test_global_signal_shape(bin_data):
@@ -124,7 +114,7 @@ def test_roi_signal_invalid_index(bin_data):
         bin_data.roi_signal(-1)
 
 
-# ── Tests: custom fs ─────────────────────────────────────────────────────
+# ── Tests: custom fs ──────────────────────────────────────────────────────────
 
 
 def test_custom_sampling_rate(five_frames):

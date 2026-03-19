@@ -36,8 +36,32 @@ class BinData(BaseData):
 
     @property
     def timestamps(self) -> np.ndarray:
-        """Timestamp ts1 per frame. Shape (N,)."""
-        return self.frames["ts1"]
+        """Raw ``ts`` field per frame as fraction of day (0.0–1.0). Shape (N,).
+
+        To convert to seconds: ``timestamps * 86400``.
+        For recordings spanning midnight apply ``np.unwrap(ts * 86400, period=86400)``
+        (handled by BinParser, not here).
+        """
+        return self.frames["ts"]
+
+    @property
+    def min_max_flags(self) -> np.ndarray:
+        """Breath phase marker per frame. Shape (N,).
+
+        +1 = inspiration peak (max), -1 = expiration trough (min), 0 = neither.
+        Set by the PulmoVista hardware breath detector.
+        """
+        return self.frames["min_max_flag"]
+
+    @property
+    def event_markers(self) -> np.ndarray:
+        """Event counter per frame. Shape (N,).
+
+        Increments each time a new event is registered. Compare consecutive
+        frames: if ``event_markers[i] > event_markers[i-1]`` a new event occurred
+        at frame i with text ``event_texts[i]``.
+        """
+        return self.frames["event_marker"]
 
     @property
     def pixels(self) -> np.ndarray:
