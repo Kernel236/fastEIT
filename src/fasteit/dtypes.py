@@ -113,31 +113,29 @@ _MEDIBUS_COMMON: list[tuple[str, str, bool]] = [
     ("time_constant", "s", False),
     ("upper_20pct_compliance_ratio", "", False),
     ("end_inspiratory_pressure", "mbar", False),
-    ("expiratory_tidal_volume", "mL", False),       # idx 50 — last common field
+    ("expiratory_tidal_volume", "mL", False),  # idx 50 — last common field
 ]  # 51 fields
 
-# ── BASE format tail: idx 51 ────────────────────────────────────────────────────
+# ── BASE tail: idx 51 ──────────────────────────────────────────────────────────
 MEDIBUS_BASE_FIELDS: list[tuple[str, str, bool]] = _MEDIBUS_COMMON + [
-    ("time_at_low_pressure", "s", False),          # idx 51 -- Tlow BiLevel time at low CPAP
-                                                   #           (-1000.0 sentinel in conventional mode)
-]  # 52 fields total
+    ("time_at_low_pressure", "s", False),  # 51: Tlow
+]  # 52 fields
 
-# ── EXT format tail: idx 51-57 — diverges from BASE at idx 51 ──────────────────
+# ── EXT tail: idx 51-57 (diverges from BASE at 51) ────────────────────────────
+# Sentinels: -1000.0 = conventional mode (51-53), 0xFF7FC99E = no Pod (54-57)
 MEDIBUS_EXT_FIELDS: list[tuple[str, str, bool]] = _MEDIBUS_COMMON + [
-    ("high_pressure", "mbar", False),              # idx 51 -- PHigh BiLevel peak CPAP per breath
-                                                   #           (-1000.0 sentinel in conventional mode)
-    ("low_pressure", "mbar", False),               # idx 52 -- Plow BiLevel low CPAP pressure
-                                                   #           (-1000.0 sentinel in conventional mode)
-    ("time_at_low_pressure", "s", False),          # idx 53 -- Tlow BiLevel (shifted from BASE idx 51)
-                                                   #           (-1000.0 sentinel in conventional mode)
-    ("airway_pressure_pod", "mbar", True),         # idx 54 -- Paw waveform
-                                                   #           (0xFF7FC99E sentinel if no PressurePod)
-    ("esophageal_pressure_pod", "mbar", True),     # idx 55 -- Pes waveform
-    ("transpulmonary_pressure_pod", "mbar", True), # idx 56 -- Ptp waveform (= Paw - Pes)
-    ("gastric_pressure_pod", "mbar", True),        # idx 57 -- Pgas waveform
-]  # 58 fields total
+    ("high_pressure", "mbar", False),  # 51: PHigh
+    ("low_pressure", "mbar", False),  # 52: Plow
+    ("time_at_low_pressure", "s", False),  # 53: Tlow (shifted)
+    ("airway_pressure_pod", "mbar", True),  # 54: Paw Pod
+    ("esophageal_pressure_pod", "mbar", True),  # 55: Pes Pod
+    ("transpulmonary_pressure_pod", "mbar", True),  # 56: Ptp Pod
+    ("gastric_pressure_pod", "mbar", True),  # 57: Pgas Pod
+]  # 58 fields
 
-MEDIBUS_FIELDS: list[tuple[str, str, bool]] = MEDIBUS_BASE_FIELDS  # backward compat alias
+MEDIBUS_FIELDS: list[tuple[str, str, bool]] = (
+    MEDIBUS_BASE_FIELDS  # backward compat alias
+)
 
 # ── Lookup dicts: name → index ──────────────────────────────────────────────────
 # Use MEDIBUS_BASE_INDEX for BASE-format files (4358 bytes, 52 fields).
