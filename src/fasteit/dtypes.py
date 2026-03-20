@@ -50,16 +50,25 @@ FRAME_EXT_DTYPE = np.dtype(
 # Medibus field definitions
 # Each entry: (snake_case_name, unit, is_continuous_waveform)
 # Index in this list == index in medibus_data array.
+#
+# Architecture (confirmed vs. eitprocessing draeger.py, Apache-2.0):
+#   BASE (4358 bytes, "original"):      52 fields — idx 51 = time_at_low_pressure (Tlow)
+#   EXT  (4382 bytes, "pressure_pod"):  58 fields — idx 51 = high_pressure (PHigh),
+#                                                    idx 52 = low_pressure (Plow),
+#                                                    idx 53 = time_at_low_pressure (Tlow, shifted!),
+#                                                    idx 54-57 = PressurePod continuous channels
+#   The two formats share idx 0-50 exactly; they diverge completely from idx 51.
 
-MEDIBUS_FIELDS: list[tuple[str, str, bool]] = [
-    # idx 0-5: continuous waveforms (sampled every frame at 50 Hz)
+# ── Shared prefix: idx 0-50 (51 fields, identical in both formats) ─────────────
+_MEDIBUS_COMMON: list[tuple[str, str, bool]] = [
+    # idx 0-5: continuous waveforms (sampled every frame)
     ("airway_pressure", "mbar", True),
     ("flow", "L/min", True),
     ("volume", "mL", True),
     ("co2_pct", "%", True),
     ("co2_kpa", "kPa", True),
     ("co2_mmhg", "mmHg", True),
-    # idx 6-51: breath-averaged ventilator parameters (updated once per breath)
+    # idx 6-50: breath-averaged ventilator parameters (updated once per breath)
     ("dynamic_compliance", "mL/mbar", False),
     ("resistance", "mbar/L/s", False),
     ("r_squared", "", False),
@@ -104,32 +113,46 @@ MEDIBUS_FIELDS: list[tuple[str, str, bool]] = [
     ("time_constant", "s", False),
     ("upper_20pct_compliance_ratio", "", False),
     ("end_inspiratory_pressure", "mbar", False),
-    ("expiratory_tidal_volume", "mL", False),
-    ("time_at_low_pressure", "s", False),
-]  # 52 fields
+    ("expiratory_tidal_volume", "mL", False),       # idx 50 — last common field
+]  # 51 fields
 
-# 6 extra fields present only in the PressurePod (extended) format.
-_MEDIBUS_EXT_EXTRA: list[tuple[str, str, bool]] = [
-    ("high_pressure", "mbar", False),
-    ("low_pressure", "mbar", False),
-    ("time_at_low_pressure_pod", "s", False),
-    ("airway_pressure_pod", "mbar", True),
-    ("esophageal_pressure_pod", "mbar", True),
-    ("transpulmonary_pressure_pod", "mbar", True),
-]
+# ── BASE format tail: idx 51 ────────────────────────────────────────────────────
+MEDIBUS_BASE_FIELDS: list[tuple[str, str, bool]] = _MEDIBUS_COMMON + [
+    ("time_at_low_pressure", "s", False),          # idx 51 -- Tlow BiLevel time at low CPAP
+                                                   #           (-1000.0 sentinel in conventional mode)
+]  # 52 fields total
 
-MEDIBUS_EXT_FIELDS: list[tuple[str, str, bool]] = MEDIBUS_FIELDS + _MEDIBUS_EXT_EXTRA
-# 58 fields
+# ── EXT format tail: idx 51-57 — diverges from BASE at idx 51 ──────────────────
+MEDIBUS_EXT_FIELDS: list[tuple[str, str, bool]] = _MEDIBUS_COMMON + [
+    ("high_pressure", "mbar", False),              # idx 51 -- PHigh BiLevel peak CPAP per breath
+                                                   #           (-1000.0 sentinel in conventional mode)
+    ("low_pressure", "mbar", False),               # idx 52 -- Plow BiLevel low CPAP pressure
+                                                   #           (-1000.0 sentinel in conventional mode)
+    ("time_at_low_pressure", "s", False),          # idx 53 -- Tlow BiLevel (shifted from BASE idx 51)
+                                                   #           (-1000.0 sentinel in conventional mode)
+    ("airway_pressure_pod", "mbar", True),         # idx 54 -- Paw waveform
+                                                   #           (0xFF7FC99E sentinel if no PressurePod)
+    ("esophageal_pressure_pod", "mbar", True),     # idx 55 -- Pes waveform
+    ("transpulmonary_pressure_pod", "mbar", True), # idx 56 -- Ptp waveform (= Paw - Pes)
+    ("gastric_pressure_pod", "mbar", True),        # idx 57 -- Pgas waveform
+]  # 58 fields total
 
-# Lookup dicts: name -> index
-# These dicts let you find a field's position in the medibus_data array by name.
-# Example: MEDIBUS_INDEX["peep"] == 14
-#          frames["medibus_data"][:, MEDIBUS_INDEX["peep"]]  → PEEP waveform
+MEDIBUS_FIELDS: list[tuple[str, str, bool]] = MEDIBUS_BASE_FIELDS  # backward compat alias
 
-MEDIBUS_INDEX: dict[str, int] = {
-    name: i for i, (name, _unit, _continuous) in enumerate(MEDIBUS_FIELDS)
+# ── Lookup dicts: name → index ──────────────────────────────────────────────────
+# Use MEDIBUS_BASE_INDEX for BASE-format files (4358 bytes, 52 fields).
+# Use MEDIBUS_EXT_INDEX  for EXT-format files  (4382 bytes, 58 fields).
+# MEDIBUS_INDEX is an alias for MEDIBUS_BASE_INDEX (backward compat).
+#
+# Example: MEDIBUS_EXT_INDEX["peep"] == 14
+#          frames["medibus_data"][:, MEDIBUS_EXT_INDEX["peep"]]  → PEEP waveform
+
+MEDIBUS_BASE_INDEX: dict[str, int] = {
+    name: i for i, (name, _unit, _continuous) in enumerate(MEDIBUS_BASE_FIELDS)
 }
 
 MEDIBUS_EXT_INDEX: dict[str, int] = {
     name: i for i, (name, _unit, _continuous) in enumerate(MEDIBUS_EXT_FIELDS)
 }
+
+MEDIBUS_INDEX: dict[str, int] = MEDIBUS_BASE_INDEX  # backward compat alias
