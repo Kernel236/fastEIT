@@ -27,6 +27,7 @@ src/fasteit/export/__init__.py
 src/fasteit/export/dataframe.py
 src/fasteit/visualization/__init__.py
 src/fasteit/visualization/plots.py
+src/fasteit/docs/reverse_eng/eit_format.ipynb
 
 # Python
 __pycache__/
