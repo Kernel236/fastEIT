@@ -11,8 +11,7 @@ tools/
 # Reverse engineering notes (private)
 docs/reverse_eng/eit_format.ipynb
 
-# Scaffold modules — tracked when implemented
-src/fasteit/parsers/timpel/*
+# (timpel scaffold now tracked — implementation in progress)
 
 # Python
 __pycache__/
