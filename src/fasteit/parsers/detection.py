@@ -34,7 +34,6 @@ def candidate_specs_from_size(file_size: int) -> list[FormatSpec]:
     return [spec for spec in BIN_FORMAT_SPECS if file_size % spec.frame_size_bytes == 0]
 
 
-
 def detect_bin_format_from_size(path: Path) -> FormatSpec:
     """Detect binary frame format from headerless file size divisibility."""
     path = Path(path)
@@ -44,8 +43,7 @@ def detect_bin_format_from_size(path: Path) -> FormatSpec:
     if not candidates:
         supported = [spec.frame_size_bytes for spec in BIN_FORMAT_SPECS]
         raise UnsupportedFrameSizeError(
-            f"Unsupported .bin size {file_size} bytes. "
-            f"Known frame sizes: {supported}."
+            f"Unsupported .bin size {file_size} bytes. Known frame sizes: {supported}."
         )
 
     if len(candidates) == 1:
@@ -100,9 +98,7 @@ def detect_vendor_from_eit_header(path: Path) -> str:
     (e.g. ``---Draeger EIT-Software---``) and return vendor identifier.
     """
     _ = path
-    raise NotImplementedError(
-        "detect_vendor_from_eit_header() not yet implemented. "
-    )
+    raise NotImplementedError("detect_vendor_from_eit_header() not yet implemented. ")
 
 
 def detect_vendor_from_tabular(path: Path) -> str:

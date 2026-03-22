@@ -74,6 +74,7 @@ def test_detect_vendor_and_format_ambiguous_bin_raises(tmp_path: Path):
     import math
 
     from fasteit.parsers.errors import AmbiguousFormatError
+
     lcm_size = math.lcm(4358, 4382)
     p = tmp_path / "ambiguous.bin"
     p.write_bytes(b"\x00" * lcm_size)
@@ -93,6 +94,8 @@ def test_detect_vendor_from_tabular_unknown_raises(tmp_path: Path):
     from fasteit.parsers.detection import detect_vendor_from_tabular
 
     p = tmp_path / "unknown.txt"
-    p.write_text("Some random content without known vendor keywords\n", encoding="latin1")
+    p.write_text(
+        "Some random content without known vendor keywords\n", encoding="latin1"
+    )
     with pytest.raises(ValueError, match="Could not detect vendor"):
         detect_vendor_from_tabular(p)

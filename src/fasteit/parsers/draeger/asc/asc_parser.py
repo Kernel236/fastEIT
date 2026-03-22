@@ -21,7 +21,9 @@ def _to_snake_case(text: str) -> str:
 
 def _split_tab_fields(line: str) -> list[str]:
     """Split one tab-separated line and drop trailing empty fields."""
-    return [field.strip() for field in line.rstrip("\n").split("\t") if field.strip() != ""]
+    return [
+        field.strip() for field in line.rstrip("\n").split("\t") if field.strip() != ""
+    ]
 
 
 def _extract_header_metadata(lines: list[str]) -> dict:
@@ -122,7 +124,9 @@ class DragerAscParser(BaseParser):
         )
 
         if df.empty:
-            raise ValueError("Malformed Drager ASC: no data rows in continuous waveform table")
+            raise ValueError(
+                "Malformed Drager ASC: no data rows in continuous waveform table"
+            )
 
         # ── 4. Normalize column names ──────────────────────────────────────────
         df.columns = [_to_snake_case(str(c)) for c in df.columns]

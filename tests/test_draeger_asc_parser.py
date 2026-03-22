@@ -14,15 +14,23 @@ from fasteit.parsers.loader import load_data
 
 def _make_asc(tmp_path: Path, n_frames: int = 4) -> Path:
     """Write a minimal valid Dräger .asc file with >20 waveform columns."""
-    col_names = ["Image", "Time", "Global", "MinMax", "Event", "EventText",
-                 "Timing_Error"] + [f"Signal_{i}" for i in range(14)]
+    col_names = [
+        "Image",
+        "Time",
+        "Global",
+        "MinMax",
+        "Event",
+        "EventText",
+        "Timing_Error",
+    ] + [f"Signal_{i}" for i in range(14)]
     header = "\t".join(col_names)  # 21 columns total
 
     rows = []
     for i in range(1, n_frames + 1):
         t = f"{i * 0.02:.6f}".replace(".", ",")
-        vals = ([str(i), t, f"{100 + i},50", "0", "0", "        ", "0"]
-                + [f"{10 + i},0{i}" for _ in range(14)])
+        vals = [str(i), t, f"{100 + i},50", "0", "0", "        ", "0"] + [
+            f"{10 + i},0{i}" for _ in range(14)
+        ]
         rows.append("\t".join(vals))
 
     meta = [
@@ -77,43 +85,45 @@ def test_asc_parser_raises_if_no_waveform_header(tmp_path):
         DragerAscParser().parse(p)
 
 
-def _asc_file() -> Path:
-    return Path("src/fasteit/test_files/patient01.asc")
+_ASC_FILE = Path("src/fasteit/test_files/patient01.asc")
+_real_file_available = pytest.mark.skipif(
+    not _ASC_FILE.exists(),
+    reason="Real patient file not available (gitignored — run locally only)",
+)
 
 
+@_real_file_available
 def test_detect_vendor_from_tabular_draeger_asc():
-    vendor = detect_vendor_from_tabular(_asc_file())
+    vendor = detect_vendor_from_tabular(_ASC_FILE)
     assert vendor == "draeger"
 
 
+@_real_file_available
 def test_draeger_asc_parser_validate_true():
     parser = DragerAscParser()
-    assert parser.validate(_asc_file())
+    assert parser.validate(_ASC_FILE)
 
 
+@_real_file_available
 def test_draeger_asc_parser_parse_continuous_waveforms():
     parser = DragerAscParser()
-    data = parser.parse(_asc_file())
+    data = parser.parse(_ASC_FILE)
 
     assert isinstance(data, ContinuousSignalData)
     assert data.file_format == "asc"
     assert data.metadata.get("parsed_section") == "continuous_waveforms"
-    # File has 11500 frames; all should be loaded
     assert data.n_frames > 1000
-    # Core EIT columns
     assert "global" in data.table.columns
     assert "time" in data.table.columns
-    # Event and timing columns present in second table (not in Tidal Variations)
     assert "minmax" in data.table.columns or "min_max" in data.table.columns
     assert "timing_error" in data.table.columns
-    # Schema has >20 columns even if many are NaN (Medibus not always connected)
     assert data.metadata["n_columns"] > 20
-    # Header metadata preserved
     assert "declared_images" in data.metadata
 
 
+@_real_file_available
 def test_load_data_routes_asc_to_draeger_parser():
-    data = load_data(_asc_file())
+    data = load_data(_ASC_FILE)
 
     assert isinstance(data, ContinuousSignalData)
     assert data.vendor == "draeger"

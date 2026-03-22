@@ -113,12 +113,14 @@ class DragerBinParser(BaseParser):
             fs = estimate_sampling_frequency_hz(mapped_frames["ts"])
         except ValueError as e:
             fs = _DEFAULT_FS_HZ
-            warnings_list = [f"fs estimation failed ({e}); using default {_DEFAULT_FS_HZ} Hz"]
+            warnings_list = [
+                f"fs estimation failed ({e}); using default {_DEFAULT_FS_HZ} Hz"
+            ]
         else:
             warnings_list = []
 
         # ── 6. Sanitize pixels: replace sentinel values with NaN ─────────────
-        #TODO review if it's too slow!
+        # TODO review if it's too slow!
         clean_pixels = np.zeros((n_frames_to_load, 32, 32), dtype=np.float32)
         for i in range(n_frames_to_load):
             clean_pixels[i] = replace_no_data_sentinels(
@@ -172,4 +174,3 @@ class DragerBinParser(BaseParser):
             result.metadata["warnings"] = warnings_list
 
         return result
-

@@ -52,8 +52,7 @@ class ReconstructedFrameData(BaseData):
 
     @property
     def timestamps(self) -> np.ndarray:
-        """Timestamp per frame as fraction of day (0.0–1.0). Shape (N,).
-        """
+        """Timestamp per frame as fraction of day (0.0–1.0). Shape (N,)."""
         return self._require_frames()["ts"]
 
     @property
@@ -77,8 +76,7 @@ class ReconstructedFrameData(BaseData):
 
     @property
     def event_markers(self) -> np.ndarray:
-        """Event counter per frame. Shape (N,). Dräger .bin only.
-        """
+        """Event counter per frame. Shape (N,). Dräger .bin only."""
         frames = self._require_frames()
         if "event_marker" not in frames.dtype.names:
             raise AttributeError(
@@ -89,8 +87,7 @@ class ReconstructedFrameData(BaseData):
 
     @property
     def event_texts(self) -> np.ndarray:
-        """Event text strings per frame. Shape (N,) of bytes. Dräger .bin only.
-        """
+        """Event text strings per frame. Shape (N,) of bytes. Dräger .bin only."""
         frames = self._require_frames()
         if "event_text" not in frames.dtype.names:
             raise AttributeError(
@@ -123,10 +120,10 @@ class ReconstructedFrameData(BaseData):
         p = self._require_frames()["pixels"]
         return np.column_stack(
             [
-                p[:, 0:8, :].sum(axis=(1, 2)),   # ROI 0 — ventral
+                p[:, 0:8, :].sum(axis=(1, 2)),  # ROI 0 — ventral
                 p[:, 8:16, :].sum(axis=(1, 2)),  # ROI 1 — mid-ventral
-                p[:, 16:24, :].sum(axis=(1, 2)), # ROI 2 — mid-dorsal
-                p[:, 24:32, :].sum(axis=(1, 2)), # ROI 3 — dorsal
+                p[:, 16:24, :].sum(axis=(1, 2)),  # ROI 2 — mid-dorsal
+                p[:, 24:32, :].sum(axis=(1, 2)),  # ROI 3 — dorsal
             ]
         )
 
@@ -139,4 +136,6 @@ class ReconstructedFrameData(BaseData):
         if roi < 0 or roi > 3:
             raise ValueError(f"roi must be 0–3, got {roi}")
         start = roi * 8
-        return self._require_frames()["pixels"][:, start : start + 8, :].sum(axis=(1, 2))
+        return self._require_frames()["pixels"][:, start : start + 8, :].sum(
+            axis=(1, 2)
+        )

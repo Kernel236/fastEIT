@@ -66,12 +66,11 @@ def build_parser_from_detection(
 
 
 def load_data(
-        path: Path,
-        *,
-        registry: dict[tuple[str, str], ParserFactory] | None = None,
-        ) -> BaseData:
-    """Single entry point: detect format/vendor then parse with matching parser.
-    """
+    path: Path,
+    *,
+    registry: dict[tuple[str, str], ParserFactory] | None = None,
+) -> BaseData:
+    """Single entry point: detect format/vendor then parse with matching parser."""
     path = Path(path)
     detection = detect_vendor_and_format(path)
     parser = build_parser_from_detection(
