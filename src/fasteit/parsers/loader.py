@@ -18,6 +18,7 @@ from pathlib import Path
 from fasteit.models.base_data import BaseData
 from fasteit.parsers.base import BaseParser
 from fasteit.parsers.draeger import DragerAscParser, DragerBinParser, DragerEitParser
+from fasteit.parsers.timpel import TimpelTabularParser
 
 from .detection import FileDetection, detect_vendor_and_format
 
@@ -48,32 +49,17 @@ def default_parser_registry() -> dict[tuple[str, str], ParserFactory]:
     """Return default (vendor, extension) -> parser factory mapping.
 
     Keys use canonical lowercase vendor and suffix with dot.
-    Timpel entries are added only when the scaffold module is available.
     """
-    registry: dict[tuple[str, str], ParserFactory] = {
+    return {
         ("draeger", ".bin"): lambda: DragerBinParser(),
         ("draeger", ".eit"): lambda: DragerEitParser(),
         ("draeger", ".asc"): lambda: DragerAscParser(),
         ("draeger", ".txt"): lambda: DragerAscParser(),
         ("draeger", ".csv"): lambda: DragerAscParser(),
+        ("timpel", ".csv"): lambda: TimpelTabularParser(),
+        ("timpel", ".txt"): lambda: TimpelTabularParser(),
+        ("timpel", ".asc"): lambda: TimpelTabularParser(),
     }
-
-    try:
-        from fasteit.parsers.timpel import (
-            TimpelTabularParser as _Timpel,  # noqa: PLC0415
-        )
-
-        registry.update(
-            {
-                ("timpel", ".csv"): lambda: _Timpel(),
-                ("timpel", ".txt"): lambda: _Timpel(),
-                ("timpel", ".asc"): lambda: _Timpel(),
-            }
-        )
-    except ImportError:
-        pass  # Timpel scaffold not yet available (gitignored)
-
-    return registry
 
 
 def build_parser_from_detection(

@@ -2,17 +2,19 @@
 Parsers for EIT file formats (Dräger and Timpel).
 
 Implemented:
-- BaseParser        — abstract base class (ABC) for all parsers
+- BaseParser             — abstract base class (ABC) for all parsers
 - DragerBinParser   (.bin) — reconstructed 32×32 images; BASE and EXT frame formats
 - DragerAscParser   (.asc) — tabular PulmoVista signal export
+- TimpelTabularParser (.csv/.txt/.asc) — Timpel tabular recordings
 
 Scaffolds (not yet implemented):
 - DragerEitParser   (.eit) — raw electrode voltages (Task 2.x)
-- TimpelTabularParser (.csv/.txt) — Timpel tabular recordings (future task)
 
 Utilities:
 - detect_vendor_and_format — extension/vendor/format auto-detection
 - load_data                — high-level entry point; returns a BaseData subclass
+- load_many                — parse multiple files at once
+- load_folder              — parse all matching files in a folder
 """
 
 from .base import BaseParser
@@ -36,13 +38,7 @@ from .loader import (
     load_folder,
     load_many,
 )
-
-try:
-    from .timpel import TimpelTabularParser  # noqa: F401
-
-    _timpel_exported = ["TimpelTabularParser"]
-except ImportError:
-    _timpel_exported = []  # Timpel scaffold not yet available (gitignored)
+from .timpel import TimpelTabularParser
 
 __all__ = [
     "BaseParser",
@@ -54,6 +50,7 @@ __all__ = [
     "DragerAscParser",
     "DragerBinParser",
     "DragerEitParser",
+    "TimpelTabularParser",
     "build_parser_from_detection",
     "candidate_specs_from_size",
     "default_parser_registry",
@@ -62,5 +59,4 @@ __all__ = [
     "load_data",
     "load_many",
     "load_folder",
-    *_timpel_exported,
 ]
