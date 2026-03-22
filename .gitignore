@@ -12,7 +12,7 @@ tools/
 docs/reverse_eng/eit_format.ipynb
 
 # Scaffold modules — tracked when implemented
-src/fasteit/parsers/timpel/
+src/fasteit/parsers/timpel/*
 
 # Python
 __pycache__/
