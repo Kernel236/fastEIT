@@ -1,11 +1,20 @@
 """
 Core data models for fasteit.
 
-- BaseData      — base container for raw parsed data
-- BinData       — output of BinParser (.bin, reconstructed 32×32 images)
+- BaseData               — base container for raw parsed data
+- ReconstructedFrameData — pixel matrices + synchronized signals (.bin, .txt)
+- ContinuousSignalData   — signal-only tables, no matrices (.asc)
+- RawImpedanceData       — raw transimpedances for pyEIT (.eit, .x)
 """
 
 from .base_data import BaseData
-from .bin_data import BinData
+from .reconstructed_data import ReconstructedFrameData
+from .continuous_data import ContinuousSignalData
+from .raw_impedance_data import RawImpedanceData
 
-__all__ = ["BaseData", "BinData"]
+__all__ = [
+	"BaseData",
+	"ReconstructedFrameData",
+	"ContinuousSignalData",
+	"RawImpedanceData",
+]
