@@ -29,8 +29,20 @@ from .errors import (
     ParserError,
     UnsupportedFrameSizeError,
 )
-from .loader import build_parser_from_detection, default_parser_registry, load_data
-from .timpel import TimpelTabularParser
+from .loader import (
+    build_parser_from_detection,
+    default_parser_registry,
+    load_data,
+    load_folder,
+    load_many,
+)
+
+try:
+    from .timpel import TimpelTabularParser  # noqa: F401
+
+    _timpel_exported = ["TimpelTabularParser"]
+except ImportError:
+    _timpel_exported = []  # Timpel scaffold not yet available (gitignored)
 
 __all__ = [
     "BaseParser",
@@ -42,11 +54,13 @@ __all__ = [
     "DragerAscParser",
     "DragerBinParser",
     "DragerEitParser",
-    "TimpelTabularParser",
     "build_parser_from_detection",
     "candidate_specs_from_size",
     "default_parser_registry",
     "detect_bin_format_from_size",
     "detect_vendor_and_format",
     "load_data",
+    "load_many",
+    "load_folder",
+    *_timpel_exported,
 ]
