@@ -17,6 +17,8 @@ Sampling frequency: 50 Hz (fixed by device firmware; no timestamps in file).
 
 Format reference: eitprocessing timpel.py loader (Apache-2.0)
 https://github.com/EIT-ALIVE/eitprocessing
+Somhorst P et al., "eitprocessing", JOSS 2026;11(117):8179
+DOI: 10.21105/joss.08179
 """
 
 from __future__ import annotations
@@ -116,14 +118,14 @@ class TimpelTabularParser(BaseParser):
         if raw.ndim == 1:
             if raw.size == 0:
                 # Empty — skiprows exhausted all rows in the file
-                raise ValueError(
+                raise InvalidSliceError(
                     f"first_frame={first_frame} is beyond the end of the file."
                 )
             # Single row — np.loadtxt returns 1-D array; promote to 2-D
             raw = raw[np.newaxis, :]
 
         if raw.shape[0] == 0:
-            raise ValueError(
+            raise InvalidSliceError(
                 f"first_frame={first_frame} is beyond the end of the file."
             )
 
@@ -147,10 +149,12 @@ class TimpelTabularParser(BaseParser):
         frames = np.zeros(n_frames, dtype=TIMPEL_FRAME_DTYPE)
         frames["ts"] = ts
 
-        # Reshape 1024 pixel columns to 32×32, replace NaN sentinel
+        # Reshape 1024 pixel columns to 32×32, replace NaN sentinel.
+        # Use threshold comparison (< sentinel + 1.0) rather than exact equality
+        # so the detection is robust to minor float32 rounding in future sentinel changes.
         pixels = raw[:, :TIMPEL_AIRWAY_PRESSURE_COL].astype(np.float32)
         pixels = pixels.reshape(n_frames, 32, 32)
-        pixels = np.where(pixels == np.float32(TIMPEL_NAN_SENTINEL), np.nan, pixels)
+        pixels = np.where(pixels < TIMPEL_NAN_SENTINEL + 1.0, np.nan, pixels)
         frames["pixels"] = pixels
 
         # ── 5. Build aux_signals dict ───────────────────────────────────────
@@ -160,9 +164,7 @@ class TimpelTabularParser(BaseParser):
             values = raw[:, col].astype(np.float32)
             # Apply NaN sentinel to continuous channels (not to binary flags)
             if field_name not in {"min_flag", "max_flag", "qrs_flag"}:
-                values = np.where(
-                    values == np.float32(TIMPEL_NAN_SENTINEL), np.nan, values
-                )
+                values = np.where(values < TIMPEL_NAN_SENTINEL + 1.0, np.nan, values)
             aux_signals[field_name] = values
 
         # ── 6. Assemble result ──────────────────────────────────────────────
@@ -171,7 +173,7 @@ class TimpelTabularParser(BaseParser):
             aux_signals=aux_signals,
             fs=fs,
             filename=str(path),
-            file_format="csv",
+            file_format=path.suffix.lower().lstrip("."),
             metadata={
                 "n_frames": n_frames,
                 "first_frame_offset": first_frame,

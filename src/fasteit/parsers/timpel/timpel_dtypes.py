@@ -18,6 +18,8 @@ consistent with eitprocessing (Apache-2.0):
 https://github.com/EIT-ALIVE/eitprocessing
 
 Format reference: cross-validated against eitprocessing timpel.py loader.
+Somhorst P et al., "eitprocessing", JOSS 2026;11(117):8179
+DOI: 10.21105/joss.08179
 """
 
 from __future__ import annotations

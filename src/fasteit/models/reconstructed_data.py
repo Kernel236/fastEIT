@@ -52,7 +52,13 @@ class ReconstructedFrameData(BaseData):
 
     @property
     def timestamps(self) -> np.ndarray:
-        """Timestamp per frame as fraction of day (0.0–1.0). Shape (N,)."""
+        """Timestamp per frame. Shape (N,).
+
+        Convention depends on vendor:
+        - Dräger `.bin`: wall-clock time as fraction of day (0.0–1.0, float64)
+        - Timpel `.csv`: seconds from start of recording (e.g. 2.0 s at frame
+          100 with 50 Hz), generated as ``(first_frame + i) / fs``
+        """
         return self._require_frames()["ts"]
 
     @property

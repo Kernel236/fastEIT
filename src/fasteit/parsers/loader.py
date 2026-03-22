@@ -180,6 +180,6 @@ def load_folder(
             continue
         try:
             results.append(load_data(p, registry=registry))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  # batch loader: skip unrecognised files, never abort the full scan
             print(f"[load_folder] skipping '{p.name}': {exc}", file=sys.stderr)
     return results

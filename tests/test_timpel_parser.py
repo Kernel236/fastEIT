@@ -70,6 +70,13 @@ def test_validate_false_wrong_extension(tmp_path):
     assert TimpelTabularParser().validate(p2) is False
 
 
+def test_validate_true_for_txt_extension(tmp_path):
+    """validate() must accept .txt as well as .csv."""
+    p = _make_timpel_csv(tmp_path)
+    p_txt = p.rename(tmp_path / "recording.txt")
+    assert TimpelTabularParser().validate(p_txt) is True
+
+
 def test_validate_false_for_short_csv(tmp_path):
     """A CSV with fewer than 1030 columns should not be detected as Timpel."""
     p = tmp_path / "short.csv"
@@ -97,6 +104,14 @@ def test_parse_file_format_is_csv(tmp_path):
     p = _make_timpel_csv(tmp_path)
     data = TimpelTabularParser().parse(p)
     assert data.file_format == "csv"
+
+
+def test_parse_file_format_from_extension(tmp_path):
+    """file_format should reflect the actual file extension, not a hardcoded string."""
+    p = _make_timpel_csv(tmp_path)
+    p_txt = p.rename(tmp_path / "recording.txt")
+    data = TimpelTabularParser().parse(p_txt)
+    assert data.file_format == "txt"
 
 
 def test_parse_fs_is_50hz(tmp_path):
@@ -213,7 +228,7 @@ def test_parse_first_frame_and_max_frames(tmp_path):
 
 def test_parse_first_frame_out_of_bounds_raises(tmp_path):
     p = _make_timpel_csv(tmp_path, n_frames=5)
-    with pytest.raises(ValueError, match="beyond the end"):
+    with pytest.raises(InvalidSliceError, match="beyond the end"):
         TimpelTabularParser().parse(p, first_frame=100)
 
 
@@ -237,3 +252,20 @@ def test_parse_wrong_column_count_raises(tmp_path):
     np.savetxt(str(p), np.zeros((5, 100)), delimiter=",")
     with pytest.raises(ValueError, match="1030 columns"):
         TimpelTabularParser().parse(p)
+
+
+# ── parse() — pixel round-trip precision ─────────────────────────────────────
+
+
+def test_parse_pixel_value_survives_roundtrip(tmp_path):
+    """Known pixel value must survive savetxt→loadtxt→float32 within 1e-5."""
+    rng = np.random.default_rng(0)
+    data = rng.uniform(0.1, 1.0, size=(3, TIMPEL_COLUMN_COUNT)).astype(np.float64)
+    data[:, 1024:] = 0.0  # zero aux columns
+    data[0, 0] = 0.123456  # known value at pixel (0, 0)
+    p = tmp_path / "roundtrip.csv"
+    np.savetxt(str(p), data, delimiter=",", fmt="%.6f")
+
+    result = TimpelTabularParser().parse(p)
+
+    assert result.pixels[0, 0, 0] == pytest.approx(0.123456, abs=1e-5)
