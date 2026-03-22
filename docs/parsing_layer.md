@@ -165,7 +165,7 @@ from fasteit.parsers.draeger.bin.draeger_dtypes import (
     MEDIBUS_NEWEXT_FIELDS,
 )
 
-BIN_FORMAT_SPECS: list[FormatSpec] = [
+BIN_FORMAT_SPECS: tuple[FormatSpec, ...] = (
     FormatSpec(
         name="Draeger_base_4358",
         ...
@@ -182,7 +182,7 @@ BIN_FORMAT_SPECS: list[FormatSpec] = [
         medibus_fields=tuple(name for name, _, _ in MEDIBUS_NEWEXT_FIELDS),
         has_pressure_pod_fields=True,
     ),
-]
+)
 ```
 
 **That's it.** `detect_bin_format_from_size()` picks it up automatically.
@@ -196,7 +196,7 @@ the spec — no parser changes needed.
 Use case: support files from a hypothetical "AcmEIT" device that produces
 `.acm` binary files with its own frame layout.
 
-**Files to change: 4.**
+**Files to change: 5.**
 
 ### Step 1 — Detection
 

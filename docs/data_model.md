@@ -10,7 +10,7 @@ extension recipes see [`parsing_layer.md`](parsing_layer.md).
 | File | Vendor | Container | Content |
 |------|--------|-----------|---------|
 | `.bin` | Dräger | `ReconstructedFrameData` | 32×32 pixel matrices + Medibus signals |
-| `.txt` | Timpel | `ReconstructedFrameData` | 32×32 pixel matrices + 5 device signals |
+| `.txt` | Timpel | `ReconstructedFrameData` | 32×32 pixel matrices + 6 device signals |
 | `.asc` | Dräger | `ContinuousSignalData` | Frame-by-frame signal table, no matrices |
 | `.eit` | Dräger | `RawImpedanceData` | 208 raw transimpedances per frame |
 | `.x`   | Timpel | `RawImpedanceData` | 208 raw transimpedances per frame |
@@ -50,7 +50,8 @@ frames      np.ndarray   Structured array shape (N,). Named fields:
 
 aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frames.
                          Dräger .bin: 52 or 58 Medibus channels.
-                         Timpel .txt: 5 device channels.
+                         Timpel .txt: 6 device channels (airway_pressure, flow,
+                         volume, min_flag, max_flag, qrs_flag — cols 1024-1029).
                          None if the source file carries no auxiliary signals.
 ```
 
@@ -126,8 +127,10 @@ src/fasteit/
     │   │   ├── draeger_dtypes.py  FRAME_BASE/EXT_DTYPE, MEDIBUS field lists
     │   │   ├── bin_parser.py      DragerBinParser
     │   │   └── bin_utils.py       sentinel detection, fs estimation
-    │   ├── asc/               DragerAscParser
-    │   └── eit/               DragerEitParser (scaffold)
+    │   ├── asc/
+    │   │   └── asc_parser.py      DragerAscParser
+    │   └── eit/
+    │       └── eit_parser.py      DragerEitParser (scaffold)
     └── timpel/
         ├── timpel_dtypes.py   Timpel field definitions (scaffold)
         └── timpel_parser.py   TimpelTabularParser (scaffold)
