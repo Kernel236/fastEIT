@@ -8,8 +8,8 @@ import numpy as np
 
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.base import BaseParser
-from fasteit.parsers.errors import AmbiguousFormatError, UnsupportedFrameSizeError
 from fasteit.parsers.detection import detect_bin_format_from_size
+from fasteit.parsers.errors import AmbiguousFormatError, UnsupportedFrameSizeError
 
 from .bin_utils import (
     _BIT_SENTINELS,
@@ -19,9 +19,29 @@ from .bin_utils import (
     replace_no_data_sentinels,
 )
 
+# Default sampling frequency used when fs cannot be estimated from timestamps.
+# PulmoVista 500 acquisition rate is typically 20 Hz (standard) or 50 Hz
+# (high-speed mode). 50 Hz is the safe upper bound; recordings with a
+# PressurePod always run at 50 Hz (device specification).
+_DEFAULT_FS_HZ: float = 50.0
+
 
 class DragerBinParser(BaseParser):
-    """Parser for Drager PulmoVista `.bin` files."""
+    """Parser for Dräger PulmoVista 500 `.bin` files.
+
+    Supports two frame layouts identified automatically by file size:
+    - BASE (4358 bytes/frame): 32×32 pixels + 52 Medibus channels
+    - EXT  (4382 bytes/frame): 32×32 pixels + 58 Medibus channels
+      (PressurePod variant with esophageal/transpulmonary pressure fields)
+
+    New frame sizes can be added by registering a ``FormatSpec`` in
+    ``parsers/bin_formats.py`` without modifying this parser.
+
+    Format sources:
+    - Reverse-engineered from PulmoVista 500 binary output
+    - Cross-referenced with eitprocessing (Apache-2.0):
+      https://github.com/EIT-ALIVE/eitprocessing
+    """
 
     def __init__(self) -> None:
         self._float_sentinels = _FLOAT_SENTINELS
@@ -92,8 +112,8 @@ class DragerBinParser(BaseParser):
         try:
             fs = estimate_sampling_frequency_hz(mapped_frames["ts"])
         except ValueError as e:
-            fs = 50.0
-            warnings_list = [f"fs estimation failed ({e}); using default 50.0 Hz"]
+            fs = _DEFAULT_FS_HZ
+            warnings_list = [f"fs estimation failed ({e}); using default {_DEFAULT_FS_HZ} Hz"]
         else:
             warnings_list = []
 
@@ -108,8 +128,8 @@ class DragerBinParser(BaseParser):
             )
 
         # ── 7. Copy memmap to writable array, write clean pixels ──────────────
-        # mapped_frames is read-only; copy to RAM before modifying.
-        frames = mapped_frames[:]
+        # mapped_frames[mode="r"] is read-only; .copy() returns a writable array.
+        frames = mapped_frames.copy()
         frames["pixels"] = clean_pixels
 
         # ── 8. Sanitize Medibus data if present (EXT format only) ─────────────

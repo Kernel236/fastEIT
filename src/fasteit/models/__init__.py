@@ -8,13 +8,13 @@ Core data models for fasteit.
 """
 
 from .base_data import BaseData
-from .reconstructed_data import ReconstructedFrameData
 from .continuous_data import ContinuousSignalData
 from .raw_impedance_data import RawImpedanceData
+from .reconstructed_data import ReconstructedFrameData
 
 __all__ = [
-	"BaseData",
-	"ReconstructedFrameData",
-	"ContinuousSignalData",
-	"RawImpedanceData",
+    "BaseData",
+    "ReconstructedFrameData",
+    "ContinuousSignalData",
+    "RawImpedanceData",
 ]

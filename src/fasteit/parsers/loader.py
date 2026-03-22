@@ -10,8 +10,8 @@ Use ``load_data()`` as single public entry point:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from fasteit.models.base_data import BaseData
 from fasteit.parsers.base import BaseParser

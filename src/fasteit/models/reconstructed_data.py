@@ -108,9 +108,17 @@ class ReconstructedFrameData(BaseData):
 
     @property
     def roi_signals(self) -> np.ndarray:
-        """4 ventro-dorsal ROI signals (equal horizontal strips). Shape (N, 4).
+        """4 ventro-dorsal strip signals (equal horizontal strips). Shape (N, 4).
 
-        ROI 0 = ventral (rows 0–7), ROI 3 = dorsal (rows 24–31).
+        Each strip sums 8 rows of the 32×32 image:
+          strip 0 = rows  0– 7 (ventral)
+          strip 1 = rows  8–15 (mid-ventral)
+          strip 2 = rows 16–23 (mid-dorsal)
+          strip 3 = rows 24–31 (dorsal)
+
+        Note: these are horizontal *strips*, not the 2×2 TREND quadrants
+        (ROI1–ROI4 in Frerichs et al., Thorax 2017; doi:10.1136/thoraxjnl-2016-208357).
+        TREND quadrant decomposition is a separate future feature.
         """
         p = self._require_frames()["pixels"]
         return np.column_stack(

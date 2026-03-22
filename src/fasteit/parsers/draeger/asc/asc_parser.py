@@ -13,7 +13,6 @@ from fasteit.parsers.base import BaseParser
 from fasteit.parsers.detection import detect_vendor_from_tabular
 
 
-
 def _to_snake_case(text: str) -> str:
     cleaned = re.sub(r"[^0-9A-Za-z]+", "_", text.strip().lower())
     cleaned = re.sub(r"_+", "_", cleaned).strip("_")
@@ -54,10 +53,23 @@ def _extract_header_metadata(lines: list[str]) -> dict:
 
 
 class DragerAscParser(BaseParser):
-    """Parser for Drager PulmoVista `.asc` exports.
+    """Parser for Dräger PulmoVista 500 `.asc` tabular exports.
 
-    Metadata from the ASCII header (file name, recording length, filter settings)
-    is preserved in the returned ContinuousSignalData.metadata dict.
+    The `.asc` file contains several sections:
+    - ASCII header       — recording metadata (file, length, filter settings)
+    - Dynamic Image      — 32×32 pixel table, one row per frame (skipped)
+    - Tidal Image        — 32×32 pixel table, breath-averaged (skipped)
+    - Tidal Variations   — breath-averaged summary (~11 columns, skipped)
+    - Continuous waveforms — frame-by-frame signal table (~68 columns, parsed)
+
+    This parser targets the continuous waveforms section, identified by its
+    header row starting with ``Image`` and containing more than 20 tab-separated
+    columns. The other sections have ≤11 columns and are deliberately skipped.
+
+    Header metadata is preserved in ``ContinuousSignalData.metadata``.
+
+    Format source: reverse-engineered from PulmoVista 500 exports.
+    See ``docs/reverse_eng/draeger_bin_format.ipynb`` for field-level findings.
     """
 
     def validate(self, path: Path) -> bool:
@@ -121,7 +133,7 @@ class DragerAscParser(BaseParser):
             df = df[numeric_image.notna()].copy()
             df["image"] = numeric_image[numeric_image.notna()].astype(int).values
 
-        # ── 7. Estimate sampling frequency from time column ────────────────────
+        # ── 6. Estimate sampling frequency from time column ────────────────────
         fs = None
         if "time" in df.columns:
             time_values = pd.to_numeric(df["time"], errors="coerce").dropna()

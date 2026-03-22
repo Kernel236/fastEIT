@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from fasteit.models.raw_impedance_data import RawImpedanceData
 from fasteit.parsers.base import BaseParser
 
 
@@ -20,7 +21,7 @@ class DragerEitParser(BaseParser):
         _ = path
         raise NotImplementedError("Implement Task 2.3.2 format validation")
 
-    def parse(self, path: Path):
+    def parse(self, path: Path) -> RawImpedanceData:
         """Parse `.eit` file.
 
         TODO(Task 2.3.1): parse header ASCII metadata

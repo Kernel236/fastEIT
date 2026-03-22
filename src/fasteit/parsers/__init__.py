@@ -17,36 +17,36 @@ Utilities:
 
 from .base import BaseParser
 from .detection import (
-	FileDetection,
-	candidate_specs_from_size,
-	detect_bin_format_from_size,
-	detect_vendor_and_format,
+    FileDetection,
+    candidate_specs_from_size,
+    detect_bin_format_from_size,
+    detect_vendor_and_format,
 )
 from .draeger import DragerAscParser, DragerBinParser, DragerEitParser
-from .timpel import TimpelTabularParser
 from .errors import (
-	AmbiguousFormatError,
-	InvalidSliceError,
-	ParserError,
-	UnsupportedFrameSizeError,
+    AmbiguousFormatError,
+    InvalidSliceError,
+    ParserError,
+    UnsupportedFrameSizeError,
 )
 from .loader import build_parser_from_detection, default_parser_registry, load_data
+from .timpel import TimpelTabularParser
 
 __all__ = [
-	"BaseParser",
-	"ParserError",
-	"UnsupportedFrameSizeError",
-	"AmbiguousFormatError",
-	"InvalidSliceError",
-	"FileDetection",
-	"DragerAscParser",
-	"DragerBinParser",
-	"DragerEitParser",
-	"TimpelTabularParser",
-	"build_parser_from_detection",
-	"candidate_specs_from_size",
-	"default_parser_registry",
-	"detect_bin_format_from_size",
-	"detect_vendor_and_format",
-	"load_data",
+    "BaseParser",
+    "ParserError",
+    "UnsupportedFrameSizeError",
+    "AmbiguousFormatError",
+    "InvalidSliceError",
+    "FileDetection",
+    "DragerAscParser",
+    "DragerBinParser",
+    "DragerEitParser",
+    "TimpelTabularParser",
+    "build_parser_from_detection",
+    "candidate_specs_from_size",
+    "default_parser_registry",
+    "detect_bin_format_from_size",
+    "detect_vendor_and_format",
+    "load_data",
 ]
