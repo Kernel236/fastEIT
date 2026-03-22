@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from fasteit.models import BaseData
 
 
 class BaseParser(ABC):
@@ -52,7 +53,7 @@ class BaseParser(ABC):
         """
         path = Path(path)
         if not path.exists():
-            raise FileNotFoundError(f"File non trovato: {path}")
+            raise FileNotFoundError(f"File not found: {path}")
         if not self.validate(path):
-            raise ValueError(f"File non valido o formato non supportato: {path}")
+            raise ValueError(f"File invalid or unsupported format: {path}")
         return self.parse(path)
