@@ -10,7 +10,7 @@ extension recipes see [`parsing_layer.md`](parsing_layer.md).
 | File | Vendor | Container | Content |
 |------|--------|-----------|---------|
 | `.bin` | Dräger | `ReconstructedFrameData` | 32×32 pixel matrices + Medibus signals |
-| `.txt` | Timpel | `ReconstructedFrameData` | 32×32 pixel matrices + 6 device signals |
+| `.csv` / `.txt` / `.asc` | Timpel | `ReconstructedFrameData` | 32×32 pixel matrices + 6 device signals |
 | `.asc` | Dräger | `ContinuousSignalData` | Frame-by-frame signal table, no matrices |
 | `.eit` | Dräger | `RawImpedanceData` | 208 raw transimpedances per frame |
 | `.x`   | Timpel | `RawImpedanceData` | 208 raw transimpedances per frame |
@@ -23,7 +23,7 @@ All containers inherit from `BaseData` (`models/base_data.py`).
 
 ```
 filename    str          Source file path
-file_format str          "bin" | "eit" | "asc" | "txt" | "x"
+file_format str          "bin" | "eit" | "asc" | "csv" | "txt"
 vendor      str          "draeger" | "timpel"
 fs          float|None   Sampling frequency in Hz (parser-derived)
 metadata    dict         Header fields, firmware version, warnings, etc.
@@ -36,11 +36,11 @@ duration    float        n_frames / fs  (0.0 if fs is None)
 ## 3. `ReconstructedFrameData`
 
 **File:** `models/reconstructed_data.py`
-**Produced by:** `DragerBinParser` (`.bin`), `TimpelTabularParser` (`.txt`)
+**Produced by:** `DragerBinParser` (`.bin`), `TimpelTabularParser` (`.csv/.txt/.asc`)
 
 ```
 frames      np.ndarray   Structured array shape (N,). Named fields:
-                           ts            float64   timestamp (fraction of day)
+                           ts            float64   timestamp (seconds)
                            pixels        float32   32×32 image per frame
                          Dräger .bin only:
                            min_max_flag  int32     +1=insp peak, -1=exp trough, 0=none
@@ -50,7 +50,7 @@ frames      np.ndarray   Structured array shape (N,). Named fields:
 
 aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frames.
                          Dräger .bin: 52 or 58 Medibus channels.
-                         Timpel .txt: 6 device channels (airway_pressure, flow,
+                         Timpel: 6 device channels (airway_pressure, flow,
                          volume, min_flag, max_flag, qrs_flag — cols 1024-1029).
                          None if the source file carries no auxiliary signals.
 ```
@@ -70,6 +70,13 @@ data.roi_signal(n)   # single ROI 0–3          shape (N,)
 
 `global_signal` and `roi_signals` are raw sums with no lung mask — the mask
 is applied in the preprocessing layer.
+
+**Timestamp conventions:**
+
+| Vendor | `ts` field | Unit |
+|--------|-----------|------|
+| Dräger `.bin` | wall-clock fraction-of-day from device | seconds (converted from float64 day fraction) |
+| Timpel `.csv` | synthetic: `(frame_index + first_frame) / 50.0` | seconds from start |
 
 ---
 
@@ -103,35 +110,3 @@ measurements   np.ndarray   shape (N_frames, 208)
 
 Intended consumer: **pyEIT** or any reconstruction library.
 fastEIT does not perform image reconstruction — it ingests vendor-reconstructed files.
-
----
-
-## 6. File layout
-
-```
-src/fasteit/
-├── models/
-│   ├── base_data.py           BaseData
-│   ├── reconstructed_data.py  ReconstructedFrameData
-│   ├── continuous_data.py     ContinuousSignalData
-│   └── raw_impedance_data.py  RawImpedanceData
-│
-└── parsers/
-    ├── base.py                BaseParser ABC
-    ├── errors.py              Exception hierarchy
-    ├── bin_formats.py         FormatSpec registry (BIN_FORMAT_SPECS)
-    ├── detection.py           Auto-detection: extension, vendor, format
-    ├── loader.py              load_data() + parser registry
-    ├── draeger/
-    │   ├── bin/
-    │   │   ├── draeger_dtypes.py  FRAME_BASE/EXT_DTYPE, MEDIBUS field lists
-    │   │   ├── bin_parser.py      DragerBinParser
-    │   │   └── bin_utils.py       sentinel detection, fs estimation
-    │   ├── asc/
-    │   │   └── asc_parser.py      DragerAscParser
-    │   └── eit/
-    │       └── eit_parser.py      DragerEitParser (scaffold)
-    └── timpel/
-        ├── timpel_dtypes.py   Timpel field definitions (scaffold)
-        └── timpel_parser.py   TimpelTabularParser (scaffold)
-```

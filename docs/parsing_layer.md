@@ -58,12 +58,14 @@ sizes that divide the same file size).
 
 ```python
 {
-    ("draeger", ".bin"):  lambda: DragerBinParser(),
-    ("draeger", ".asc"):  lambda: DragerAscParser(),
-    ("draeger", ".txt"):  lambda: DragerAscParser(),
-    ("draeger", ".csv"):  lambda: DragerAscParser(),
-    ("timpel",  ".csv"):  lambda: TimpelTabularParser(),
-    ...
+    ("draeger", ".bin"): lambda: DragerBinParser(),
+    ("draeger", ".eit"): lambda: DragerEitParser(),
+    ("draeger", ".asc"): lambda: DragerAscParser(),
+    ("draeger", ".txt"): lambda: DragerAscParser(),
+    ("draeger", ".csv"): lambda: DragerAscParser(),
+    ("timpel",  ".csv"): lambda: TimpelTabularParser(),
+    ("timpel",  ".txt"): lambda: TimpelTabularParser(),
+    ("timpel",  ".asc"): lambda: TimpelTabularParser(),
 }
 ```
 
@@ -321,3 +323,33 @@ the detection logic choose. Alternatively, add an optional `parse_mode`
 parameter to the existing parser.
 
 ---
+
+## 5. File layout
+
+```
+src/fasteit/
+├── models/
+│   ├── base_data.py           BaseData (common base class)
+│   ├── reconstructed_data.py  ReconstructedFrameData
+│   ├── continuous_data.py     ContinuousSignalData
+│   └── raw_impedance_data.py  RawImpedanceData (scaffold)
+│
+└── parsers/
+    ├── base.py                BaseParser ABC + parse_safe()
+    ├── errors.py              Exception hierarchy
+    ├── bin_formats.py         FormatSpec registry (BIN_FORMAT_SPECS)
+    ├── detection.py           Auto-detection: extension, vendor, format
+    ├── loader.py              load_data() / load_many() / load_folder() + registry
+    ├── draeger/
+    │   ├── bin/
+    │   │   ├── draeger_dtypes.py  FRAME_BASE/EXT_DTYPE, Medibus field lists
+    │   │   ├── bin_parser.py      DragerBinParser
+    │   │   └── bin_utils.py       sentinel helpers, fs estimation
+    │   ├── asc/
+    │   │   └── asc_parser.py      DragerAscParser
+    │   └── eit/
+    │       └── eit_parser.py      DragerEitParser (scaffold)
+    └── timpel/
+        ├── timpel_dtypes.py   Timpel schema constants (TIMPEL_FRAME_DTYPE, TIMPEL_AUX_FIELDS)
+        └── timpel_parser.py   TimpelTabularParser
+```
