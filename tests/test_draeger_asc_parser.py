@@ -2,10 +2,79 @@
 
 from pathlib import Path
 
+import pytest
+
 from fasteit.models.continuous_data import ContinuousSignalData
 from fasteit.parsers.detection import detect_vendor_from_tabular
 from fasteit.parsers.draeger import DragerAscParser
 from fasteit.parsers.loader import load_data
+
+# ── Synthetic fixture helpers ─────────────────────────────────────────────────
+
+
+def _make_asc(tmp_path: Path, n_frames: int = 4) -> Path:
+    """Write a minimal valid Dräger .asc file with >20 waveform columns."""
+    col_names = ["Image", "Time", "Global", "MinMax", "Event", "EventText",
+                 "Timing_Error"] + [f"Signal_{i}" for i in range(14)]
+    header = "\t".join(col_names)  # 21 columns total
+
+    rows = []
+    for i in range(1, n_frames + 1):
+        t = f"{i * 0.02:.6f}".replace(".", ",")
+        vals = ([str(i), t, f"{100 + i},50", "0", "0", "        ", "0"]
+                + [f"{10 + i},0{i}" for _ in range(14)])
+        rows.append("\t".join(vals))
+
+    meta = [
+        "File: synthetic.bin",
+        f"Length: {n_frames} images = 0 s",
+        "Dynamic image, time: 0,5",
+        "LP/BP-Filter: LP",
+        "Filter Cut-Off Frequ: 5 Hz",
+        "",
+    ]
+    content = "\n".join(meta + [header] + rows) + "\n"
+    p = tmp_path / "synthetic.asc"
+    p.write_text(content, encoding="latin1")
+    return p
+
+
+# ── Synthetic tests (no patient file required) ────────────────────────────────
+
+
+def test_asc_parser_synthetic_returns_continuous_signal_data(tmp_path):
+    p = _make_asc(tmp_path, n_frames=4)
+    data = DragerAscParser().parse(p)
+    assert isinstance(data, ContinuousSignalData)
+    assert data.file_format == "asc"
+    assert data.n_frames == 4
+    assert data.metadata["parsed_section"] == "continuous_waveforms"
+    assert data.metadata["n_columns"] > 20
+
+
+def test_asc_parser_synthetic_fs_estimated(tmp_path):
+    p = _make_asc(tmp_path, n_frames=4)
+    data = DragerAscParser().parse(p)
+    # dt = 0.02 s → fs = 50 Hz
+    assert data.fs is not None
+    assert abs(data.fs - 50.0) < 1.0
+
+
+def test_asc_parser_synthetic_header_metadata(tmp_path):
+    p = _make_asc(tmp_path, n_frames=4)
+    data = DragerAscParser().parse(p)
+    assert data.metadata["source_eit_file"] == "synthetic.bin"
+    assert data.metadata["declared_images"] == 4
+    assert data.metadata["filter_mode"] == "LP"
+
+
+def test_asc_parser_raises_if_no_waveform_header(tmp_path):
+    # File with only 11-column header (no >20-column table)
+    content = "File: x.bin\n\nImage\tTime\tA\tB\tC\tD\tE\tF\tG\tH\tI\n1\t0,02\t1\t2\t3\t4\t5\t6\t7\t8\t9\n"
+    p = tmp_path / "bad.asc"
+    p.write_text(content, encoding="latin1")
+    with pytest.raises(ValueError, match="Could not find continuous waveform"):
+        DragerAscParser().parse(p)
 
 
 def _asc_file() -> Path:

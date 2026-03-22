@@ -59,3 +59,40 @@ def test_to_detect_lowcase_functionality():
 
     parser = build_parser_from_detection(uppercase_vendor)
     assert isinstance(parser, DragerBinParser)
+
+
+def test_detect_vendor_and_format_unsupported_extension_raises(tmp_path: Path):
+    p = tmp_path / "file.xyz"
+    p.write_bytes(b"\x00" * 10)
+    with pytest.raises(ValueError, match="Unsupported extension"):
+        detect_vendor_and_format(p)
+
+
+def test_detect_vendor_and_format_ambiguous_bin_raises(tmp_path: Path):
+    # lcm(4358, 4382) = 4358 * 4382 / gcd(4358, 4382) = 9_543_478 bytes
+    # Compute the actual lcm
+    import math
+
+    from fasteit.parsers.errors import AmbiguousFormatError
+    lcm_size = math.lcm(4358, 4382)
+    p = tmp_path / "ambiguous.bin"
+    p.write_bytes(b"\x00" * lcm_size)
+    with pytest.raises(AmbiguousFormatError):
+        detect_vendor_and_format(p)
+
+
+def test_detect_vendor_from_tabular_timpel_keyword(tmp_path: Path):
+    from fasteit.parsers.detection import detect_vendor_from_tabular
+
+    p = tmp_path / "timpel_data.txt"
+    p.write_text("Timpel measurement export\nsome data\n", encoding="latin1")
+    assert detect_vendor_from_tabular(p) == "timpel"
+
+
+def test_detect_vendor_from_tabular_unknown_raises(tmp_path: Path):
+    from fasteit.parsers.detection import detect_vendor_from_tabular
+
+    p = tmp_path / "unknown.txt"
+    p.write_text("Some random content without known vendor keywords\n", encoding="latin1")
+    with pytest.raises(ValueError, match="Could not detect vendor"):
+        detect_vendor_from_tabular(p)

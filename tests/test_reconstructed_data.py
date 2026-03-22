@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from fasteit.parsers.draeger.bin.draeger_dtypes import FRAME_BASE_DTYPE
 from fasteit.models.reconstructed_data import ReconstructedFrameData
+from fasteit.parsers.draeger.bin.draeger_dtypes import FRAME_BASE_DTYPE
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -113,3 +113,35 @@ def test_roi_signal_invalid_index(bin_data):
 def test_custom_sampling_rate(five_frames):
     d = ReconstructedFrameData(frames=five_frames, fs=50.0)
     assert d.duration == pytest.approx(5 / 50.0)
+
+
+# ── Tests: error paths (fields not in dtype) ─────────────────────────────────
+
+_MINIMAL_DTYPE = np.dtype([("ts", "<f8"), ("pixels", "<f4", (32, 32))])
+
+
+@pytest.fixture()
+def minimal_data():
+    frames = np.zeros(3, dtype=_MINIMAL_DTYPE)
+    return ReconstructedFrameData(frames=frames, fs=20.0)
+
+
+def test_min_max_flags_raises_for_minimal_dtype(minimal_data):
+    with pytest.raises(AttributeError, match="min_max_flag"):
+        _ = minimal_data.min_max_flags
+
+
+def test_event_markers_raises_for_minimal_dtype(minimal_data):
+    with pytest.raises(AttributeError, match="event_marker"):
+        _ = minimal_data.event_markers
+
+
+def test_event_texts_raises_for_minimal_dtype(minimal_data):
+    with pytest.raises(AttributeError, match="event_text"):
+        _ = minimal_data.event_texts
+
+
+def test_require_frames_raises_when_no_frames():
+    d = ReconstructedFrameData()
+    with pytest.raises(AttributeError, match="No frames"):
+        _ = d.timestamps
