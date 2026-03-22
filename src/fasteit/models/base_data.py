@@ -9,12 +9,6 @@ from dataclasses import dataclass, field
 class BaseData:
     """Base container for raw data from any parser.
 
-    Subclasses must set n_frames and duration in __post_init__ once their
-    primary data array is available.
-
-    Sampling frequency (fs) is parser-derived from file timestamps. No vendor
-    default is hardcoded at this layer.
-
     Attributes:
         filename:    Path of the source file.
         file_format: Format identifier — "bin", "eit", "asc", "txt", or "x".
