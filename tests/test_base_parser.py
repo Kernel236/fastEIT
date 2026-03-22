@@ -47,7 +47,7 @@ def test_concrete_subclass_instantiates():
 def test_parse_safe_raises_on_missing_file(tmp_path):
     parser = _AlwaysValidParser()
     missing = tmp_path / "nonexistent.bin"
-    with pytest.raises(FileNotFoundError, match="File non trovato"):
+    with pytest.raises(FileNotFoundError, match="File not found"):
         parser.parse_safe(missing)
 
 
@@ -55,7 +55,7 @@ def test_parse_safe_raises_on_invalid_format(tmp_path):
     f = tmp_path / "bad.bin"
     f.write_bytes(b"\x00" * 10)
     parser = _AlwaysInvalidParser()
-    with pytest.raises(ValueError, match="non valido"):
+    with pytest.raises(ValueError, match="invalid or unsupported"):
         parser.parse_safe(f)
 
 

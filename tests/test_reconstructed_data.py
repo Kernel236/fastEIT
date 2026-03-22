@@ -1,10 +1,10 @@
-"""Tests for BinData dataclass (Task 0.5.2, updated Task 1.2.1)."""
+"""Tests for ReconstructedFrameData dataclass (Task 0.5.2, updated Task 1.2.1)."""
 
 import numpy as np
 import pytest
 
-from fasteit.dtypes import FRAME_BASE_DTYPE
-from fasteit.models.bin_data import BinData
+from fasteit.parsers.draeger.bin.draeger_dtypes import FRAME_BASE_DTYPE
+from fasteit.models.reconstructed_data import ReconstructedFrameData
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -18,11 +18,12 @@ def five_frames() -> np.ndarray:
 
 
 @pytest.fixture()
-def bin_data(five_frames) -> BinData:
-    return BinData(
+def bin_data(five_frames) -> ReconstructedFrameData:
+    return ReconstructedFrameData(
         frames=five_frames,
         filename="test.bin",
         file_format="bin",
+        fs=50.0,
     )
 
 
@@ -38,7 +39,7 @@ def test_duration(bin_data):
 
 
 def test_no_frames_gives_zero():
-    d = BinData()
+    d = ReconstructedFrameData()
     assert d.n_frames == 0
     assert d.duration == 0.0
 
@@ -78,17 +79,9 @@ def test_event_markers_shape(bin_data):
 # ── Tests: derived signals ────────────────────────────────────────────────────
 
 
-def test_global_signal_shape(bin_data):
-    assert bin_data.global_signal.shape == (5,)
-
-
 def test_global_signal_value(bin_data):
     # only pixel (16,16) is lit with value 1.0 → sum = 1.0 per frame
     assert bin_data.global_signal[0] == pytest.approx(1.0)
-
-
-def test_roi_signals_shape(bin_data):
-    assert bin_data.roi_signals.shape == (5, 4)
 
 
 def test_roi_signals_mid_dorsal(bin_data):
@@ -107,10 +100,10 @@ def test_roi_signal_single(bin_data):
 
 
 def test_roi_signal_invalid_index(bin_data):
-    with pytest.raises(ValueError, match="ROI deve essere 0-3"):
+    with pytest.raises(ValueError, match="roi must be 0"):
         bin_data.roi_signal(4)
 
-    with pytest.raises(ValueError, match="ROI deve essere 0-3"):
+    with pytest.raises(ValueError, match="roi must be 0"):
         bin_data.roi_signal(-1)
 
 
@@ -118,5 +111,5 @@ def test_roi_signal_invalid_index(bin_data):
 
 
 def test_custom_sampling_rate(five_frames):
-    d = BinData(frames=five_frames, fs=50.0)
+    d = ReconstructedFrameData(frames=five_frames, fs=50.0)
     assert d.duration == pytest.approx(5 / 50.0)

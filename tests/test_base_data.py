@@ -7,9 +7,10 @@ def test_base_data_defaults():
     d = BaseData()
     assert d.n_frames == 0
     assert d.duration == 0.0
-    assert d.fs == 50.0
+    assert d.fs is None
     assert d.filename == ""
     assert d.file_format == ""
+    assert d.vendor == ""
     assert d.metadata == {}
 
 

@@ -2,13 +2,13 @@
 
 import numpy as np
 
-from fasteit.dtypes import (
+from fasteit.parsers.draeger.bin.draeger_dtypes import (
     FRAME_BASE_DTYPE,
     FRAME_EXT_DTYPE,
+    MEDIBUS_BASE_FIELDS,
+    MEDIBUS_BASE_INDEX,
     MEDIBUS_EXT_FIELDS,
     MEDIBUS_EXT_INDEX,
-    MEDIBUS_FIELDS,
-    MEDIBUS_INDEX,
 )
 
 # ── itemsize ──────────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ def test_medibus_dtype():
 
 
 def test_medibus_fields_count():
-    assert len(MEDIBUS_FIELDS) == 52
+    assert len(MEDIBUS_BASE_FIELDS) == 52
 
 
 def test_medibus_ext_fields_count():
@@ -75,19 +75,19 @@ def test_medibus_ext_fields_count():
 
 
 def test_medibus_fields_structure():
-    for name, unit, is_continuous in MEDIBUS_FIELDS:
+    for name, unit, is_continuous in MEDIBUS_BASE_FIELDS:
         assert isinstance(name, str) and name
         assert isinstance(unit, str)
         assert isinstance(is_continuous, bool)
 
 
 def test_medibus_index_lookup():
-    assert MEDIBUS_INDEX["airway_pressure"] == 0
-    assert MEDIBUS_INDEX["flow"] == 1
-    assert MEDIBUS_INDEX["volume"] == 2
-    assert MEDIBUS_INDEX["peep"] == 14
+    assert MEDIBUS_BASE_INDEX["airway_pressure"] == 0
+    assert MEDIBUS_BASE_INDEX["flow"] == 1
+    assert MEDIBUS_BASE_INDEX["volume"] == 2
+    assert MEDIBUS_BASE_INDEX["peep"] == 14
     assert (
-        MEDIBUS_INDEX["time_at_low_pressure"] == 51
+        MEDIBUS_BASE_INDEX["time_at_low_pressure"] == 51
     )  # Tlow — last field in BASE format
     assert (
         MEDIBUS_EXT_INDEX["high_pressure"] == 51
@@ -111,14 +111,14 @@ def test_medibus_ext_pod_fields_present():
 def test_continuous_fields_at_start():
     """First 6 Medibus fields must be continuous waveforms."""
     for i in range(6):
-        name, unit, is_continuous = MEDIBUS_FIELDS[i]
+        name, unit, is_continuous = MEDIBUS_BASE_FIELDS[i]
         assert is_continuous, f"Field {i} ({name}) expected continuous=True"
 
 
 def test_non_continuous_fields_after_index_5():
     """Fields 6-51 must all be non-continuous (breath-averaged)."""
     for i in range(6, 52):
-        name, unit, is_continuous = MEDIBUS_FIELDS[i]
+        name, unit, is_continuous = MEDIBUS_BASE_FIELDS[i]
         assert not is_continuous, f"Field {i} ({name}) expected continuous=False"
 
 
