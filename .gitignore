@@ -2,32 +2,17 @@
 .claude/
 CLAUDE.md
 
-#test files
+# Test files (patient data — never commit)
 /src/fasteit/test_files/*
-
 
 # Internal tools (not part of the library)
 tools/
 
-# Placeholder modules — tracciati solo quando implementati
-src/fasteit/parsers/bin_parser.py
-src/fasteit/parsers/csv_parser.py
-src/fasteit/parsers/eit_parser.py
-src/fasteit/preprocessing/__init__.py
-src/fasteit/preprocessing/filtering.py
-src/fasteit/preprocessing/lung_mask.py
-src/fasteit/preprocessing/breath_detection.py
-src/fasteit/features/__init__.py
-src/fasteit/features/clinical.py
-src/fasteit/models/session.py
-src/fasteit/models/breath.py
-src/fasteit/models/peep_step.py
-src/fasteit/models/study.py
-src/fasteit/export/__init__.py
-src/fasteit/export/dataframe.py
-src/fasteit/visualization/__init__.py
-src/fasteit/visualization/plots.py
+# Reverse engineering notes (private)
 docs/reverse_eng/eit_format.ipynb
+
+# Scaffold modules — tracked when implemented
+src/fasteit/parsers/timpel/
 
 # Python
 __pycache__/
@@ -39,6 +24,7 @@ __pycache__/
 dist/
 build/
 .eggs/
+
 
 .ruff_cache/
 
