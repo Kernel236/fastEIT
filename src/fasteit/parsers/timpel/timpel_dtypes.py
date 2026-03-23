@@ -68,4 +68,3 @@ TIMPEL_FRAME_DTYPE: np.dtype = np.dtype(
         ("pixels", "<f4", (32, 32)),  # reconstructed 32×32 image
     ]
 )
-
