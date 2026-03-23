@@ -15,7 +15,7 @@ and lung monitoring.
 - **Native Dräger PulmoVista 500 parser** — reads `.bin` (reconstructed 32×32 frames + full Medibus waveforms) and `.asc` (continuous frame-by-frame signal export) directly; no MATLAB required
 - **Multi-format `.bin` support** — handles standard frames (4358 b) and PressurePod-extended frames (4382 b, +esophageal/transpulmonary pressures); expandable to new frame sizes without touching the parser
 - **`.eit` parser** — coming soon
-- **Timpel support** — coming soon
+- **Timpel support** — tabular `.csv`/`.txt` parser implemented
 
 ## Installation
 
@@ -46,6 +46,11 @@ print(data.global_signal[:10])      # first 10 frames global EIT signal
 data = load_data("patient01.asc")
 print(data.n_frames, data.fs)       # e.g. 11500, 50.0
 print(data.table.columns.tolist())  # all available signal columns
+
+# Timpel .csv — reconstructed frames + aux signals
+data = load_data("recording.csv")
+print(data.n_frames, data.fs)       # e.g. 9000, 50.0
+print(data.pixels.shape)            # (9000, 32, 32)
 ```
 
 ## Project status
@@ -67,7 +72,7 @@ Pre-alpha. Data model and parsing layer implemented.
 | `DragerBinParser` | Implemented | `.bin` — base frame (4358 b) and PressurePod frame (4382 b); registry-driven, new frame sizes require only a dtype + one entry |
 | `DragerAscParser` | Implemented | `.asc`, `.txt`, `.csv` — continuous waveform export |
 | `DragerEitParser` | Scaffold | `.eit` (Fase 2) |
-| `TimpelTabularParser` | Scaffold | `.csv`, `.txt` (future) |
+| `TimpelTabularParser` | Implemented | `.csv`, `.txt` — reconstructed frame export |
 
 All parsers are accessible via the single entry point `load_data(path)`, which
 auto-detects vendor and format.
