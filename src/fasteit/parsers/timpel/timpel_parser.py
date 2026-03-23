@@ -98,8 +98,6 @@ class TimpelTabularParser(BaseParser):
             raise InvalidSliceError("max_frames must be > 0 when provided")
 
         # ── 1. Load raw numeric matrix ─────────────────────────────────────
-        # np.loadtxt skiprows=first_frame skips the first N rows of the file,
-        # max_rows limits the number of rows read after that.
         try:
             raw: np.ndarray = np.loadtxt(
                 str(path),
@@ -139,9 +137,6 @@ class TimpelTabularParser(BaseParser):
         n_frames = raw.shape[0]
 
         # ── 3. Build synthetic timestamps (seconds from start) ─────────────
-        # Timpel has no timestamp column. Synthetic time follows eitprocessing:
-        #   time[i] = (first_frame + i) / fs
-        # This preserves absolute frame indices even when loading a slice.
         fs = TIMPEL_DEFAULT_SAMPLE_FREQUENCY
         ts = (np.arange(n_frames) + first_frame) / fs
 
@@ -150,11 +145,9 @@ class TimpelTabularParser(BaseParser):
         frames["ts"] = ts
 
         # Reshape 1024 pixel columns to 32×32, replace NaN sentinel.
-        # Use threshold comparison (< sentinel + 1.0) rather than exact equality
-        # so the detection is robust to minor float32 rounding in future sentinel changes.
         pixels = raw[:, :TIMPEL_AIRWAY_PRESSURE_COL].astype(np.float32)
         pixels = pixels.reshape(n_frames, 32, 32)
-        pixels = np.where(pixels < TIMPEL_NAN_SENTINEL + 1.0, np.nan, pixels)
+        pixels = np.where(pixels == TIMPEL_NAN_SENTINEL, np.nan, pixels)
         frames["pixels"] = pixels
 
         # ── 5. Build aux_signals dict ───────────────────────────────────────
@@ -164,7 +157,7 @@ class TimpelTabularParser(BaseParser):
             values = raw[:, col].astype(np.float32)
             # Apply NaN sentinel to continuous channels (not to binary flags)
             if field_name not in {"min_flag", "max_flag", "qrs_flag"}:
-                values = np.where(values < TIMPEL_NAN_SENTINEL + 1.0, np.nan, values)
+                values = np.where(values == TIMPEL_NAN_SENTINEL, np.nan, values)
             aux_signals[field_name] = values
 
         # ── 6. Assemble result ──────────────────────────────────────────────

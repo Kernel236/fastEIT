@@ -14,7 +14,6 @@ Sentinel: −1000.0 → NaN (same convention as Dräger Medibus channels).
 
 Sampling frequency: 50 Hz fixed (no timestamp column in Timpel files).
 Synthetic timestamps are generated as seconds from start of recording,
-consistent with eitprocessing (Apache-2.0):
 https://github.com/EIT-ALIVE/eitprocessing
 
 Format reference: cross-validated against eitprocessing timpel.py loader.
@@ -62,9 +61,6 @@ TIMPEL_AUX_FIELDS: tuple[str, ...] = (
 # ---------------------------------------------------------------------------
 # Structured dtype for ReconstructedFrameData.frames
 # ---------------------------------------------------------------------------
-# Compatible with DragerBinParser output: has "ts" and "pixels" fields.
-# "ts" holds synthetic time in seconds from start of recording.
-# (Dräger stores fraction-of-day wall-clock time; Timpel has no timestamps.)
 
 TIMPEL_FRAME_DTYPE: np.dtype = np.dtype(
     [
@@ -72,5 +68,4 @@ TIMPEL_FRAME_DTYPE: np.dtype = np.dtype(
         ("pixels", "<f4", (32, 32)),  # reconstructed 32×32 image
     ]
 )
-# Total in-memory size per frame: 8 + 4*1024 = 4104 bytes
-# (source file stores 1030 float64 values per row — not binary)
+
