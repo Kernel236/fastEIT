@@ -89,4 +89,4 @@ def estimate_sampling_frequency_hz(timestamps_day_fraction: np.ndarray) -> float
     interval = seconds[-1] - seconds[0]
     if interval <= 0:
         raise ValueError("Non-positive timestamp interval — timestamps may be corrupt")
-    return float((ts.size - 1) / interval)
+    return float(round((ts.size - 1) / interval))

@@ -121,6 +121,7 @@ class DragerAscParser(BaseParser):
             decimal=",",
             na_values=["-"],
             skip_blank_lines=True,
+            index_col=False,
         )
 
         if df.empty:
@@ -142,9 +143,10 @@ class DragerAscParser(BaseParser):
         if "time" in df.columns:
             time_values = pd.to_numeric(df["time"], errors="coerce").dropna()
             if len(time_values) >= 2:
-                dt = (time_values.diff().dropna()).median()
-                if pd.notna(dt) and dt > 0:
-                    fs = float(1.0 / dt)
+                dt_days = time_values.diff().dropna().median()
+                dt_seconds = float(dt_days) * 86400.0
+                if pd.notna(dt_seconds) and dt_seconds > 0:
+                    fs = round(1.0 / dt_seconds)
 
         metadata["parsed_section"] = "continuous_waveforms"
         metadata["n_rows"] = int(len(df))
