@@ -5,9 +5,9 @@ step-by-step recipes for the most common extension tasks:
 
 1. [How the parsing layer works](#1-how-the-parsing-layer-works)
 2. [Add a new Dräger `.bin` frame size](#2-add-a-new-drger-bin-frame-size)
-3. [Add a new vendor from scratch](#3-add-a-new-vendor-from-scratch)
-4. [Add a tabular format for an existing vendor](#4-add-a-tabular-format-for-an-existing-vendor)
-5. [Testing checklist](#5-testing-checklist)
+3. [Add a new parser](#3-add-a-new-parser)
+4. [Testing checklist](#4-testing-checklist)
+5. [File layout](#5-file-layout)
 
 ---
 
@@ -113,6 +113,45 @@ load_data("patient01.bin")
        return ReconstructedFrameData
 ```
 
+### Multi-file loaders
+
+Two convenience wrappers built on top of `load_data()`:
+
+**`load_many(paths)`** — takes an explicit list of paths, returns a list of
+`BaseData` in the same order. Vendor and format can be mixed freely.
+
+```python
+from fasteit.parsers.loader import load_many
+
+recordings = load_many([
+    "patient01.bin",
+    "patient02.bin",
+    "patient01.asc",
+])
+```
+
+**`load_folder(folder, pattern="*")`** — scans a directory (alphabetically),
+parses every file that has a registered parser, and **silently skips** files
+that raise any error (no registered parser, malformed file, wrong extension).
+Skipped files print a one-line warning to `stderr` but never abort the scan.
+
+```python
+from fasteit.parsers.loader import load_folder
+
+# All files in a folder (mixed formats)
+recordings = load_folder("/data/session01/")
+
+# Only .bin files
+recordings = load_folder("/data/session01/", pattern="*.bin")
+
+# Recursive search
+recordings = load_folder("/data/", pattern="**/*.bin")
+```
+
+Both functions accept the same optional `registry=` argument as `load_data()`,
+making it easy to inject a custom parser registry for testing or for formats
+not yet registered by default.
+
 ---
 
 ## 2. Add a new Dräger `.bin` frame size
@@ -193,30 +232,44 @@ the spec — no parser changes needed.
 
 ---
 
-## 3. Add a new vendor from scratch
+## 3. Add a new parser
 
-Use case: support files from a hypothetical "AcmEIT" device that produces
-`.acm` binary files with its own frame layout.
+This recipe covers any combination: new vendor or existing vendor, binary or
+tabular. The five steps are always the same; only the content of steps 1 and 2
+differs by format type.
 
-**Files to change: 5.**
+**Return type by format:**
+
+| Format | Return type | Example |
+|--------|-------------|---------|
+| Binary frame sequence | `ReconstructedFrameData` | Dräger `.bin`, AcmEIT `.acm` |
+| Tabular (CSV / TXT) | `ContinuousSignalData` | Dräger `.asc`, Hamilton export, SERVO-U export, capnograph |
+
+Tabular parsers are common for any device that exports to a plain-text table —
+including standalone ventilators (Hamilton, Maquet SERVO, Dräger Evita) that
+export continuous waveforms (Flow, Paw, Volume) and/or breath-averaged
+parameters (TV, RR, PEEP, compliance) in the same file.
+
+**Files to change: 4–5.**
+
+---
 
 ### Step 1 — Detection
 
 File: `src/fasteit/parsers/detection.py`
 
-For header-based detection, add a branch in `detect_vendor_and_format()`:
+How detection works depends on the file type:
+
+**Binary with a recognisable header** — add a branch in `detect_vendor_and_format()`
+and a helper that reads the magic bytes:
 
 ```python
+# In detect_vendor_and_format():
 if extension == ".acm":
-    vendor = detect_vendor_from_acm_header(path)
+    vendor = _detect_vendor_from_acm_header(path)
     return FileDetection(path=path, extension=extension, vendor=vendor)
-```
 
-And the detection function itself:
-
-```python
-def detect_vendor_from_acm_header(path: Path) -> str:
-    """Detect vendor from .acm file magic bytes."""
+def _detect_vendor_from_acm_header(path: Path) -> str:
     with path.open("rb") as f:
         magic = f.read(8)
     if magic == b"ACMEIT\x01\x00":
@@ -224,28 +277,65 @@ def detect_vendor_from_acm_header(path: Path) -> str:
     raise ValueError(f"Unrecognised .acm header in '{path}'.")
 ```
 
-For size-based binary formats (like `.bin`), add a `FormatSpec` to
-`BIN_FORMAT_SPECS` instead — no detection function needed.
+**Binary without a header (size-based)** — add a `FormatSpec` to
+`BIN_FORMAT_SPECS` (see section 2). No detection function needed.
 
-### Step 2 — Dtype (if binary)
+**Tabular** — extend `detect_vendor_from_tabular()` with a keyword found in the
+file header (first 40 lines):
 
-File: `src/fasteit/parsers/acmeit/acmeit_dtypes.py` (new file)
+```python
+# In detect_vendor_from_tabular():
+for line in lines[:40]:
+    if "hamilton medical" in line.lower():
+        return "hamilton"
+```
+
+---
+
+### Step 2 — Schema definition
+
+**Binary** — define a numpy structured dtype (byte-exact) and a Medibus-style
+field list. File: `src/fasteit/parsers/acmeit/acmeit_dtypes.py` (new)
 
 ```python
 import numpy as np
 
 ACMEIT_FRAME_DTYPE = np.dtype([
-    ("ts",     "<f8"),
-    ("pixels", "<f4", (32, 32)),
-    ("flow",   "<f4"),
-    ("paw",    "<f4"),
+    ("ts",     "<f8"),           #    8 bytes
+    ("pixels", "<f4", (32, 32)), # 4096 bytes
+    ("flow",   "<f4"),           #    4 bytes
+    ("paw",    "<f4"),           #    4 bytes
 ])
 # Total: 8 + 4096 + 4 + 4 = 4112 bytes
 ```
 
-### Step 3 — Parser
+**Tabular** — define a `(snake_case_name, unit, is_continuous)` field list.
+*(Optional but recommended — makes the schema self-documenting and testable.)*
+File: `src/fasteit/parsers/hamilton/hamilton_dtypes.py` (new)
 
-File: `src/fasteit/parsers/acmeit/acmeit_parser.py` (new file)
+```python
+HAMILTON_FIELDS: list[tuple[str, str, bool]] = [
+    ("flow",             "L/min", True),   # continuous waveform
+    ("airway_pressure",  "mbar",  True),   # continuous waveform
+    ("volume",           "mL",    True),   # continuous waveform
+    ("respiratory_rate", "/min",  False),  # breath-averaged
+    ("tidal_volume",     "mL",    False),  # breath-averaged
+    ("peep",             "mbar",  False),  # breath-averaged
+]
+```
+
+The `is_continuous` flag lets downstream code select only waveforms or only
+breath-averaged values without touching the parser.
+
+---
+
+### Step 3 — Parser class
+
+File: `src/fasteit/parsers/<vendor>/<vendor>_parser.py` (new)
+
+The structure is always the same: `validate()` + `parse()`.
+
+**Binary parser:**
 
 ```python
 from pathlib import Path
@@ -258,11 +348,11 @@ class AcmEitParser(BaseParser):
         path = Path(path)
         if not path.exists() or path.stat().st_size == 0:
             return False
-        # Add any format-specific checks here
+        # e.g. check magic bytes or frame-size divisibility
         return True
 
     def parse(self, path: Path) -> ReconstructedFrameData:
-        ...
+        # np.memmap with ACMEIT_FRAME_DTYPE, sentinel → NaN, fs estimation ...
         return ReconstructedFrameData(
             frames=frames,
             aux_signals=aux_signals,
@@ -272,84 +362,119 @@ class AcmEitParser(BaseParser):
         )
 ```
 
+**Tabular parser:**
+
+```python
+import io
+import pandas as pd
+from pathlib import Path
+from fasteit.models.continuous_data import ContinuousSignalData
+from fasteit.parsers.base import BaseParser
+from fasteit.parsers.detection import detect_vendor_from_tabular
+
+class HamiltonParser(BaseParser):
+
+    def validate(self, path: Path) -> bool:
+        path = Path(path)
+        if not path.exists() or path.stat().st_size == 0:
+            return False
+        try:
+            return detect_vendor_from_tabular(path) == "hamilton"
+        except ValueError:
+            return False
+
+    def parse(self, path: Path) -> ContinuousSignalData:
+        path = Path(path)
+        with path.open("r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+
+        # Locate the column-header row (skip any prose header above it)
+        header_idx = next(
+            i for i, l in enumerate(lines)
+            if l.strip().startswith("Time")  # adapt to real format
+        )
+        df = pd.read_csv(
+            io.StringIO("".join(lines[header_idx:])),
+            sep=";",            # or "\t" — check the real file
+            decimal=",",
+            na_values=["-", "---"],
+            index_col=False,
+        )
+        df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+
+        fs = None
+        if "time" in df.columns:
+            dt = pd.to_numeric(df["time"], errors="coerce").diff().dropna().median()
+            if pd.notna(dt) and dt > 0:
+                fs = round(1.0 / float(dt))  # time assumed already in seconds
+
+        return ContinuousSignalData(
+            table=df,
+            fs=fs,
+            filename=str(path),
+            file_format=path.suffix.lstrip("."),
+            metadata={"parsed_section": "ventilator_export"},
+        )
+```
+
+---
 
 ### Step 4 — Register in loader
 
 File: `src/fasteit/parsers/loader.py`
 
 ```python
-from fasteit.parsers.acmeit.acmeit_parser import AcmEitParser
+from fasteit.parsers.hamilton.hamilton_parser import HamiltonParser   # or AcmEitParser
 
 def default_parser_registry():
     return {
         ...
-        ("acmeit", ".acm"): lambda: AcmEitParser(),
+        ("hamilton", ".csv"): lambda: HamiltonParser(),
+        ("hamilton", ".txt"): lambda: HamiltonParser(),
     }
 ```
+
+Registry key = `(vendor_lowercase, extension_with_dot)`. If a vendor uses
+multiple extensions for the same format, add one entry per extension pointing
+to the same parser factory.
+
+---
 
 ### Step 5 — Export from package `__init__`
 
 File: `src/fasteit/parsers/__init__.py`
 
 ```python
-from fasteit.parsers.acmeit.acmeit_parser import AcmEitParser
-__all__ = [..., "AcmEitParser"]
+from fasteit.parsers.hamilton.hamilton_parser import HamiltonParser
+__all__ = [..., "HamiltonParser"]
 ```
 
 ---
 
-## 4. Add a tabular format for an existing vendor
+### Note: same extension, different vendors
 
-Use case: Dräger introduces a new `.csv` export with a different column schema
-than the `.asc` — or you want a second parser for the `.asc` that also reads
-the breath-averaged Tidal Variations section.
-
-The simplest path is to create a second parser class and add a new registry
-key. Registry keys are `(vendor, extension)` tuples — if the extension is the
-same but the internal structure is different, you need detection logic to
-choose between parsers before registering.
-
-**If the extension is new (e.g., `.draegercsv`):**
-
-1. Add detection in `detect_vendor_and_format()` for the new extension.
-2. Create `parsers/draeger/csv/csv_parser.py` with `DragerCsvParser(BaseParser)`.
-3. Add `("draeger", ".draegercsv"): lambda: DragerCsvParser()` to the registry.
-
-**If the extension is the same but content differs:**
-
-Detection must inspect file content and return a different vendor string or a
-sub-format indicator. Then register two keys pointing to two parsers, and have
-the detection logic choose. Alternatively, add an optional `parse_mode`
-parameter to the existing parser.
+If two vendors share the same extension (e.g. both export `.csv`),
+`detect_vendor_from_tabular()` reads the file content and returns a different
+vendor string for each. The registry key `(vendor, extension)` ensures the
+correct parser is called.
 
 ---
 
-## 5. File layout
+## 4. Testing checklist
 
-```
-src/fasteit/
-├── models/
-│   ├── base_data.py           BaseData (common base class)
-│   ├── reconstructed_data.py  ReconstructedFrameData
-│   ├── continuous_data.py     ContinuousSignalData
-│   └── raw_impedance_data.py  RawImpedanceData (scaffold)
-│
-└── parsers/
-    ├── base.py                BaseParser ABC + parse_safe()
-    ├── errors.py              Exception hierarchy
-    ├── bin_formats.py         FormatSpec registry (BIN_FORMAT_SPECS)
-    ├── detection.py           Auto-detection: extension, vendor, format
-    ├── loader.py              load_data() / load_many() / load_folder() + registry
-    ├── draeger/
-    │   ├── bin/
-    │   │   ├── draeger_dtypes.py  FRAME_BASE/EXT_DTYPE, Medibus field lists
-    │   │   ├── bin_parser.py      DragerBinParser
-    │   │   └── bin_utils.py       sentinel helpers, fs estimation
-    │   ├── asc/
-    │   │   └── asc_parser.py      DragerAscParser
-    │   └── eit/
-    │       └── eit_parser.py      DragerEitParser (scaffold)
-    └── timpel/
-        ├── timpel_dtypes.py   Timpel schema constants (TIMPEL_FRAME_DTYPE, TIMPEL_AUX_FIELDS)
-        └── timpel_parser.py   TimpelTabularParser
-```
+Every new parser must have tests before it is considered done.
+Minimal coverage for a tabular parser:
+
+- [ ] `test_validate_returns_true_on_valid_file` — synthetic file, happy path
+- [ ] `test_validate_returns_false_on_wrong_extension` — wrong extension
+- [ ] `test_validate_returns_false_on_wrong_vendor_keyword` — wrong content
+- [ ] `test_parse_returns_continuous_signal_data` — correct type and `file_format`
+- [ ] `test_parse_fs_estimated` — `fs` is a reasonable integer (e.g. 50)
+- [ ] `test_parse_column_names_normalised` — no spaces or special characters
+- [ ] `test_parse_time_column_present` — `"time"` in `data.table.columns`
+- [ ] `test_parse_continuous_channels_present` — at least one signal channel
+- [ ] `test_parse_raises_on_missing_table_section` — `ValueError` on malformed file
+- [ ] `test_load_data_routes_to_parser` — `load_data(path).vendor == "myvendor"`
+
+---
+
