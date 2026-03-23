@@ -25,15 +25,19 @@ def _make_asc(tmp_path: Path, n_frames: int = 4) -> Path:
     ] + [f"Signal_{i}" for i in range(14)]
     header = "\t".join(col_names)  # 21 columns total
 
+    # Time stored as fraction of day (same as .bin timestamps).
+    # dt = 0.02 s = 0.02/86400 day → fs = 50 Hz after the parser converts back.
+    _DT_DAYS = 0.02 / 86400.0
     rows = []
     for i in range(1, n_frames + 1):
-        t = f"{i * 0.02:.6f}".replace(".", ",")
+        t = f"{i * _DT_DAYS:.10f}".replace(".", ",")
         vals = [str(i), t, f"{100 + i},50", "0", "0", "        ", "0"] + [
             f"{10 + i},0{i}" for _ in range(14)
         ]
         rows.append("\t".join(vals))
 
     meta = [
+        "DraegerEIT Software V1.30",
         "File: synthetic.bin",
         f"Length: {n_frames} images = 0 s",
         "Dynamic image, time: 0,5",
@@ -48,6 +52,38 @@ def _make_asc(tmp_path: Path, n_frames: int = 4) -> Path:
 
 
 # ── Synthetic tests (no patient file required) ────────────────────────────────
+
+
+def test_asc_validate_returns_true_for_valid_file(tmp_path):
+    p = _make_asc(tmp_path, n_frames=4)
+    assert DragerAscParser().validate(p) is True
+
+
+def test_asc_validate_returns_false_for_empty_file(tmp_path):
+    p = tmp_path / "empty.asc"
+    p.write_text("")
+    assert DragerAscParser().validate(p) is False
+
+
+def test_asc_validate_returns_false_for_wrong_extension(tmp_path):
+    p = _make_asc(tmp_path, n_frames=4)
+    p2 = p.rename(tmp_path / "recording.bin")
+    assert DragerAscParser().validate(p2) is False
+
+
+def test_asc_validate_returns_false_for_missing_file(tmp_path):
+    assert DragerAscParser().validate(tmp_path / "ghost.asc") is False
+
+
+def test_asc_parser_raises_on_empty_data_rows(tmp_path):
+    """Valid >20-column header but no data rows → ValueError."""
+    col_names = ["Image", "Time"] + [f"S_{i}" for i in range(19)]
+    header = "\t".join(col_names)
+    content = "File: x.bin\n\n" + header + "\n"
+    p = tmp_path / "nodata.asc"
+    p.write_text(content, encoding="latin1")
+    with pytest.raises(ValueError, match="no data rows"):
+        DragerAscParser().parse(p)
 
 
 def test_asc_parser_synthetic_returns_continuous_signal_data(tmp_path):
