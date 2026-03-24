@@ -1,6 +1,7 @@
 # fastEIT
 
 | | |
+
 | **Status** | ![Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-orange) |
 | **License** | ![Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg) |
 | **Python** | ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue) |
