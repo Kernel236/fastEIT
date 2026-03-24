@@ -7,15 +7,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-Kernel236%2FfastEIT-181717?logo=github)](https://github.com/Kernel236/fastEIT)
 
 Python library for parsing Electrical Impedance Tomography (EIT) data from the Dräger
-PulmoVista 500. Provides structured data containers for research in mechanical ventilation
-and lung monitoring.
-
-## What makes this different
-
-- **Native Dräger PulmoVista 500 parser** — reads `.bin` (reconstructed 32×32 frames + full Medibus waveforms) and `.asc` (continuous frame-by-frame signal export) directly; no MATLAB required
-- **Multi-format `.bin` support** — handles standard frames (4358 b) and PressurePod-extended frames (4382 b, +esophageal/transpulmonary pressures); expandable to new frame sizes without touching the parser
-- **`.eit` parser** — coming soon
-- **Timpel support** — tabular `.csv`/`.txt` parser implemented
+PulmoVista 500. Provides structured data containers for research in mechanical ventilation and lung monitoring.
 
 ## Installation
 
