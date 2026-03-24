@@ -74,6 +74,13 @@ auto-detects vendor and format.
 - [`docs/data_model.md`](docs/data_model.md) — data containers and parsing flow per file type
 - [`docs/parsing_layer.md`](docs/parsing_layer.md) — how to extend: new frame sizes, new vendors, new formats
 
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to
+report bugs, request features, and submit pull requests.
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md) code of conduct.
+
 ## Disclaimer
 
 This software is for **research purposes only**. It is not a medical device and has not been
