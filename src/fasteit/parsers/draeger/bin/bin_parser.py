@@ -119,32 +119,23 @@ class DragerBinParser(BaseParser):
         else:
             warnings_list = []
 
-        # ── 6. Sanitize pixels: replace sentinel values with NaN ─────────────
-        # TODO review if it's too slow for giant file!
-        clean_pixels = np.zeros((n_frames_to_load, 32, 32), dtype=np.float32)
-        for i in range(n_frames_to_load):
-            clean_pixels[i] = replace_no_data_sentinels(
-                mapped_frames["pixels"][i],
-                self._float_sentinels,
-                self._bit_sentinels,
-            )
-
-        # ── 7. Copy memmap to writable array, write clean pixels ──────────────
+        # ── 6. Copy memmap to writable array ──────────────────────────────────
         frames = mapped_frames.copy()
-        frames["pixels"] = clean_pixels
+
+        # ── 7. Sanitize pixels: vectorized over all frames at once ────────────
+        frames["pixels"] = replace_no_data_sentinels(
+            mapped_frames["pixels"],
+            self._float_sentinels,
+            self._bit_sentinels,
+        )
 
         # ── 8. Sanitize Medibus data if present (EXT format only) ─────────────
         if spec.medibus_fields is not None:
-            clean_medibus = np.zeros(
-                (n_frames_to_load, len(spec.medibus_fields)), dtype=np.float32
+            frames["medibus_data"] = replace_no_data_sentinels(
+                frames["medibus_data"],
+                self._float_sentinels,
+                self._bit_sentinels,
             )
-            for i in range(n_frames_to_load):
-                clean_medibus[i] = replace_no_data_sentinels(
-                    frames["medibus_data"][i],
-                    self._float_sentinels,
-                    self._bit_sentinels,
-                )
-            frames["medibus_data"] = clean_medibus
 
         # ── 9. Build aux_signals dict: {signal_name → array shape (N,)} ──────
         aux_signals = None
