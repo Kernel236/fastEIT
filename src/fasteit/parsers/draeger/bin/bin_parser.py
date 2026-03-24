@@ -120,7 +120,7 @@ class DragerBinParser(BaseParser):
             warnings_list = []
 
         # ── 6. Sanitize pixels: replace sentinel values with NaN ─────────────
-        # TODO review if it's too slow for giant file!
+        # TODO review if it's too slow!
         clean_pixels = np.zeros((n_frames_to_load, 32, 32), dtype=np.float32)
         for i in range(n_frames_to_load):
             clean_pixels[i] = replace_no_data_sentinels(
@@ -130,6 +130,7 @@ class DragerBinParser(BaseParser):
             )
 
         # ── 7. Copy memmap to writable array, write clean pixels ──────────────
+        # mapped_frames[mode="r"] is read-only; .copy() returns a writable array.
         frames = mapped_frames.copy()
         frames["pixels"] = clean_pixels
 
