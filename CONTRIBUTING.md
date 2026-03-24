@@ -1,6 +1,10 @@
 # Contributing to fastEIT
 
-Thank you for your interest in contributing.
+Every contribution is welcome — whether it is a bug report, a new parser,
+a documentation fix, or just a question. This is an open project and there
+is no wrong way to get involved, as long as you bring curiosity and
+a collaborative attitude. If you are unsure whether your idea fits, open an
+issue and let's talk about it.
 
 ## Reporting bugs
 
