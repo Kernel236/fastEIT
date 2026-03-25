@@ -1,6 +1,6 @@
 # Contributing to fastEIT
 
-Every contribution is welcome — whether it is a bug report, a new parser,
+Every contribution is welcome - whether it is a bug report, a new parser,
 a documentation fix, or just a question. This is an open project and there
 is no wrong way to get involved, as long as you bring curiosity and
 a collaborative attitude. If you are unsure whether your idea fits, open an
@@ -52,6 +52,8 @@ covering detection, schema definition, parser class, loader registration, and
 the testing checklist.
 
 ## Pull request process
+
+Please ensure to discuss about your idea with an Github issue before opening a PR. 
 
 1. Fork the repository and create a branch from `dev`
 2. Make your changes with tests
