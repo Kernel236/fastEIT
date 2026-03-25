@@ -8,8 +8,6 @@ CLAUDE.md
 # Internal tools (not part of the library)
 tools/
 
-# Reverse engineering notes (private)
-docs/reverse_eng/eit_format.ipynb
 
 # (timpel scaffold now tracked — implementation in progress)
 
