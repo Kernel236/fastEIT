@@ -125,7 +125,12 @@ def test_parse_slice_max_frames(tmp_path):
 # ── float sentinel replacement ────────────────────────────────────────────────
 
 
-def test_parse_float_sentinel_replaced_with_nan(tmp_path):
+def test_parse_float_sentinel_preserved_in_raw_data(tmp_path):
+    """Parser returns raw memmap — sentinel values are NOT replaced.
+
+    Sentinel replacement is deferred to the preprocessing layer so that
+    the memmap is never copied to RAM during parsing (lazy loading).
+    """
     frames = np.zeros(3, dtype=FRAME_BASE_DTYPE)
     dt_day = 1.0 / (50.0 * 86400.0)
     frames["ts"] = np.arange(3) * dt_day
@@ -134,7 +139,7 @@ def test_parse_float_sentinel_replaced_with_nan(tmp_path):
     frames.tofile(path)
 
     data = DragerBinParser().parse(path)
-    assert np.isnan(data.pixels[1, 0, 0])
+    assert data.pixels[1, 0, 0] == -1000.0  # raw value preserved, not NaN
 
 
 # ── Round-trip value correctness (Tasks 1.5.3 / 1.5.4 / 1.5.5 / 1.5.10) ─────
