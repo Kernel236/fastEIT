@@ -139,7 +139,7 @@ def test_parse_float_sentinel_preserved_in_raw_data(tmp_path):
     frames.tofile(path)
 
     data = DragerBinParser().parse(path)
-    assert data.pixels[1, 0, 0] == -1000.0  
+    assert data.pixels[1, 0, 0] == -1000.0
 
 
 # ── Round-trip value correctness (Tasks 1.5.3 / 1.5.4 / 1.5.5 / 1.5.10) ─────
