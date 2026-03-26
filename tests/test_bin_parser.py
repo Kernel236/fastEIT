@@ -139,12 +139,10 @@ def test_parse_float_sentinel_preserved_in_raw_data(tmp_path):
     frames.tofile(path)
 
     data = DragerBinParser().parse(path)
-    assert data.pixels[1, 0, 0] == -1000.0  # raw value preserved, not NaN
+    assert data.pixels[1, 0, 0] == -1000.0  
 
 
 # ── Round-trip value correctness (Tasks 1.5.3 / 1.5.4 / 1.5.5 / 1.5.10) ─────
-# Uses the shared bin_3frames fixture from conftest.py.
-# Frame i has all pixels = float(i+1), timestamps at 50 Hz fraction-of-day.
 
 _DT_DAY = 1.0 / (50.0 * 86400.0)
 
