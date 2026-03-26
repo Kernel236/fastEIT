@@ -12,11 +12,8 @@ from fasteit.parsers.detection import detect_bin_format_from_size
 from fasteit.parsers.errors import AmbiguousFormatError, UnsupportedFrameSizeError
 
 from .bin_utils import (
-    _BIT_SENTINELS,
-    _FLOAT_SENTINELS,
     estimate_sampling_frequency_hz,
     normalize_frame_slice,
-    replace_no_data_sentinels,
 )
 
 # Default sampling frequency used when fs cannot be estimated from timestamps.
@@ -42,10 +39,6 @@ class DragerBinParser(BaseParser):
     - Cross-referenced with eitprocessing (Apache-2.0):
       https://github.com/EIT-ALIVE/eitprocessing
     """
-
-    def __init__(self) -> None:
-        self._float_sentinels = _FLOAT_SENTINELS
-        self._bit_sentinels = _BIT_SENTINELS
 
     def validate(self, path: Path) -> bool:
         """Return True if file exists, is non-empty, and has a known frame size."""
@@ -119,35 +112,17 @@ class DragerBinParser(BaseParser):
         else:
             warnings_list = []
 
-        # ── 6. Copy memmap to writable array ──────────────────────────────────
-        frames = mapped_frames.copy()
-
-        # ── 7. Sanitize pixels: vectorized over all frames at once ────────────
-        frames["pixels"] = replace_no_data_sentinels(
-            mapped_frames["pixels"],
-            self._float_sentinels,
-            self._bit_sentinels,
-        )
-
-        # ── 8. Sanitize Medibus data if present (EXT format only) ─────────────
-        if spec.medibus_fields is not None:
-            frames["medibus_data"] = replace_no_data_sentinels(
-                frames["medibus_data"],
-                self._float_sentinels,
-                self._bit_sentinels,
-            )
-
-        # ── 9. Build aux_signals dict: {signal_name → array shape (N,)} ──────
+        # ── 6. Build aux_signals dict: {signal_name → array shape (N,)} ──────
         aux_signals = None
         if spec.medibus_fields is not None:
             aux_signals = {
-                field_name: frames["medibus_data"][:, field_idx]
+                field_name: mapped_frames["medibus_data"][:, field_idx]
                 for field_idx, field_name in enumerate(spec.medibus_fields)
             }
 
         # ── 10. Assemble and return result ────────────────────────────────────
         result = ReconstructedFrameData(
-            frames=frames,
+            frames=mapped_frames,
             aux_signals=aux_signals,
             fs=fs,
             filename=str(path),
