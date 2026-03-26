@@ -113,9 +113,6 @@ class DragerBinParser(BaseParser):
             warnings_list = []
 
         # ── 6. Build aux_signals dict: {signal_name → array shape (N,)} ──────
-        # Note: sentinel values (e.g. -1000.0, 0xFF7FC99E) are NOT replaced here.
-        # Sanitization is deferred to the preprocessing layer so that the memmap
-        # is never copied to RAM during parsing (lazy loading preserved).
         aux_signals = None
         if spec.medibus_fields is not None:
             aux_signals = {
