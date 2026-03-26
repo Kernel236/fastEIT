@@ -1,10 +1,12 @@
 # fastEIT
 
-![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
-![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
-![Status: Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-orange)
-![GitHub last commit](https://img.shields.io/github/last-commit/Kernel236/fastEIT)
-[![GitHub](https://img.shields.io/badge/GitHub-Kernel236%2FfastEIT-181717?logo=github)](https://github.com/Kernel236/fastEIT)
+| | |
+|:---|:---|
+| **Status** | ![Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-orange) |
+| **License** | ![Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg) |
+| **Python** | ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue) |
+| **Coverage** | [![codecov](https://codecov.io/gh/Kernel236/fastEIT/branch/dev/graph/badge.svg)](https://codecov.io/gh/Kernel236/fastEIT) |
+| **CI / CD** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) ![deploy](https://img.shields.io/badge/deploy-todo-lightgrey) |
 
 Python library for parsing Electrical Impedance Tomography (EIT) data from the Dräger
 PulmoVista 500. Provides structured data containers for research in mechanical ventilation and lung monitoring.
