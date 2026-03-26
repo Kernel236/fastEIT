@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.draeger import DragerBinParser
@@ -134,3 +135,57 @@ def test_parse_float_sentinel_replaced_with_nan(tmp_path):
 
     data = DragerBinParser().parse(path)
     assert np.isnan(data.pixels[1, 0, 0])
+
+
+# ── Round-trip value correctness (Tasks 1.5.3 / 1.5.4 / 1.5.5 / 1.5.10) ─────
+# Uses the shared bin_3frames fixture from conftest.py.
+# Frame i has all pixels = float(i+1), timestamps at 50 Hz fraction-of-day.
+
+_DT_DAY = 1.0 / (50.0 * 86400.0)
+
+
+def test_n_frames_from_fixture(bin_3frames):
+    """Task 1.5.3 — frame count matches what was written."""
+    data = DragerBinParser().parse(bin_3frames)
+    assert data.n_frames == 3
+
+
+def test_pixel_values_per_frame(bin_3frames):
+    """Task 1.5.4 — every pixel in frame i equals float(i+1)."""
+    data = DragerBinParser().parse(bin_3frames)
+    for i in range(3):
+        assert data.pixels[i].mean() == pytest.approx(float(i + 1))
+
+
+def test_pixel_specific_position(bin_3frames):
+    """Task 1.5.4 — spot-check two specific pixel positions."""
+    data = DragerBinParser().parse(bin_3frames)
+    assert data.pixels[0, 0, 0] == pytest.approx(1.0)
+    assert data.pixels[2, 15, 15] == pytest.approx(3.0)
+
+
+def test_timestamps_match_fixture(bin_3frames):
+    """Task 1.5.5 — timestamps match 50 Hz fraction-of-day spacing."""
+    data = DragerBinParser().parse(bin_3frames)
+    assert data.timestamps[0] == pytest.approx(0.0)
+    assert data.timestamps[1] == pytest.approx(_DT_DAY)
+    assert data.timestamps[2] == pytest.approx(2 * _DT_DAY)
+
+
+def test_timestamps_monotonically_increasing(bin_3frames):
+    """Task 1.5.5 — timestamps are strictly increasing."""
+    data = DragerBinParser().parse(bin_3frames)
+    assert all(data.timestamps[i] < data.timestamps[i + 1] for i in range(2))
+
+
+def test_roundtrip_via_load_data(bin_3frames):
+    """Task 1.5.10 — full pipeline through load_data() orchestrator."""
+    from fasteit.parsers.loader import load_data
+
+    data = load_data(bin_3frames)
+    assert data.n_frames == 3
+    assert data.pixels.shape == (3, 32, 32)
+    assert data.pixels[0].mean() == pytest.approx(1.0)
+    assert data.timestamps[0] == pytest.approx(0.0)
+    assert data.metadata["detected_vendor"] == "draeger"
+    assert data.metadata["detected_extension"] == ".bin"
