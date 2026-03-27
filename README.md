@@ -90,8 +90,9 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 
 ## Documentation
 
-- [`docs/data_model.md`](docs/data_model.md) — data containers and parsing flow per file type
-- [`docs/parsing_layer.md`](docs/parsing_layer.md) — how to extend: new frame sizes, new vendors, new formats
+- [`docs/data_model.md`](docs/data_model.md) — data container field specifications
+- [`docs/parsers.md`](docs/parsers.md) — parser reference: formats, calibration, GREIT bridge, loader utilities
+- [`docs/parsing_layer.md`](docs/parsing_layer.md) — architecture and extension recipes
 
 ## Contributing
 

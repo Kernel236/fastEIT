@@ -1,25 +1,14 @@
 # fastEIT — Data Model
 
-Specifications for all data containers. For parsing flow, detection logic, and
-extension recipes see [`parsing_layer.md`](parsing_layer.md).
-
----
-
-## 1. Overview
-
-| File | Vendor | Container | Content |
-|------|--------|-----------|---------|
-| `.bin` | Dräger | `ReconstructedFrameData` | 32×32 pixel matrices + Medibus signals |
-| `.csv` / `.txt` / `.asc` | Timpel | `ReconstructedFrameData` | 32×32 pixel matrices + 6 device signals |
-| `.asc` | Dräger | `ContinuousSignalData` | Frame-by-frame signal table, no matrices |
-| `.eit` | Dräger | `RawImpedanceData` | 208 raw transimpedances per frame |
-| `.x`   | Timpel | `RawImpedanceData` | 208 raw transimpedances per frame |
+Specifications for all data containers. For parser details, calibration
+constants, and loader utilities see [`parsers.md`](parsers.md). For architecture
+and extension recipes see [`parsing_layer.md`](parsing_layer.md).
 
 All containers inherit from `BaseData` (`models/base_data.py`).
 
 ---
 
-## 2. `BaseData` — common base
+## 1. `BaseData` — common base
 
 ```
 filename    str          Source file path
@@ -33,7 +22,7 @@ duration    float        n_frames / fs  (0.0 if fs is None)
 
 ---
 
-## 3. `ReconstructedFrameData`
+## 2. `ReconstructedFrameData`
 
 **File:** `models/reconstructed_data.py`
 **Produced by:** `DragerBinParser` (`.bin`), `TimpelTabularParser` (`.csv/.txt/.asc`)
@@ -80,7 +69,7 @@ is applied in the preprocessing layer.
 
 ---
 
-## 4. `ContinuousSignalData`
+## 3. `ContinuousSignalData`
 
 **File:** `models/continuous_data.py`
 **Produced by:** `DragerAscParser` (`.asc`)
@@ -97,7 +86,7 @@ table   pd.DataFrame   One row per EIT frame. Snake_case column names.
 
 ---
 
-## 5. `RawImpedanceData`
+## 4. `RawImpedanceData`
 
 **File:** `models/raw_impedance_data.py`
 **Produced by:** `DragerEitParser` (`.eit`); `TimpelRawParser` (`.x`) — scaffold
