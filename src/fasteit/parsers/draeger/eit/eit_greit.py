@@ -12,6 +12,14 @@ Algorithm reference:
 
 Default parameters (p=0.2, lamb=1e-2, n=32) are those recommended in the
 GREIT paper for lung monitoring with 16-electrode adjacent-drive protocols.
+
+Measurement protocol: ``fmmu`` (rotating sweep starting from the electrode
+adjacent to the current sink), confirmed from the PulmoVista 500 IFU SW 1.3n
+p. 144 measurement diagram.
+
+Image convention: sign-negated (impedance), rotated 90° CCW (electrode 1 at
+12 o'clock = anterior), horizontally flipped (CT caudal-cranial convention:
+left of image = right of patient). Source: IFU p. 146.
 """
 
 from __future__ import annotations
@@ -46,7 +54,14 @@ def build_greit(
     """Build and return a configured GREIT solver.
 
     Creates a circular unit-disk mesh, an adjacent-drive protocol (dist_exc=1,
-    step_meas=1, parser='std'), and a GREIT solver ready for ``solve()``.
+    step_meas=1, parser_meas='fmmu'), and a GREIT solver ready for ``solve()``.
+
+    **Measurement ordering — why ``fmmu``:**
+    The PulmoVista 500 sweeps voltage measurements starting from the electrode
+    immediately adjacent to the current sink and rotates around the ring.
+    This matches pyEIT's ``fmmu`` (rotating) protocol, not ``std`` (absolute).
+    Source: Dräger PulmoVista 500 IFU SW 1.3n, p. 144 — measurement diagram
+    shows V1 at the pair adjacent to the sink electrode for each drive pattern.
 
     Args:
         n_el:  Number of electrodes. Default 16 (Dräger PulmoVista 500).
@@ -66,7 +81,7 @@ def build_greit(
     """
     _check_pyeit()
     mesh_obj = pyeit.mesh.create(n_el=n_el, h0=h0)
-    protocol = proto_mod.create(n_el=n_el, dist_exc=1, step_meas=1, parser_meas="std")
+    protocol = proto_mod.create(n_el=n_el, dist_exc=1, step_meas=1, parser_meas="fmmu")
     solver = greit_mod.GREIT(mesh_obj, protocol)
     solver.setup(p=p, lamb=lamb, n=n)
     return solver, protocol
@@ -169,6 +184,16 @@ def reconstruct_greit(
         # Rotate 90° CCW (k=1) to match anatomical orientation: heart left-anterior,
         # right lung on the right (same as a CT cross-section viewed from the feet).
         ds = solver.solve(v1, v0)
-        images[i] = np.rot90(-ds.reshape(n, n), k=1)
+        # Post-processing to match Dräger PulmoVista 500 display convention
+        # (IFU SW 1.3n, p. 146):
+        #   1. Negate: GREIT outputs Δσ (conductivity); Dräger uses impedance
+        #      convention (air in → impedance up → positive peak).
+        #   2. rot90(k=1): electrode 1 is at 12 o'clock on the PulmoVista belt
+        #      (anterior/ventral); pyEIT places electrode 0 at 3 o'clock.
+        #      90° CCW rotation moves anterior to the top of the image.
+        #   3. fliplr: Dräger displays caudal-cranial (CT convention viewed from
+        #      feet): left side of image = right side of patient.  pyEIT produces
+        #      the mirror image; fliplr corrects this.
+        images[i] = np.fliplr(np.rot90(-ds.reshape(n, n), k=1))
 
     return images

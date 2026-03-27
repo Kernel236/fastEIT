@@ -147,10 +147,10 @@ Adjacent current injection (drive distance = 1 electrode), adjacent voltage
 measurement (step = 1 electrode), 3 pairs excluded per drive pattern
 (those sharing a voltage electrode with the current-injection pair).
 
-The ordering of the 208 values within each frame matches the pyEIT adjacent-drive
-protocol. Whether the device uses absolute (`std`) or rotated (`fmmu`) electrode
-indexing within each drive pattern is under investigation — see
-`notebooks/03_eit_parser_validation.ipynb` §9.
+The ordering of the 208 values within each frame follows the **`fmmu`** (rotating)
+protocol: for each drive pattern the voltage sweep starts from the electrode
+immediately adjacent to the current sink and rotates around the ring.
+Confirmed from the PulmoVista 500 IFU SW 1.3n p. 144 measurement diagram.
 
 ---
 
@@ -218,12 +218,19 @@ Builds a pyEIT GREIT solver on a circular unit-disk mesh.
 | `(start, end)` | Mean of `measurements[start:end]` |
 | `np.ndarray (208,)` | External reference — for cross-recording EELI comparison |
 
-**Sign convention**: GREIT outputs conductivity change (Δσ); the parser negates
+**Sign convention**: GREIT outputs conductivity change (Δσ); the function negates
 it to match the Dräger impedance convention (air → impedance rises → positive peak).
 
-**Rotation**: 90° counter-clockwise applied to place electrode 1 (pyEIT: 3 o'clock)
-at the anterior chest wall position, consistent with the PulmoVista 500 belt and
-standard CT cross-section orientation (viewed from feet).
+**Image orientation** — three steps applied inside `reconstruct_greit()`, all
+sourced from PulmoVista 500 IFU SW 1.3n:
+1. **Negate** (sign flip): impedance convention — see above.
+2. **`rot90(k=1)`** (90° CCW): electrode 1 sits at 12 o'clock on the PulmoVista
+   belt (anterior/ventral wall); pyEIT places electrode 0 at 3 o'clock. Rotation
+   moves the anterior region to the top of the image. Source: IFU p. 144.
+3. **`fliplr`** (horizontal mirror): Dräger displays images in caudal-cranial
+   projection (CT convention viewed from feet): left side of image = right side
+   of patient. pyEIT produces the anatomical mirror; `fliplr` corrects this.
+   Source: IFU p. 146.
 
 **Spatial quality note**: a generic circular mesh does not replicate Dräger's
 proprietary reconstruction. Both algorithms produce correct relative distributions,
