@@ -144,13 +144,7 @@ V_diff  = (voltage_A - voltage_B) / FV_VOLTAGE  # (N_frames, 16) differential vo
 
 208 measurements per frame = 16 electrodes × 13 measurement pairs.
 Adjacent current injection (drive distance = 1 electrode), adjacent voltage
-measurement (step = 1 electrode), 3 pairs excluded per drive pattern
-(those sharing a voltage electrode with the current-injection pair).
-
-The ordering of the 208 values within each frame follows the **`fmmu`** (rotating)
-protocol: for each drive pattern the voltage sweep starts from the electrode
-immediately adjacent to the current sink and rotates around the ring.
-Confirmed from the PulmoVista 500 IFU SW 1.3n p. 144 measurement diagram.
+measurement (step = 1 electrode).
 
 ---
 
@@ -186,6 +180,8 @@ Detection: looks for `"Timpel"` keyword in the first 40 lines.
 ---
 
 ## 6. GREIT reconstruction bridge
+
+This function is far to be reliable. It's just an example how to bridge on recustrustion library such as pyEIT stasting from fastEIT parsing layer output. 
 
 **File:** `parsers/draeger/eit/eit_pyeit_bridge.py`
 **Optional dependency:** `pip install fasteit[pyeit]`
