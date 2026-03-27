@@ -7,8 +7,11 @@ Implemented:
 - DragerAscParser   (.asc) — tabular PulmoVista signal export
 - TimpelTabularParser (.csv/.txt/.asc) — Timpel tabular recordings
 
-Scaffolds (not yet implemented):
-- DragerEitParser   (.eit) — raw electrode voltages (Task 2.x)
+- DragerEitParser   (.eit) — raw transimpedances (208/frame); calibration pipeline EIDORS/Adler 2016
+
+Reconstruction utilities (optional — requires pyeit):
+- reconstruct_greit / build_greit — GREIT image reconstruction from RawImpedanceData
+  Import: from fasteit.parsers.draeger.eit.eit_greit import reconstruct_greit
 
 Utilities:
 - detect_vendor_and_format — extension/vendor/format auto-detection

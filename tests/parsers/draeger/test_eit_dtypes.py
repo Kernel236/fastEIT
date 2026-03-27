@@ -8,7 +8,6 @@ from fasteit.parsers.draeger.eit.eit_dtypes import (
     PREAMBLE_N_FIELDS,
 )
 
-
 # ── itemsize ──────────────────────────────────────────────────────────────────
 
 

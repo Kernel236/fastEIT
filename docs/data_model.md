@@ -124,5 +124,7 @@ aux_signals    dict|None    Named per-frame arrays. Populated by DragerEitParser
                             None if the source file carries no auxiliary signals.
 ```
 
-Intended consumer: **pyEIT** or any reconstruction library.
-fastEIT does not perform image reconstruction — it ingests vendor-reconstructed files.
+Intended consumer: `reconstruct_greit()` (in `fasteit.parsers.draeger.eit.eit_greit`,
+requires optional `pyeit` dependency) or any external reconstruction library.
+For `.bin` and Timpel `.csv` files, fastEIT ingests vendor-reconstructed images
+and does not re-reconstruct them.

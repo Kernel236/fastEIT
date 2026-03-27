@@ -9,7 +9,6 @@ from fasteit.parsers.header_formats import (
     get_eit_specs,
 )
 
-
 # ── Registry contents ─────────────────────────────────────────────────────────
 
 

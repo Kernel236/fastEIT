@@ -77,6 +77,17 @@ Pre-alpha. Data model and parsing layer implemented.
 All parsers are accessible via the single entry point `load_data(path)`, which
 auto-detects vendor and format.
 
+`RawImpedanceData` from `.eit` files can be reconstructed to 32×32 pixel images via
+`reconstruct_greit()` (optional dependency: `pip install fasteit[pyeit]`; implements
+GREIT — Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03):
+
+```python
+from fasteit.parsers.draeger.eit.eit_greit import reconstruct_greit
+
+data = load_data("patient01.eit")
+images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
+```
+
 ## Documentation
 
 - [`docs/data_model.md`](docs/data_model.md) — data containers and parsing flow per file type

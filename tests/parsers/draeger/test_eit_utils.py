@@ -2,7 +2,6 @@
 
 import struct
 
-import numpy as np
 import pytest
 
 from fasteit.parsers.draeger.eit.eit_utils import (
@@ -14,7 +13,6 @@ from fasteit.parsers.draeger.eit.eit_utils import (
     SEPARATOR,
     parse_eit_header,
 )
-
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 

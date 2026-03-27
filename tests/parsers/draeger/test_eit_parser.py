@@ -14,8 +14,12 @@ from fasteit.parsers.draeger.eit.eit_utils import FT_A, FT_B, SEPARATOR
 
 # ── real test files (skipped on CI if absent) ─────────────────────────────────
 
-_EIT_REAL = Path(__file__).parent.parent.parent.parent / "src/fasteit/test_files/patient01.eit"
-_real = pytest.mark.skipif(not _EIT_REAL.exists(), reason="real .eit file not available")
+_EIT_REAL = (
+    Path(__file__).parent.parent.parent.parent / "src/fasteit/test_files/patient01.eit"
+)
+_real = pytest.mark.skipif(
+    not _EIT_REAL.exists(), reason="real .eit file not available"
+)
 
 
 # ── synthetic .eit file builder ───────────────────────────────────────────────
@@ -157,7 +161,7 @@ def test_parse_measurements_calibration(tmp_path):
 
 def test_parse_measurements_no_nan(tmp_path):
     p = _write_eit(tmp_path)
-    assert not np.isnan(data := DragerEitParser().parse(p).measurements).any()
+    assert not np.isnan(DragerEitParser().parse(p).measurements).any()
 
 
 def test_parse_measurements_not_all_zero(tmp_path):
@@ -173,10 +177,16 @@ def test_parse_aux_signals_keys(tmp_path):
     p = _write_eit(tmp_path)
     data = DragerEitParser().parse(p)
     expected_keys = {
-        "timestamp", "trans_A", "trans_B",
-        "injection_current", "I_real",
-        "voltage_A", "voltage_B", "V_diff",
-        "frame_counter", "medibus",
+        "timestamp",
+        "trans_A",
+        "trans_B",
+        "injection_current",
+        "I_real",
+        "voltage_A",
+        "voltage_B",
+        "V_diff",
+        "frame_counter",
+        "medibus",
     }
     assert expected_keys.issubset(set(data.aux_signals.keys()))
 
