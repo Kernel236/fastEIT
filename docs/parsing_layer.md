@@ -42,7 +42,7 @@ The strategy depends on the extension:
 | Extension | Strategy | How it works |
 |-----------|----------|--------------|
 | `.bin` | size-based | `file_size % frame_size == 0` for each registered `FormatSpec` |
-| `.eit` | header-based | reads first bytes, looks for ASCII magic string |
+| `.eit` | header-based | reads first bytes, looks for ASCII magic string for each registered `HeaderFormatSpec` |
 | `.asc` `.txt` `.csv` | content-based | reads first 40 lines, looks for vendor keyword |
 
 `.bin` is special: there is no header. The only way to identify the format is
@@ -105,7 +105,6 @@ load_data("patient01.bin")
     │   ├─ validate() → file exists, size divisible by known frame size → True
     │   └─ parse()
     │       ├─ np.memmap with spec.dtype
-    │       ├─ sentinel → NaN substitution
     │       ├─ fs estimation from timestamps
     │       └─ ReconstructedFrameData(frames, aux_signals, fs, ...)
     │
@@ -256,38 +255,81 @@ parameters (TV, RR, PEEP, compliance) in the same file.
 
 ### Step 1 — Detection
 
-File: `src/fasteit/parsers/detection.py`
+Detection works the same way for all three file families: **register a spec, the
+generic function finds it automatically**. You rarely need to touch `detection.py`.
 
-How detection works depends on the file type:
+---
 
-**Binary with a recognisable header** — add a branch in `detect_vendor_and_format()`
-and a helper that reads the magic bytes:
+**`.eit`-style (header + binary frames, same `.eit` extension, new vendor)**
+
+File: `src/fasteit/parsers/header_formats.py`
+
+Just add a `HeaderFormatSpec` and append it to `HEADER_FORMAT_SPECS`.
+`detect_vendor_from_eit_header()` iterates the list and returns the first match —
+no changes to `detection.py` needed.
 
 ```python
-# In detect_vendor_and_format():
-if extension == ".acm":
-    vendor = _detect_vendor_from_acm_header(path)
-    return FileDetection(path=path, extension=extension, vendor=vendor)
+CAREFUSION_EIT_SPEC = HeaderFormatSpec(
+    name="Carefusion_EIT_v1",
+    vendor="carefusion",
+    magic_string="CareFusion",      # ASCII substring in first magic_search_bytes bytes
+    magic_search_bytes=256,
+    encoding="utf-8",
+    frame_size_bytes=5120,          # byte-exact frame size for this firmware
+    n_electrodes=16,
+    n_measurements=208,
+)
 
-def _detect_vendor_from_acm_header(path: Path) -> str:
-    with path.open("rb") as f:
-        magic = f.read(8)
-    if magic == b"ACMEIT\x01\x00":
-        return "acmeit"
-    raise ValueError(f"Unrecognised .acm header in '{path}'.")
+HEADER_FORMAT_SPECS: tuple[HeaderFormatSpec, ...] = (
+    DRAEGER_EIT_HEADER_SPEC,
+    CAREFUSION_EIT_SPEC,            # ← add here; detection is automatic
+)
 ```
 
-**Binary without a header (size-based)** — add a `FormatSpec` to
-`BIN_FORMAT_SPECS` (see section 2). No detection function needed.
+`HeaderFormatSpec` fields:
 
-**Tabular** — extend `detect_vendor_from_tabular()` with a keyword found in the
-file header (first 40 lines):
+| Field | Purpose |
+|-------|---------|
+| `magic_string` | ASCII substring searched in the first `magic_search_bytes` |
+| `magic_search_bytes` | How many bytes to read for detection (keep it small) |
+| `encoding` | Header text encoding (usually `"latin-1"` or `"utf-8"`) |
+| `frame_size_bytes` | Byte-exact size of one binary frame — used by the parser |
+| `n_electrodes` / `n_measurements` | Protocol geometry metadata |
+
+---
+
+**`.eit`-style but with a new extension (e.g. `.acm`)**
+
+Add one branch in `detect_vendor_and_format()` that calls the same generic
+`detect_vendor_from_eit_header()` (if the magic-string approach works for this format):
+
+```python
+# In detect_vendor_and_format() — detection.py:
+if extension == ".acm":
+    vendor = detect_vendor_from_eit_header(path)  # reuses HEADER_FORMAT_SPECS
+    return FileDetection(path=path, extension=extension, vendor=vendor)
+```
+
+Then add the `HeaderFormatSpec` to `HEADER_FORMAT_SPECS` as above.
+
+---
+
+**Binary without a header (size-based, `.bin`)**
+
+Add a `FormatSpec` to `BIN_FORMAT_SPECS` (see [section 2](#2-add-a-new-drger-bin-frame-size)).
+No changes to `detection.py` needed.
+
+---
+
+**Tabular (CSV / TXT / ASC)**
+
+File: `src/fasteit/parsers/detection.py` — extend `detect_vendor_from_tabular()`
+with a keyword found in the first 40 lines:
 
 ```python
 # In detect_vendor_from_tabular():
-for line in lines[:40]:
-    if "hamilton medical" in line.lower():
-        return "hamilton"
+if "hamilton medical" in normalized:
+    return "hamilton"
 ```
 
 ---
