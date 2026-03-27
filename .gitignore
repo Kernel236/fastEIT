@@ -5,8 +5,6 @@ CLAUDE.md
 # Test files (patient data — never commit)
 /src/fasteit/test_files/*
 
-# Internal tools (not part of the library)
-tools/
 
 
 # (timpel scaffold now tracked — implementation in progress)
