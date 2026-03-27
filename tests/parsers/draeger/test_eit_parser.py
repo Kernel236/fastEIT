@@ -14,7 +14,7 @@ from fasteit.parsers.draeger.eit.eit_utils import FT_A, FT_B, SEPARATOR
 
 # ── real test files (skipped on CI if absent) ─────────────────────────────────
 
-_EIT_REAL = Path(__file__).parent.parent / "src/fasteit/test_files/patient01.eit"
+_EIT_REAL = Path(__file__).parent.parent.parent.parent / "src/fasteit/test_files/patient01.eit"
 _real = pytest.mark.skipif(not _EIT_REAL.exists(), reason="real .eit file not available")
 
 
