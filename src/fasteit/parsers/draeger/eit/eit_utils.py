@@ -11,30 +11,29 @@ import numpy as np
 # 8-byte separator between ASCII header and binary frame data.
 SEPARATOR: bytes = b"**\r\n\r\n\r\n"
 
-# Empirical scaling constants for physical unit conversion.
-# Source: EIDORS read_draeger_file.m (GPL), estimated 2016-04-07 by A. Adler.
-#   fc : ADC counts → Ampere  (injection_current / fc → A)
-#   fv : ADC counts → Volt    ((voltage_A - voltage_B) / fv → V)
+# Empirical calibration constants — EIDORS read_draeger_file.m (GPL),
+# estimated 2016-04-07 by A. Adler. Understanding only — no code copied.
+# Not present in the .eit header; hardcoded from EIDORS best-guess estimates.
+#   FT_A, FT_B : transimpedance scaling  (vv = FT_A*trans_A - FT_B*trans_B)
+#   FC_CURRENT : ADC counts → Ampere     (injection_current / FC_CURRENT)
+#   FV_VOLTAGE : ADC counts → Volt       ((voltage_A - voltage_B) / FV_VOLTAGE)
+FT_A: float = 0.00098242
+FT_B: float = 0.00019607
 FC_CURRENT: float = 194326.3536
 FV_VOLTAGE: float = 0.11771
-
-def _parse_float_list(v: str) -> list[float]:
-    return [float(x) for x in v.split()]
-
 
 # Mapping of ASCII header field names → (metadata_key, type_converter).
 # Fields not listed here are kept verbatim in metadata["_raw_fields"].
 HEADER_FIELD_MAP: dict[str, tuple[str, type]] = {
-    "Frame Rate":         ("fs",                   float),
-    "Date":               ("date",                 str),
-    "Time":               ("time",                 str),
-    "Gain":               ("gain",                 int),
-    "Samples":            ("samples_per_period",   int),
-    "Periods":            ("periods",              int),
-    "Frequ.":             ("frequency_khz",        float),
-    "Calibration Factor": ("calibration_factor",   _parse_float_list),
-    "SW-Version":         ("sw_version",           str),
-    "Format":             ("format_version_ascii", int),
+    "Framerate [Hz]": ("fs", float),
+    "Date": ("date", str),
+    "Time": ("time", str),
+    "Gain": ("gain", int),
+    "Samples": ("samples_per_period", int),
+    "Periods": ("periods", int),
+    "Frequency [kHz]": ("frequency_khz", float),
+    "Amplitude [uA]": ("amplitude_ua", float),
+    "Format": ("format_version_ascii", int),
 }
 
 
