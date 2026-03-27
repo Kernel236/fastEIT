@@ -11,7 +11,7 @@ Implemented:
 
 Reconstruction utilities (optional — requires pyeit):
 - reconstruct_greit / build_greit — GREIT image reconstruction from RawImpedanceData
-  Import: from fasteit.parsers.draeger.eit.eit_greit import reconstruct_greit
+  Import: from fasteit.parsers.draeger.eit.eit_pyeit_bridge import reconstruct_greit
 
 Utilities:
 - detect_vendor_and_format — extension/vendor/format auto-detection

@@ -187,7 +187,7 @@ Detection: looks for `"Timpel"` keyword in the first 40 lines.
 
 ## 6. GREIT reconstruction bridge
 
-**File:** `parsers/draeger/eit/eit_greit.py`
+**File:** `parsers/draeger/eit/eit_pyeit_bridge.py`
 **Optional dependency:** `pip install fasteit[pyeit]`
 
 Converts `RawImpedanceData.measurements` (N_frames, 208) to reconstructed

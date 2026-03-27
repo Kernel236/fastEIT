@@ -82,7 +82,7 @@ auto-detects vendor and format.
 GREIT — Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03):
 
 ```python
-from fasteit.parsers.draeger.eit.eit_greit import reconstruct_greit
+from fasteit.parsers.draeger.eit.eit_pyeit_bridge import reconstruct_greit
 
 data = load_data("patient01.eit")
 images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)

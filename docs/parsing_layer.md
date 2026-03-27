@@ -478,3 +478,45 @@ Minimal coverage for a tabular parser:
 
 ---
 
+## 5. File layout
+
+```
+src/fasteit/
+├── models/
+│   ├── base_data.py              BaseData — common fields for all containers
+│   ├── reconstructed_data.py     ReconstructedFrameData — 32×32 pixel frames
+│   ├── continuous_data.py        ContinuousSignalData — tabular signal export
+│   └── raw_impedance_data.py     RawImpedanceData — 208 transimpedances per frame
+│
+└── parsers/
+    ├── base.py                   BaseParser (validate / parse / parse_safe)
+    ├── bin_formats.py            BIN_FORMAT_SPECS — all known .bin frame sizes
+    ├── detection.py              detect_vendor_and_format() — routes any file
+    ├── errors.py                 AmbiguousFormatError, UnknownFormatError
+    ├── header_formats.py         EIT_HEADER_FORMATS — known .eit ASCII headers
+    ├── loader.py                 load_data / load_many / load_folder
+    │
+    ├── draeger/
+    │   ├── asc/
+    │   │   └── asc_parser.py     DragerAscParser — .asc continuous export
+    │   ├── bin/
+    │   │   ├── bin_parser.py     DragerBinParser — .bin reconstructed frames
+    │   │   ├── bin_utils.py      Sentinel → NaN, fs estimation helpers
+    │   │   └── draeger_dtypes.py FRAME_BASE_DTYPE, FRAME_EXT_DTYPE, MEDIBUS_* fields
+    │   └── eit/
+    │       ├── eit_parser.py     DragerEitParser — .eit raw transimpedances
+    │       ├── eit_dtypes.py     EIT_FRAME_DTYPE (5495-byte frame layout)
+    │       ├── eit_utils.py      Calibration constants FT_A/FT_B/FC_CURRENT/FV_VOLTAGE
+    │       └── eit_pyeit_bridge.py  build_greit() / reconstruct_greit() — pyEIT bridge
+    │
+    └── timpel/
+        ├── timpel_parser.py      TimpelTabularParser — .csv/.txt reconstructed frames
+        └── timpel_dtypes.py      TIMPEL_AUX_FIELDS — auxiliary signal columns
+```
+
+**Where to add a new vendor** — create `parsers/<vendor>/` mirroring the structure above:
+one `<vendor>_parser.py`, one `<vendor>_dtypes.py`, one `__init__.py`.
+Then follow steps 1–5 in [section 3](#3-add-a-new-parser).
+
+---
+
