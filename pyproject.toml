@@ -33,6 +33,9 @@ dependencies = [
 pyeit = [
     "pyeit>=1.0",
 ]
+reconstruction = [
+    "scikit-learn>=1.3",
+]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
