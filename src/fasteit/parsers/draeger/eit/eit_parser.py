@@ -24,7 +24,7 @@ from fasteit.parsers.detection import detect_vendor_from_eit_header
 from fasteit.parsers.header_formats import get_eit_specs
 
 from .eit_dtypes import FRAME_EIT_DTYPE, PREAMBLE_DTYPE, PREAMBLE_N_FIELDS
-from .eit_utils import FC_CURRENT, FV_VOLTAGE, SEPARATOR, parse_eit_header
+from .eit_utils import FC_CURRENT, FT_A, FT_B, FV_VOLTAGE, SEPARATOR, parse_eit_header
 
 
 class DragerEitParser(BaseParser):
@@ -69,7 +69,9 @@ class DragerEitParser(BaseParser):
         if path.stat().st_size < preamble_size:
             raise ValueError(f"'{path}' is too small to be a valid .eit file.")
 
-        preamble = np.memmap(path, dtype=PREAMBLE_DTYPE, mode="r", shape=(PREAMBLE_N_FIELDS,))
+        preamble = np.memmap(
+            path, dtype=PREAMBLE_DTYPE, mode="r", shape=(PREAMBLE_N_FIELDS,)
+        )
         _, sep_offset, _ = int(preamble[0]), int(preamble[1]), int(preamble[2])
 
         with path.open("rb") as f:
@@ -79,8 +81,7 @@ class DragerEitParser(BaseParser):
         binary_start = sep_offset + len(SEPARATOR)
         data_size = path.stat().st_size - binary_start
         candidates = [
-            s for s in get_eit_specs("draeger")
-            if data_size % s.frame_size_bytes == 0
+            s for s in get_eit_specs("draeger") if data_size % s.frame_size_bytes == 0
         ]
         if not candidates:
             known = [s.frame_size_bytes for s in get_eit_specs("draeger")]
@@ -111,38 +112,46 @@ class DragerEitParser(BaseParser):
         )
 
         # ── 5. Extract fields and compute calibrated transimpedance ──────────
-        ft = metadata.get("calibration_factor")
-        if not isinstance(ft, list) or len(ft) != 2:
-            raise ValueError(
-                f"'Calibration Factor' in header must be two floats, got: {ft!r}"
-            )
-
         # Calibration pipeline — EIDORS read_draeger_file.m (GPL, understanding
-        # only, no code copied). Empirical constants estimated 2016-04-07 A. Adler.
-        trans_A    = np.array(frames["trans_A"])           # (n_frames, 208) ADC counts
-        trans_B    = np.array(frames["trans_B"])           # (n_frames, 208) ADC counts
-        inj_curr   = np.array(frames["injection_current"]) # (n_frames, 16)  ADC counts
-        voltage_A  = np.array(frames["voltage_A"])         # (n_frames, 16)  ADC counts
-        voltage_B  = np.array(frames["voltage_B"])         # (n_frames, 16)  ADC counts
+        # only, no code copied). Empirical constants hardcoded in EIDORS by
+        # A. Adler, estimated 2016-04-07. Not present in the .eit header.
+        trans_A = np.array(frames["trans_A"])  # (n_frames, 208) ADC counts
+        trans_B = np.array(frames["trans_B"])  # (n_frames, 208) ADC counts
+        inj_curr = np.array(frames["injection_current"])  # (n_frames, 16)  ADC counts
+        voltage_A = np.array(frames["voltage_A"])  # (n_frames, 16)  ADC counts
+        voltage_B = np.array(frames["voltage_B"])  # (n_frames, 16)  ADC counts
 
-        vv     = ft[0] * trans_A - ft[1] * trans_B  # (n_frames, 208) calibrated transimpedance
-        I_real = inj_curr / FC_CURRENT               # (n_frames, 16)  actual injected current [A]
-        V_diff = (voltage_A - voltage_B) / FV_VOLTAGE  # (n_frames, 16)  differential voltage [V]
+        vv = (
+            FT_A * trans_A - FT_B * trans_B
+        )  # (n_frames, 208) calibrated transimpedance
+        I_real = inj_curr / FC_CURRENT  # (n_frames, 16)  actual injected current [A]
+        V_diff = (
+            voltage_A - voltage_B
+        ) / FV_VOLTAGE  # (n_frames, 16)  differential voltage [V]
 
         aux_signals: dict[str, np.ndarray] = {
-            "timestamp":          np.array(frames["timestamp"]),  # fraction of day
-            "trans_A":            trans_A,                        # raw, for audit
-            "trans_B":            trans_B,                        # raw, for audit
-            "injection_current":  inj_curr,                       # raw ADC counts
-            "I_real":             I_real,                         # [A] actual injected current
-            "voltage_A":          voltage_A,                      # raw ADC counts
-            "voltage_B":          voltage_B,                      # raw ADC counts
-            "V_diff":             V_diff,                         # [V] differential voltage
-            "frame_counter":      np.array(frames["frame_counter"]),
-            "medibus":            np.array(frames["medibus"]),    # (n_frames, 67)
+            "timestamp": np.array(frames["timestamp"]),  # fraction of day
+            "trans_A": trans_A,  # raw, for audit
+            "trans_B": trans_B,  # raw, for audit
+            "injection_current": inj_curr,  # raw ADC counts
+            "I_real": I_real,  # [A] actual injected current
+            "voltage_A": voltage_A,  # raw ADC counts
+            "voltage_B": voltage_B,  # raw ADC counts
+            "V_diff": V_diff,  # [V] differential voltage
+            "frame_counter": np.array(frames["frame_counter"]),
+            "medibus": np.array(frames["medibus"]),  # (n_frames, 67)
         }
 
         # ── 6. Assemble result ────────────────────────────────────────────────
+        if "fs" not in metadata:
+            import warnings
+
+            warnings.warn(
+                f"'Framerate [Hz]' not found in header of '{path}'. "
+                "Defaulting to fs=50.0 Hz.",
+                UserWarning,
+                stacklevel=2,
+            )
         fs: float = metadata.get("fs", 50.0)
         metadata["n_frames"] = n_frames
         metadata["frame_format"] = spec.name

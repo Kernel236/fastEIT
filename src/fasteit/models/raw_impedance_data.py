@@ -21,9 +21,11 @@ class RawImpedanceData(BaseData):
     before any image reconstruction. The intended consumer is pyEIT.
 
     Attributes:
-        measurements: Raw transimpedance array, shape (N_frames, 208).
+        measurements: Calibrated transimpedance array, shape (N_frames, 208).
+                      Values are gain-corrected (e.g. ``vv = FT_A*trans_A - FT_B*trans_B``
+                      for Dräger), not raw ADC counts and not yet image-reconstructed.
                       208 = 16 electrodes × 13 measurement pairs
-                      (adjacent drive, standard Dräger/Timpel pattern).
+                      (adjacent drive, standard Dräger pattern).
         aux_signals:  Optional dict of auxiliary waveforms keyed by signal
                       name, e.g. ``{"timestamp": ..., "frame_counter": ...,
                       "medibus_Paw": ...}``. Each value is a 1-D array of
