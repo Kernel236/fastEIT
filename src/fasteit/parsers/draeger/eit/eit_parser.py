@@ -14,6 +14,7 @@ cross-referenced with EIDORS read_draeger_header/read_draeger_file):
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -144,8 +145,6 @@ class DragerEitParser(BaseParser):
 
         # ── 6. Assemble result ────────────────────────────────────────────────
         if "fs" not in metadata:
-            import warnings
-
             warnings.warn(
                 f"'Framerate [Hz]' not found in header of '{path}'. "
                 "Defaulting to fs=50.0 Hz.",
