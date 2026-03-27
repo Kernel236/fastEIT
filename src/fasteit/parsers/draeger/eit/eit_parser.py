@@ -166,4 +166,3 @@ class DragerEitParser(BaseParser):
             vendor="draeger",
             metadata=metadata,
         )
-    
