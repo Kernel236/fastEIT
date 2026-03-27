@@ -1,4 +1,4 @@
-"""Dräger `.eit` parser (Task 2.x).
+"""Dräger `.eit` parser.
 
 Format summary (reverse-engineered from PulmoVista 500 output,
 cross-referenced with EIDORS read_draeger_header/read_draeger_file):
@@ -166,3 +166,4 @@ class DragerEitParser(BaseParser):
             vendor="draeger",
             metadata=metadata,
         )
+    
