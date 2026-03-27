@@ -24,9 +24,14 @@ class RawImpedanceData(BaseData):
         measurements: Raw transimpedance array, shape (N_frames, 208).
                       208 = 16 electrodes × 13 measurement pairs
                       (adjacent drive, standard Dräger/Timpel pattern).
+        aux_signals:  Optional dict of auxiliary waveforms keyed by signal
+                      name, e.g. ``{"timestamp": ..., "frame_counter": ...,
+                      "medibus_Paw": ...}``. Each value is a 1-D array of
+                      length N_frames.
     """
 
     measurements: np.ndarray | None = None
+    aux_signals: dict[str, np.ndarray] | None = None
 
     def __post_init__(self) -> None:
         if self.measurements is not None:

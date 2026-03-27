@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .bin_formats import BIN_FORMAT_SPECS, FormatSpec
 from .errors import AmbiguousFormatError, UnsupportedFrameSizeError
+from .header_formats import HEADER_FORMAT_SPECS
 
 
 @dataclass(frozen=True)
@@ -27,33 +28,6 @@ class FileDetection:
     extension: str
     vendor: str
     bin_format: FormatSpec | None = None
-
-
-def candidate_specs_from_size(file_size: int) -> list[FormatSpec]:
-    """Return binary format specs whose frame size divides file size exactly."""
-    return [spec for spec in BIN_FORMAT_SPECS if file_size % spec.frame_size_bytes == 0]
-
-
-def detect_bin_format_from_size(path: Path) -> FormatSpec:
-    """Detect binary frame format from headerless file size divisibility."""
-    path = Path(path)
-    file_size = path.stat().st_size
-    candidates = candidate_specs_from_size(file_size)
-
-    if not candidates:
-        supported = [spec.frame_size_bytes for spec in BIN_FORMAT_SPECS]
-        raise UnsupportedFrameSizeError(
-            f"Unsupported .bin size {file_size} bytes. Known frame sizes: {supported}."
-        )
-
-    if len(candidates) == 1:
-        return candidates[0]
-
-    names = [c.name for c in candidates]
-    raise AmbiguousFormatError(
-        "Ambiguous .bin format by frame-size divisibility. "
-        f"Candidates: {names}. This project currently fails fast on ambiguity "
-    )
 
 
 def detect_vendor_and_format(path: Path) -> FileDetection:
@@ -91,14 +65,66 @@ def detect_vendor_and_format(path: Path) -> FileDetection:
     )
 
 
-def detect_vendor_from_eit_header(path: Path) -> str:
-    """Detect vendor from `.eit` file ASCII header.
+def candidate_specs_from_size(file_size: int) -> list[FormatSpec]:
+    """Return binary format specs whose frame size divides file size exactly."""
+    return [spec for spec in BIN_FORMAT_SPECS if file_size % spec.frame_size_bytes == 0]
 
-    TODO: read first bytes, match magic string
-    (e.g. ``---Draeger EIT-Software---``) and return vendor identifier.
+
+def detect_bin_format_from_size(path: Path) -> FormatSpec:
+    """Detect binary frame format from headerless file size divisibility."""
+    path = Path(path)
+    file_size = path.stat().st_size
+    candidates = candidate_specs_from_size(file_size)
+
+    if not candidates:
+        supported = [spec.frame_size_bytes for spec in BIN_FORMAT_SPECS]
+        raise UnsupportedFrameSizeError(
+            f"Unsupported .bin size {file_size} bytes. Known frame sizes: {supported}."
+        )
+
+    if len(candidates) == 1:
+        return candidates[0]
+
+    names = [c.name for c in candidates]
+    raise AmbiguousFormatError(
+        "Ambiguous .bin format by frame-size divisibility. "
+        f"Candidates: {names}. This project currently fails fast on ambiguity "
+    )
+
+
+def detect_vendor_from_eit_header(path: Path) -> str:
+    """Detect vendor from ``.eit`` file header by matching a known magic string.
+
+    Iterates ``HEADER_FORMAT_SPECS`` in order. For each spec, reads
+    ``magic_search_bytes`` bytes and searches for ``magic_string``.
+    Returns the vendor of the first match.
+
+    Args:
+        path: Path to the ``.eit`` file.
+
+    Returns:
+        Vendor identifier string (e.g. ``"draeger"``).
+
+    Raises:
+        ValueError: If no registered magic string matches.
+        OSError: If the file cannot be read.
     """
-    _ = path
-    raise NotImplementedError("detect_vendor_from_eit_header() not yet implemented. ")
+    path = Path(path)
+
+    max_read = max(s.magic_search_bytes for s in HEADER_FORMAT_SPECS)
+    with path.open("rb") as f:
+        raw = f.read(max_read)
+
+    for spec in HEADER_FORMAT_SPECS:
+        region = raw[: spec.magic_search_bytes].decode(spec.encoding, errors="replace")
+        if spec.magic_string in region:
+            return spec.vendor
+
+    known = [s.magic_string for s in HEADER_FORMAT_SPECS]
+    raise ValueError(
+        f"Could not detect vendor for .eit file '{path}'. "
+        f"No registered magic string found. Known: {known}."
+    )
 
 
 def detect_vendor_from_tabular(path: Path) -> str:
