@@ -100,12 +100,28 @@ table   pd.DataFrame   One row per EIT frame. Snake_case column names.
 ## 5. `RawImpedanceData`
 
 **File:** `models/raw_impedance_data.py`
-**Produced by:** `DragerEitParser` (`.eit`), `TimpelRawParser` (`.x`) — both scaffold
+**Produced by:** `DragerEitParser` (`.eit`); `TimpelRawParser` (`.x`) — scaffold
 
 ```
 measurements   np.ndarray   shape (N_frames, 208)
+                            Calibrated transimpedances (not raw ADC counts, not
+                            yet image-reconstructed). For Dräger:
+                            vv = FT_A*trans_A - FT_B*trans_B (EIDORS, Adler 2016)
                             208 = 16 electrodes × 13 measurement pairs
-                            Adjacent drive pattern (Dräger and Timpel)
+                            (adjacent drive, standard Dräger pattern)
+
+aux_signals    dict|None    Named per-frame arrays. Populated by DragerEitParser:
+                              "timestamp"          float64 (N,)    fraction of day
+                              "trans_A"            float64 (N,208) raw ADC — primary
+                              "trans_B"            float64 (N,208) raw ADC — reference
+                              "injection_current"  float64 (N,16)  raw ADC counts
+                              "I_real"             float64 (N,16)  injected current [A]
+                              "voltage_A"          float64 (N,16)  raw ADC counts
+                              "voltage_B"          float64 (N,16)  raw ADC counts
+                              "V_diff"             float64 (N,16)  differential voltage [V]
+                              "frame_counter"      uint16  (N,)
+                              "medibus"            float32 (N,67)  ventilator channels
+                            None if the source file carries no auxiliary signals.
 ```
 
 Intended consumer: **pyEIT** or any reconstruction library.
