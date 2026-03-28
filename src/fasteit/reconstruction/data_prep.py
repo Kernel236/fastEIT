@@ -48,6 +48,12 @@ def load_paired(
     if input_mode == "vv":
         X = eit_data.measurements  # (N, 208)
     elif input_mode == "raw":
+        for key in ("trans_A", "trans_B"):
+            if key not in eit_data.aux_signals:
+                raise ValueError(
+                    f"input_mode='raw' requires aux_signals['{key}']. "
+                    "Check that the .eit parser populates raw transimpedances."
+                )
         trans_A = eit_data.aux_signals["trans_A"]  # (N, 208)
         trans_B = eit_data.aux_signals["trans_B"]  # (N, 208)
         X = np.hstack([trans_A, trans_B])  # (N, 416)
@@ -82,6 +88,11 @@ def normalize(
         - delta: ``(N_frames, features)`` baseline-subtracted array.
         - ref: ``(features,)`` baseline vector (kept for inference).
     """
+    if n_ref > arr.shape[0]:
+        raise ValueError(
+            f"n_ref={n_ref} exceeds number of frames ({arr.shape[0]}). "
+            "Provide a recording with more frames or reduce n_ref."
+        )
     ref = arr[:n_ref].mean(axis=0)
     return arr - ref, ref
 

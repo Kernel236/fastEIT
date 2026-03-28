@@ -61,6 +61,11 @@ class RidgeReconstructor:
         Returns:
             self (for chaining).
         """
+        if X.shape[0] != Y.shape[0]:
+            raise ValueError(
+                f"X and Y must have the same number of frames. "
+                f"Got X={X.shape[0]}, Y={Y.shape[0]}."
+            )
         self._model.fit(X, Y)
         self.n_features = X.shape[1]
         self.n_pixels = Y.shape[1]
@@ -111,6 +116,10 @@ class RidgeReconstructor:
         Args:
             path: Output file path (recommended: ``.npz`` extension).
         """
+        if not hasattr(self._model, "coef_"):
+            raise RuntimeError(
+                "Model must be fitted before saving. Call fit() first."
+            )
         path = Path(path)
         meta = {"alpha": self.alpha}
         np.savez(
@@ -137,6 +146,5 @@ class RidgeReconstructor:
         model._model.intercept_ = data["intercept"]
         model.n_features = data["coef"].shape[1]
         model.n_pixels = data["coef"].shape[0]
-        # sklearn needs intercept_ set + is_fitted flag
         model._model.n_features_in_ = model.n_features
         return model
