@@ -59,3 +59,8 @@ class TestNormalize:
         assert ref[0] == pytest.approx(2.0)  # mean of [0,1,2,3,4]
         assert delta[0, 0] == pytest.approx(-2.0)
         assert delta[5, 0] == pytest.approx(3.0)
+
+    def test_n_ref_exceeds_frames_raises(self):
+        arr = np.random.default_rng(10).random((20, 4))
+        with pytest.raises(ValueError, match="n_ref=50 exceeds"):
+            normalize(arr, n_ref=50)

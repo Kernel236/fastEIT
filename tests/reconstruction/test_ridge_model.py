@@ -76,3 +76,21 @@ class TestRidgeReconstructor:
         norm_low = np.linalg.norm(model_low.coef_)
         norm_high = np.linalg.norm(model_high.coef_)
         assert norm_high < norm_low, "Higher alpha should shrink coefficients"
+
+    def test_predict_unfitted_raises(self):
+        model = RidgeReconstructor(alpha=1.0)
+        X = np.random.default_rng(0).random((10, 208))
+        with pytest.raises((AttributeError, RuntimeError)):
+            model.predict(X)
+
+    def test_save_unfitted_raises(self, tmp_path):
+        model = RidgeReconstructor(alpha=1.0)
+        with pytest.raises(RuntimeError, match="must be fitted"):
+            model.save(tmp_path / "model.npz")
+
+    def test_fit_frame_mismatch_raises(self):
+        model = RidgeReconstructor(alpha=1.0)
+        X = np.random.default_rng(1).random((100, 208))
+        Y = np.random.default_rng(2).random((99, 1024))
+        with pytest.raises(ValueError, match="same number of frames"):
+            model.fit(X, Y)
