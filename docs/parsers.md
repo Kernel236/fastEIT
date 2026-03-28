@@ -232,7 +232,7 @@ sourced from PulmoVista 500 IFU SW 1.3n:
 proprietary reconstruction. Both algorithms produce correct relative distributions,
 but the vendor `.bin` uses a device-specific mesh and matrix. A data-driven
 reconstruction that learns the Dräger mapping from paired `.eit`/`.bin` recordings
-is provided in `fasteit.reconstruction` (see `feat/ml-reconstruction`).
+is provided in `fasteit.reconstruction` (see [reconstruction.md](reconstruction.md)).
 
 ---
 
