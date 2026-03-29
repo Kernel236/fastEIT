@@ -35,6 +35,7 @@ pyeit = [
 ]
 reconstruction = [
     "scikit-learn>=1.3",
+    "scipy>=1.11",
 ]
 dev = [
     "pytest>=7.4",
