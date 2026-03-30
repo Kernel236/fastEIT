@@ -12,10 +12,11 @@ Learns the Dräger PulmoVista 500 reconstruction mapping from paired
 ## Overview
 
 The Dräger PulmoVista reconstructs 32x32 impedance images from 208 raw
-transimpedance measurements using a proprietary Newton-Raphson FEM algorithm.
+transimpedance measurements using a Newton-Raphson FEM algorithm.
 This module learns that mapping directly from data using Ridge regression
-(L2-regularised linear regression), which is physically motivated: the EIT
-forward model is linear, so the inverse map is approximately linear.
+(L2-regularised linear regression), which should be physically motivated: the EIT
+forward model from my humble understanding is a very complex linear problem.
+I thouth that at the end we need to find the matrix who transform a vector of 206 `vv` calibrated or a vector of `406` raw signal into a matrix of 32x32. Having the correspondent recostructed images from Dräger software in my opinion this is a perfect example of ML exercise.
 
 Reference:
 > Hoerl AE, Kennard RW. "Ridge Regression: Biased Estimation for
@@ -96,8 +97,6 @@ sklearn's `r2_score(multioutput='uniform_average')`.
 | v1 | `"vv"` | 208 | Calibrated transimpedances (Adler formula with gain x I_injection) |
 | v1b | `"raw"` | 416 | Raw `[trans_A, trans_B]` -- bypasses hardware calibration constants |
 
-v1b is more robust at recording boundaries because it does not depend on
-hardware-specific calibration constants.
 
 ## Current results (proof of concept)
 
@@ -121,7 +120,7 @@ R² = 0.972, spatial corr = 0.987, global corr = 0.986.
   Will be integrated into a Pipeline in the planned `EITReconstructor` class.
 - **No sentinel handling** -- bad frames (sentinel values from parser) are not
   filtered before training. A single corrupted frame can bias the weight matrix.
-- **Dräger-only** -- cross-vendor (Infivision) not yet tested.
+- **Dräger-only** 
 
 ## Notebook
 
