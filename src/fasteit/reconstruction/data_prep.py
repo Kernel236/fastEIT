@@ -3,13 +3,10 @@
 Loads paired recordings, normalises per-file (baseline subtraction),
 and returns concatenated arrays ready for model training.
 
-Two normalisation strategies:
-- **fixed**: subtract the mean of the first ``n_ref`` frames.  Simple,
-  but drifts if EELI changes during a long recording.
-- **rolling**: subtract a centered moving average of ``window`` frames.
-  Equivalent to a high-pass filter — removes slow drift (EELI, posture
-  changes) while preserving respiratory oscillations.
-
+Normalisation: subtract the mean of the first ``n_ref`` frames from each
+recording independently.  This removes the absolute impedance baseline
+(which varies across patients and after device recalibration) and leaves
+only the differential signal — tidal variations, EELI trends, etc.
 Per-file normalisation is required so that recordings from different
 patients or sessions can be safely concatenated for training.
 """
@@ -19,7 +16,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-from scipy.ndimage import uniform_filter1d
 
 from fasteit.parsers.loader import load_data
 
@@ -99,38 +95,6 @@ def normalize(
         )
     ref = arr[:n_ref].mean(axis=0)
     return arr - ref, ref
-
-
-def normalize_rolling(
-    arr: np.ndarray,
-    window: int = 250,
-) -> np.ndarray:
-    """Subtract a centered rolling mean from each frame (high-pass filter).
-
-    Removes slow drift (EELI changes, posture shifts) while preserving
-    respiratory and cardiac oscillations.  Equivalent to a high-pass
-    filter with cutoff period ≈ ``window / fs`` seconds.
-
-    The centered rolling mean uses ``scipy.ndimage.uniform_filter1d``
-    with ``mode='nearest'`` — at the edges of the recording, the window
-    is effectively padded by repeating the boundary values.
-
-    Args:
-        arr: Input array, shape ``(N_frames, features)``.
-        window: Rolling window size in frames.  Default 250
-            (= 5 s at 50 Hz, covers ~2 breath cycles).
-
-    Returns:
-        Baseline-subtracted array, shape ``(N_frames, features)``.
-    """
-    if window < 1:
-        raise ValueError(f"window must be >= 1, got {window}.")
-    if window > arr.shape[0]:
-        raise ValueError(
-            f"window={window} exceeds number of frames ({arr.shape[0]})."
-        )
-    rolling_mean = uniform_filter1d(arr, size=window, axis=0, mode="nearest")
-    return arr - rolling_mean
 
 
 def prepare_dataset(
