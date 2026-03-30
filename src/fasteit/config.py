@@ -1,11 +1,11 @@
 """Configuration dataclasses for the fasteit pipeline.
 
 Single source of truth for tuneable parameters. Parsers and algorithms read
-values from here — change once, propagates everywhere.
+values from here.
 
 Structure:
-    PreprocessingConfig — filter, lung mask, ROI params (TODO Task 0.6.1)
-    AnalysisConfig      — breath detection, PEEP detection params (TODO Task 0.6.1)
+    PreprocessingConfig — filter, lung mask, ROI params (TODO)
+    AnalysisConfig      — breath detection, PEEP detection params (TODO)
     Config              — top-level container for pipeline sections
 
 Usage:
@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 class PreprocessingConfig:
     """Parameters for signal filtering, lung mask, and ROI extraction.
 
-    TODO (Task 0.6.1 / Fase 4): populate fields when implementing:
+    TODO: populate fields when implementing:
         - Butterworth filter (Task 4.1.1)
         - Lung mask (Task 4.4.1)
         - ROI definitions (Task 4.8.1)
@@ -41,7 +41,7 @@ class PreprocessingConfig:
 class AnalysisConfig:
     """Parameters for breath detection and PEEP step detection.
 
-    TODO (Task 0.6.1 / Fase 4-5): populate fields when implementing:
+    TODO: populate fields when implementing:
         - Breath detection (Task 4.10.1)
         - PEEP detection (Task 5.7.1)
     All defaults must cite supporting literature.

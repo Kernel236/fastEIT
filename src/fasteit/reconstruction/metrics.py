@@ -47,9 +47,6 @@ def mse_per_frame(Y_true: np.ndarray, Y_pred: np.ndarray) -> np.ndarray:
 def rmse_global(Y_true: np.ndarray, Y_pred: np.ndarray) -> float:
     """Root mean squared error across all frames and pixels.
 
-    Unlike MSE, RMSE is in the same units as the pixel values,
-    making it directly comparable to the signal range.
-
     Args:
         Y_true: Ground truth, shape ``(N_frames, n_pixels)``.
         Y_pred: Prediction, shape ``(N_frames, n_pixels)``.
@@ -70,14 +67,6 @@ def r2_score(Y_true: np.ndarray, Y_pred: np.ndarray) -> float:
     - R² = 1.0: perfect prediction.
     - R² = 0.0: predicts no better than the global mean.
     - R² < 0.0: worse than the mean.
-
-    Note:
-        This computes a **pooled** R² over all elements (frames × pixels),
-        using the grand mean.  This differs from sklearn's
-        ``r2_score(multioutput='uniform_average')`` which averages per-pixel
-        R² values.  For baseline-subtracted EIT data the two are similar,
-        but the pooled version is dominated by the tidal waveform.
-        Use ``correlation_per_frame`` to assess spatial fidelity separately.
 
     Args:
         Y_true: Ground truth, shape ``(N_frames, n_pixels)``.
@@ -102,8 +91,6 @@ def error_map(
     """Mean absolute error per pixel, reshaped to image grid.
 
     Shows where spatially the model makes the largest errors.
-    High-error regions are typically near the heart (cardiac artifact)
-    and at the edges of the lung fields (low SNR).
 
     Args:
         Y_true: Ground truth, shape ``(N_frames, n_pixels)``.
