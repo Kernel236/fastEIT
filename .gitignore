@@ -38,6 +38,9 @@ coverage.xml
 .ipynb_checkpoints/
 *.ipynb~
 
+# Infivision reverse engineering file format
+/docs/reverse_eng/infivision_rec_format.ipynb
+
 # OS
 .DS_Store
 Thumbs.db
