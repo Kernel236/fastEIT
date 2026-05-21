@@ -14,8 +14,7 @@ Learns the Dräger PulmoVista 500 reconstruction mapping from paired
 The Dräger PulmoVista reconstructs 32x32 impedance images from 208 raw
 transimpedance measurements using a Newton-Raphson FEM algorithm.
 This module learns that mapping directly from data using Ridge regression
-(L2-regularised linear regression), which should be physically motivated: the EIT
-forward model from my humble understanding is a very complex linear problem.
+(L2-regularised linear regression).
 I thouth that at the end we need to find the matrix who transform a vector of 206 `vv` calibrated or a vector of `406` raw signal into a matrix of 32x32. Having the correspondent recostructed images from Dräger software in my opinion this is a perfect example of ML exercise.
 
 Reference:
@@ -96,31 +95,6 @@ sklearn's `r2_score(multioutput='uniform_average')`.
 |-------|-------|----------|-------------|
 | v1 | `"vv"` | 208 | Calibrated transimpedances (Adler formula with gain x I_injection) |
 | v1b | `"raw"` | 416 | Raw `[trans_A, trans_B]` -- bypasses hardware calibration constants |
-
-
-## Current results (proof of concept)
-
-- 2 patients, 10 recordings, ~89k frames
-- 80/20 sequential split per recording, per-file baseline normalisation
-- Alpha selected via validation split (no test-set leakage)
-
-| Model | R² test | Spatial corr | Global corr |
-|-------|---------|-------------|-------------|
-| v1 (208) | 0.950 | 0.985 | 0.944 |
-| **v1b (416)** | **0.951** | **0.986** | **0.945** |
-
-After outlier filtering (1 glitch frame removed):
-R² = 0.972, spatial corr = 0.987, global corr = 0.986.
-
-## Known limitations
-
-- **2 patients only** -- cross-patient generalisation not yet proven. Requires
-  more patients for Leave-One-Patient-Out CV (LOPO-CV).
-- **StandardScaler not saved with model** -- must be persisted separately.
-  Will be integrated into a Pipeline in the planned `EITReconstructor` class.
-- **No sentinel handling** -- bad frames (sentinel values from parser) are not
-  filtered before training. A single corrupted frame can bias the weight matrix.
-- **Dräger-only** 
 
 ## Notebook
 
