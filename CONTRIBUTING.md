@@ -34,7 +34,8 @@ ruff check src/ tests/
 ruff format src/ tests/
 ```
 
-Both checks run automatically on every push via GitHub Actions.
+GitHub Actions runs `ruff check` and `ruff format --check` on every pull request
+to `dev` or `main`, and on every push to those branches.
 
 ## Running tests
 
@@ -43,7 +44,8 @@ pytest tests/
 ```
 
 Tests that require real patient files are skipped automatically if the files
-are not present (they are gitignored).
+are not present (they are gitignored). Use `pytest -rs` to see which tests were
+skipped and why.
 
 ## Adding a new parser
 
@@ -53,11 +55,11 @@ the testing checklist.
 
 ## Pull request process
 
-Please ensure to discuss about your idea with an Github issue before opening a PR. 
+Please open a GitHub issue to discuss your idea before opening a PR.
 
 1. Fork the repository and create a branch from `dev`
 2. Make your changes with tests
-3. Ensure `ruff check` and `pytest` pass locally
+3. Ensure `ruff check`, `ruff format --check` and `pytest` pass locally
 4. Open a PR targeting `dev` (not `main`)
 5. Describe what changed and why
 

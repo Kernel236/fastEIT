@@ -1,6 +1,6 @@
 """RawImpedanceData: container for raw transimpedance measurements.
 
-Produced by: DragerEitParser (.eit), TimpelRawParser (.x).
+Produced by: DragerEitParser (.eit).
 Primary use case: pyEIT interface for image reconstruction.
 """
 

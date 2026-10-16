@@ -22,7 +22,7 @@ class ReconstructedFrameData(BaseData):
 
     ``aux_signals`` is a vendor-agnostic dict of named continuous signals that
     are frame-aligned with ``frames``. For Dräger .bin this is the Medibus dict;
-    for Timpel .txt this will hold the 5 device channels.
+    for Timpel tabular exports it holds the 6 device channels.
 
     Attributes:
         frames:      Structured numpy array, shape (N,). Required fields: ``ts``

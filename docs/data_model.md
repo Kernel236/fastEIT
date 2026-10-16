@@ -29,16 +29,17 @@ duration    float        n_frames / fs  (0.0 if fs is None)
 
 ```
 frames      np.ndarray   Structured array shape (N,). Named fields:
-                           ts            float64   timestamp (seconds)
+                           ts            float64   timestamp (unit depends on vendor, see below)
                            pixels        float32   32×32 image per frame
                          Dräger .bin only:
                            min_max_flag  int32     +1=insp peak, -1=exp trough, 0=none
                            event_marker  int32     event counter
-                           event_text    S30       null-padded ASCII event string
+                           event_text    S30       ASCII event string, space- or null-padded
                            timing_error  int32     0 = ok
 
 aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frames.
-                         Dräger .bin: 52 or 58 Medibus channels.
+                         Dräger .bin: 52 or 58 Medibus channels, sentinel values
+                         left unchanged (replaced in preprocessing).
                          Timpel: 6 device channels (airway_pressure, flow,
                          volume, min_flag, max_flag, qrs_flag — cols 1024-1029).
                          None if the source file carries no auxiliary signals.
@@ -64,7 +65,7 @@ is applied in the preprocessing layer.
 
 | Vendor | `ts` field | Unit |
 |--------|-----------|------|
-| Dräger `.bin` | wall-clock fraction-of-day from device | seconds (converted from float64 day fraction) |
+| Dräger `.bin` | wall-clock time from device, stored as-is | fraction of day (× 86400 for seconds) |
 | Timpel `.csv` | synthetic: `(frame_index + first_frame) / 50.0` | seconds from start |
 
 ---
@@ -89,7 +90,7 @@ table   pd.DataFrame   One row per EIT frame. Snake_case column names.
 ## 4. `RawImpedanceData`
 
 **File:** `models/raw_impedance_data.py`
-**Produced by:** `DragerEitParser` (`.eit`); `TimpelRawParser` (`.x`) — scaffold
+**Produced by:** `DragerEitParser` (`.eit`)
 
 ```
 measurements   np.ndarray   shape (N_frames, 208)

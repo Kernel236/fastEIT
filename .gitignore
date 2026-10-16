@@ -38,6 +38,9 @@ coverage.xml
 .ipynb_checkpoints/
 *.ipynb~
 
+
+/docs/reverse_eng/infivision_rec_format.ipynb
+
 # OS
 .DS_Store
 Thumbs.db
