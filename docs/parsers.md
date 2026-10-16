@@ -193,8 +193,9 @@ at least 1029 separators (comma, tab or semicolon), i.e. the 1030-column layout.
 
 ## 6. GREIT reconstruction bridge
 
-This is a proof of concept showing how fastEIT output can be passed to a
-reconstruction library such as pyEIT. It is not validated for analysis.
+This function is far from reliable. It was written only to show one possible
+application of the `.eit` parser output: passing it to a reconstruction library
+such as pyEIT.
 
 **File:** `parsers/draeger/eit/eit_pyeit_bridge.py`
 **Optional dependency:** `pip install fasteit[pyeit]`

@@ -82,8 +82,9 @@ auto-detects vendor and format.
 `RawImpedanceData` from `.eit` files can be passed to pyEIT through
 `reconstruct_greit()` (optional dependency: `pip install fasteit[pyeit]`; implements
 GREIT — Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03).
-This is a proof of concept: it uses a generic circular mesh, so the images do not
-match the Dräger reconstruction stored in `.bin` files.
+This function is far from reliable: it was written only to show one possible
+application of the `.eit` parser. It uses a generic circular mesh, so the images do
+not match the Dräger reconstruction stored in `.bin` files.
 
 ```python
 from fasteit.parsers.draeger.eit.eit_pyeit_bridge import reconstruct_greit
