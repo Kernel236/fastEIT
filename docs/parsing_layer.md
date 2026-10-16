@@ -4,7 +4,7 @@ This document explains the architecture of the parsing layer and provides
 step-by-step recipes for the most common extension tasks:
 
 1. [How the parsing layer works](#1-how-the-parsing-layer-works)
-2. [Add a new Dräger `.bin` frame size](#2-add-a-new-drger-bin-frame-size)
+2. [Add a new Dräger `.bin` frame size](#2-add-a-new-dräger-bin-frame-size)
 3. [Add a new parser](#3-add-a-new-parser)
 4. [Testing checklist](#4-testing-checklist)
 5. [File layout](#5-file-layout)
@@ -43,7 +43,7 @@ The strategy depends on the extension:
 |-----------|----------|--------------|
 | `.bin` | size-based | `file_size % frame_size == 0` for each registered `FormatSpec` |
 | `.eit` | header-based | reads first bytes, looks for ASCII magic string for each registered `HeaderFormatSpec` |
-| `.asc` `.txt` `.csv` | content-based | reads first 40 lines, looks for vendor keyword |
+| `.asc` `.txt` `.csv` | content-based | reads first 40 lines, looks for a vendor keyword; Timpel is also recognised by its 1030-column row |
 
 `.bin` is special: there is no header. The only way to identify the format is
 that the file size must be an exact multiple of the frame size in bytes. The
@@ -130,9 +130,9 @@ recordings = load_many([
 ```
 
 **`load_folder(folder, pattern="*")`** — scans a directory (alphabetically),
-parses every file that has a registered parser, and **silently skips** files
-that raise any error (no registered parser, malformed file, wrong extension).
-Skipped files print a one-line warning to `stderr` but never abort the scan.
+parses every file that has a registered parser, and **skips** files that raise
+an error (no registered parser, malformed file, wrong extension). Each skipped
+file prints a one-line message to `stderr`; the scan is never aborted.
 
 ```python
 from fasteit.parsers.loader import load_folder
@@ -242,7 +242,8 @@ differs by format type.
 | Format | Return type | Example |
 |--------|-------------|---------|
 | Binary frame sequence | `ReconstructedFrameData` | Dräger `.bin`, AcmEIT `.acm` |
-| Tabular (CSV / TXT) | `ContinuousSignalData` | Dräger `.asc`, Hamilton export, SERVO-U export, capnograph |
+| Tabular (CSV / TXT), signals only | `ContinuousSignalData` | Dräger `.asc`, Hamilton export, SERVO-U export, capnograph |
+| Tabular with pixel columns | `ReconstructedFrameData` | Timpel `.csv` |
 
 Tabular parsers are common for any device that exports to a plain-text table —
 including standalone ventilators (Hamilton, Maquet SERVO, Dräger Evita) that
@@ -316,7 +317,7 @@ Then add the `HeaderFormatSpec` to `HEADER_FORMAT_SPECS` as above.
 
 **Binary without a header (size-based, `.bin`)**
 
-Add a `FormatSpec` to `BIN_FORMAT_SPECS` (see [section 2](#2-add-a-new-drger-bin-frame-size)).
+Add a `FormatSpec` to `BIN_FORMAT_SPECS` (see [section 2](#2-add-a-new-dräger-bin-frame-size)).
 No changes to `detection.py` needed.
 
 ---
@@ -394,7 +395,8 @@ class AcmEitParser(BaseParser):
         return True
 
     def parse(self, path: Path) -> ReconstructedFrameData:
-        # np.memmap with ACMEIT_FRAME_DTYPE, sentinel → NaN, fs estimation ...
+        # np.memmap with ACMEIT_FRAME_DTYPE, fs estimation ...
+        # (keep sentinel values as-is: NaN replacement belongs to preprocessing)
         return ReconstructedFrameData(
             frames=frames,
             aux_signals=aux_signals,
@@ -534,8 +536,8 @@ src/fasteit/
     ├── base.py                   BaseParser (validate / parse / parse_safe)
     ├── bin_formats.py            BIN_FORMAT_SPECS — all known .bin frame sizes
     ├── detection.py              detect_vendor_and_format() — routes any file
-    ├── errors.py                 AmbiguousFormatError, UnknownFormatError
-    ├── header_formats.py         EIT_HEADER_FORMATS — known .eit ASCII headers
+    ├── errors.py                 ParserError and subclasses (UnsupportedFrameSize, AmbiguousFormat, InvalidSlice)
+    ├── header_formats.py         HEADER_FORMAT_SPECS — known .eit ASCII headers
     ├── loader.py                 load_data / load_many / load_folder
     │
     ├── draeger/
@@ -543,16 +545,16 @@ src/fasteit/
     │   │   └── asc_parser.py     DragerAscParser — .asc continuous export
     │   ├── bin/
     │   │   ├── bin_parser.py     DragerBinParser — .bin reconstructed frames
-    │   │   ├── bin_utils.py      Sentinel → NaN, fs estimation helpers
+    │   │   ├── bin_utils.py      Frame slicing, fs estimation, sentinel helpers
     │   │   └── draeger_dtypes.py FRAME_BASE_DTYPE, FRAME_EXT_DTYPE, MEDIBUS_* fields
     │   └── eit/
     │       ├── eit_parser.py     DragerEitParser — .eit raw transimpedances
-    │       ├── eit_dtypes.py     EIT_FRAME_DTYPE (5495-byte frame layout)
-    │       ├── eit_utils.py      Calibration constants FT_A/FT_B/FC_CURRENT/FV_VOLTAGE
+    │       ├── eit_dtypes.py     FRAME_EIT_DTYPE (5495-byte frame layout)
+    │       ├── eit_utils.py      Header parsing, calibration constants FT_A/FT_B/FC_CURRENT/FV_VOLTAGE
     │       └── eit_pyeit_bridge.py  build_greit() / reconstruct_greit() — pyEIT bridge
     │
     └── timpel/
-        ├── timpel_parser.py      TimpelTabularParser — .csv/.txt reconstructed frames
+        ├── timpel_parser.py      TimpelTabularParser — .csv/.txt/.asc reconstructed frames
         └── timpel_dtypes.py      TIMPEL_AUX_FIELDS — auxiliary signal columns
 ```
 
@@ -561,4 +563,3 @@ one `<vendor>_parser.py`, one `<vendor>_dtypes.py`, one `__init__.py`.
 Then follow steps 1–5 in [section 3](#3-add-a-new-parser).
 
 ---
-
