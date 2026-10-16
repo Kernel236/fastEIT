@@ -34,7 +34,7 @@ frames      np.ndarray   Structured array shape (N,). Named fields:
                          Dräger .bin only:
                            min_max_flag  int32     +1=insp peak, -1=exp trough, 0=none
                            event_marker  int32     event counter
-                           event_text    S30       null-padded ASCII event string
+                           event_text    S30       ASCII event string, space- or null-padded
                            timing_error  int32     0 = ok
 
 aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frames.

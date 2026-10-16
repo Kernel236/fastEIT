@@ -44,7 +44,7 @@ Two frame formats are registered; detection is size-based (no header).
 | `pixels` | float32 × 1024 | 4096 B | Reconstructed 32×32 image (C-order) |
 | `min_max_flag` | int32 | 4 B | +1 = inspiratory peak, −1 = expiratory trough, 0 = none |
 | `event_marker` | int32 | 4 B | Event counter |
-| `event_text` | S30 | 30 B | ASCII event label, null-padded |
+| `event_text` | S30 | 30 B | ASCII event label, padded with spaces (or nulls on frames without an event) |
 | `timing_error` | int32 | 4 B | 0 = frame timing OK |
 | `medibus_data` | float32 × 52 | 208 B | Ventilator Medibus channels; sentinel −3.4×10³⁸ = disconnected |
 
