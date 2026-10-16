@@ -14,11 +14,13 @@ PulmoVista 500. Provides structured data containers for research in mechanical v
 ## Installation
 
 **Users:**
+
 ```bash
 pip install git+https://github.com/Kernel236/fastEIT.git
 ```
 
 **Developers:**
+
 ```bash
 git clone https://github.com/Kernel236/fastEIT.git
 cd fastEIT
@@ -40,7 +42,7 @@ print(data.global_signal[:10])      # first 10 frames global EIT signal
 data = load_data("patient01.eit")
 print(data.n_frames, data.fs)          # e.g. 11500, 50.0
 print(data.measurements.shape)        # (11500, 208) — 208 = 16 inj × 13 meas
-print(list(data.aux_signals.keys()))   # timestamp, I_real, V_diff, medibus, ...
+print(list(data.aux_signals.keys()))   # timestamp, trans_A, trans_B, I_real, V_diff, medibus, ...
 
 # Dräger .asc — continuous frame-by-frame signal export
 data = load_data("patient01.asc")
@@ -61,7 +63,7 @@ Pre-alpha. Data model and parsing layer implemented.
 
 | Class | Content | Produced by |
 |-------|---------|-------------|
-| `ReconstructedFrameData` | 32×32 pixel matrices + synchronized signals | `.bin`, `.txt` |
+| `ReconstructedFrameData` | 32×32 pixel matrices + synchronized signals | Dräger `.bin`, Timpel `.csv`/`.txt`/`.asc` |
 | `ContinuousSignalData` | Signal table, one row per frame | `.asc` |
 | `RawImpedanceData` | Calibrated transimpedances + aux signals for pyEIT | `.eit` |
 
@@ -72,14 +74,16 @@ Pre-alpha. Data model and parsing layer implemented.
 | `DragerBinParser` | Implemented | `.bin` — base frame (4358 b) and PressurePod frame (4382 b); registry-driven, new frame sizes require only a dtype + one entry |
 | `DragerAscParser` | Implemented | `.asc`, `.txt`, `.csv` — continuous waveform export |
 | `DragerEitParser` | Implemented | `.eit` — ASCII header + binary frames (5495 b/frame); 208 calibrated transimpedances + Medibus aux signals |
-| `TimpelTabularParser` | Implemented | `.csv`, `.txt` — reconstructed frame export |
+| `TimpelTabularParser` | Implemented | `.csv`, `.txt`, `.asc` — reconstructed frame export |
 
 All parsers are accessible via the single entry point `load_data(path)`, which
 auto-detects vendor and format.
 
-`RawImpedanceData` from `.eit` files can be reconstructed to 32×32 pixel images via
-which is an example of pyEIT wrapping `reconstruct_greit()` (optional dependency: `pip install fasteit[pyeit]`; implements
-GREIT — Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03):
+`RawImpedanceData` from `.eit` files can be passed to pyEIT through
+`reconstruct_greit()` (optional dependency: `pip install fasteit[pyeit]`; implements
+GREIT — Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03).
+This is a proof of concept: it uses a generic circular mesh, so the images do not
+match the Dräger reconstruction stored in `.bin` files.
 
 ```python
 from fasteit.parsers.draeger.eit.eit_pyeit_bridge import reconstruct_greit
