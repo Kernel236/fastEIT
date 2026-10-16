@@ -16,7 +16,6 @@ For **architecture and extension recipes** see [`parsing_layer.md`](parsing_laye
 | `.asc` / `.txt` / `.csv` | Dräger | `DragerAscParser` | `ContinuousSignalData` |
 | `.eit` | Dräger | `DragerEitParser` | `RawImpedanceData` |
 | `.csv` / `.txt` / `.asc` | Timpel | `TimpelTabularParser` | `ReconstructedFrameData` |
-| `.x` | Timpel | `TimpelRawParser` *(scaffold)* | `RawImpedanceData` |
 
 All parsers inherit from `BaseParser` and are accessible via `load_data(path)`.
 
@@ -34,35 +33,46 @@ Two frame formats are registered; detection is size-based (no header).
 | Name | Frame size | Medibus channels | Notes |
 |------|-----------|-----------------|-------|
 | `Draeger_base_4358` | 4358 bytes | 52 | Standard export |
-| `Draeger_ext_4382` | 4382 bytes | 58 | PressurePod: adds esophageal + transpulmonary pressure |
+| `Draeger_ext_4382` | 4382 bytes | 58 | PressurePod variant: BiLevel parameters + 4 Pod pressure waveforms |
 
 ### Binary frame layout (base format)
 
 | Field | Type | Size | Content |
 |-------|------|------|---------|
-| `ts` | float64 | 8 B | Wall-clock timestamp (fraction of day × 86400 → seconds) |
+| `ts` | float64 | 8 B | Wall-clock timestamp as fraction of day (kept as-is; × 86400 gives seconds) |
 | `dummy` | float32 | 4 B | Unknown — ignored |
 | `pixels` | float32 × 1024 | 4096 B | Reconstructed 32×32 image (C-order) |
 | `min_max_flag` | int32 | 4 B | +1 = inspiratory peak, −1 = expiratory trough, 0 = none |
 | `event_marker` | int32 | 4 B | Event counter |
-| `event_text` | S30 | 30 B | ASCII event label, space-padded |
+| `event_text` | S30 | 30 B | ASCII event label, null-padded |
 | `timing_error` | int32 | 4 B | 0 = frame timing OK |
 | `medibus_data` | float32 × 52 | 208 B | Ventilator Medibus channels; sentinel −3.4×10³⁸ = disconnected |
 
-PressurePod format (`Draeger_ext_4382`) adds 6 extra Medibus channels (indices 52–57):
-esophageal pressure (Pes), airway pressure (Paw), transpulmonary pressure (Ptp),
-and three auxiliary pressure waveforms from the Pod hardware.
+The two formats share Medibus indices 0–50 and differ from index 51 onward:
 
-### Sentinel handling
+| Index | Base (52 channels) | PressurePod (58 channels) |
+|-------|--------------------|---------------------------|
+| 51 | `time_at_low_pressure` | `high_pressure` (BiLevel PHigh) |
+| 52 | — | `low_pressure` (BiLevel Plow) |
+| 53 | — | `time_at_low_pressure` (BiLevel Tlow) |
+| 54–57 | — | Pod waveforms: `airway_pressure_pod`, `esophageal_pressure_pod`, `transpulmonary_pressure_pod`, `gastric_pressure_pod` |
 
-Medibus channels disconnected from the ventilator carry the sentinel value
-`−3.4×10³⁸` (IEEE 754 bit pattern `0xFF7FC99E`). The parser replaces these
-with `NaN` so downstream code can use `np.isnan()` to detect disconnected channels.
+Full field list with units: `parsers/draeger/bin/draeger_dtypes.py`.
+
+### Sentinel values
+
+Disconnected Medibus channels carry the sentinel `−3.4×10³⁸` (IEEE 754 bit
+pattern `0xFF7FC99E`); BiLevel fields (51–53 in the PressurePod format) read
+`−1000.0` when the ventilator is not in BiLevel mode. The parser returns these
+values unchanged. Replacing them with `NaN` is a preprocessing step;
+`bin_utils.replace_no_data_sentinels()` is available for it.
 
 ### Sampling frequency
 
-Not stored in the binary. Estimated from consecutive timestamp differences:
-`fs = 1 / median(diff(ts))`, rounded to the nearest integer Hz.
+Not stored in the binary. Estimated from the timestamps:
+`fs = (N − 1) / (t_last − t_first)`, with timestamps converted to seconds and
+unwrapped across midnight, rounded to the nearest integer Hz. Falls back to
+50 Hz (recorded in `metadata["warnings"]`) when the estimate fails.
 
 ---
 
@@ -71,7 +81,7 @@ Not stored in the binary. Estimated from consecutive timestamp differences:
 **File:** `parsers/draeger/eit/eit_parser.py`
 
 Reads raw transimpedance measurements from the PulmoVista 500 proprietary
-binary format. This is the **only open-source Python parser for this format**.
+binary format. We are not aware of another open-source Python parser for it.
 
 ### File structure
 
@@ -155,8 +165,9 @@ measurement (step = 1 electrode).
 Reads the PulmoVista 500 continuous waveform export (tab-separated text).
 Returns `ContinuousSignalData` with one row per EIT frame.
 
-Detection: looks for `"Dräger"` or `"Draeger"` keyword in the first 40 lines.
-Sampling frequency estimated from the `time` column if present.
+Detection: looks for the `DraegerEIT Software` header string in the first 40 lines
+(read as latin-1). Sampling frequency is estimated from the `time` column
+(fraction of day) when present, otherwise `fs` is `None`.
 
 Typical columns: `image`, `time`, `global`, `local_1_x_16_y_29` … `local_4_x_16_y_05`,
 `minmax`, `event`, `eventtext`, `timing_error`, plus Medibus channel columns when
@@ -172,16 +183,18 @@ Reads Timpel EIT device tabular exports. Each row is one EIT frame;
 columns 0–1023 are the 32×32 pixel values (C-order); columns 1024–1029
 are auxiliary signals (airway_pressure, flow, volume, min_flag, max_flag, qrs_flag).
 
-Returns `ReconstructedFrameData`. Sampling frequency defaults to 50 Hz if a
-`first_frame` column is present but timing cannot be derived otherwise.
+Returns `ReconstructedFrameData`. The export has no timestamp column, so `fs`
+is fixed at 50 Hz and `ts` is generated as `(frame_index + first_frame) / 50`.
 
-Detection: looks for `"Timpel"` keyword in the first 40 lines.
+Detection: the keyword `timpel` in the first 40 lines, or a first data row with
+at least 1029 separators (comma, tab or semicolon), i.e. the 1030-column layout.
 
 ---
 
 ## 6. GREIT reconstruction bridge
 
-This function is far to be reliable. It's just an example how to bridge on recustrustion library such as pyEIT stasting from fastEIT parsing layer output. 
+This is a proof of concept showing how fastEIT output can be passed to a
+reconstruction library such as pyEIT. It is not validated for analysis.
 
 **File:** `parsers/draeger/eit/eit_pyeit_bridge.py`
 **Optional dependency:** `pip install fasteit[pyeit]`
@@ -232,7 +245,8 @@ sourced from PulmoVista 500 IFU SW 1.3n:
 proprietary reconstruction. Both algorithms produce correct relative distributions,
 but the vendor `.bin` uses a device-specific mesh and matrix. A data-driven
 reconstruction that learns the Dräger mapping from paired `.eit`/`.bin` recordings
-is provided in `fasteit.reconstruction` (see `feat/ml-reconstruction`).
+is being developed on the `feat/ml-reconstruction` branch and is not part of this
+release.
 
 ---
 
@@ -243,7 +257,10 @@ is provided in `fasteit.reconstruction` (see `feat/ml-reconstruction`).
 ### `load_data(path) → BaseData`
 
 Single entry point. Auto-detects vendor and format, selects the right parser,
-returns the appropriate container. Raises `ValueError` on unknown format.
+returns the appropriate container. Raises `ValueError` for an unsupported
+extension or unrecognised content, `NotImplementedError` when no parser is
+registered for the detected vendor/extension, and a `ParserError` subclass for
+`.bin` files with an unknown or ambiguous frame size.
 
 ```python
 from fasteit.parsers.loader import load_data
@@ -266,7 +283,7 @@ recordings = load_many(["patient01.bin", "patient02.bin", "patient01.asc"])
 ### `load_folder(folder, pattern="*") → list[BaseData]`
 
 Scans a directory, parses every file with a registered parser.
-Files that raise any error are silently skipped (warning to stderr).
+Files that raise an error are skipped and a one-line message is printed to stderr.
 
 ```python
 from fasteit.parsers.loader import load_folder
