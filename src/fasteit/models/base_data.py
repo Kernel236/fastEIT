@@ -11,7 +11,7 @@ class BaseData:
 
     Attributes:
         filename:    Path of the source file.
-        file_format: Format identifier — "bin", "eit", "asc", "txt", or "x".
+        file_format: Format identifier — "bin", "eit", "asc", "csv", or "txt".
         vendor:      Detected device vendor — "draeger" or "timpel".
         fs:          Sampling rate in Hz, estimated by parser from timestamps.
         metadata:    Parsed header information (framerate, date, firmware, etc.).
