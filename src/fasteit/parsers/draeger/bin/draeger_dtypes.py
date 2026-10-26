@@ -7,7 +7,7 @@ Each .bin file is a flat sequence of frames. Two frame sizes exist:
 
 Layout confirmed from three independent sources:
 1. EIDORS read_draeger_bin (MATLAB, GPL - format study only, no code copied)
-2. eitprocessing draeger.py v0.3 (Apache-2.0)
+2. eitprocessing draeger.py v1.8.7 (Apache-2.0; unchanged in v1.8.8)
 3. Shared professional MATLAB analysis scripts
 """
 
