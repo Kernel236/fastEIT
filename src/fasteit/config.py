@@ -25,16 +25,20 @@ from dataclasses import dataclass, field
 
 @dataclass
 class PreprocessingConfig:
-    """Parameters for signal filtering, lung mask, and ROI extraction.
+    """Parameters of the preprocessing layer (layer 2).
 
-    TODO (Task 0.6.1 / Fase 4): populate fields when implementing:
-        - Butterworth filter (Task 4.1.1)
-        - Lung mask (Task 4.4.1)
-        - ROI definitions (Task 4.8.1)
-    All defaults must cite supporting literature.
+    Every default states where it comes from. The evidence for each choice is in
+    ``notebooks/05_preprocessing_choices.ipynb`` (section given in brackets).
+
+    Attributes:
+        moving_average_seconds: Width of the centred moving average used when no heart
+            rate is given, so no cardiac filter is applied (section 5c). It is the
+            ``smooth()`` of the original MATLAB analysis scripts, defined in seconds
+            instead of samples so that it behaves the same at 20 and 50 Hz. It removes
+            fast noise but leaves the cardiac component almost untouched.
     """
 
-    pass  # fields added in Fase 4
+    moving_average_seconds: float = 0.1
 
 
 @dataclass
