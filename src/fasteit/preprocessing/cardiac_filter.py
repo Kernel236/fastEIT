@@ -268,3 +268,46 @@ def mdn_filter(
     for band_stop in band_stops:
         filtered = signal.sosfiltfilt(band_stop, filtered, axis=0)
     return signal.sosfiltfilt(low_pass, filtered, axis=0)
+
+
+def heart_rate_warnings(
+    heart_rate_bpm: float,
+    respiratory_rate_bpm: float,
+    low_bpm: float,
+    high_bpm: float,
+    margin_bpm: float,
+) -> list[str]:
+    """Warnings about a heart rate entered by the user, before the MDN filter.
+
+    The heart rate is not checked against the data (it is never estimated, section
+    5c of the evidence notebook), so only two plausibility checks are made:
+    - outside ``low_bpm``-``high_bpm`` (adult range of eitprocessing
+      ``RateDetection``), e.g. a typing error;
+    - within ``margin_bpm`` of 1, 2 or 3 times the respiratory rate: the cardiac
+      notches then fall on the breathing or its harmonics and can change the shape
+      of the breaths (section 5b).
+
+    Args:
+        heart_rate_bpm:       Heart rate given by the user, beats/min.
+        respiratory_rate_bpm: Respiratory rate from the spectrum, breaths/min.
+        low_bpm, high_bpm:    Plausible heart rate range.
+        margin_bpm:           Distance from a multiple of the respiratory rate below
+                              which a warning is given.
+
+    Returns:
+        List of warning messages, empty if none.
+    """
+    warnings = []
+    if not low_bpm <= heart_rate_bpm <= high_bpm:
+        warnings.append(
+            f"Heart rate {heart_rate_bpm:.0f}/min is outside {low_bpm:.0f}-"
+            f"{high_bpm:.0f}/min: check the value entered."
+        )
+    for multiple in (1, 2, 3):
+        if abs(heart_rate_bpm - multiple * respiratory_rate_bpm) < margin_bpm:
+            warnings.append(
+                f"Heart rate {heart_rate_bpm:.0f}/min is close to {multiple} x the "
+                f"respiratory rate ({respiratory_rate_bpm:.0f}/min): the MDN filter "
+                "can change the shape of the breaths."
+            )
+    return warnings

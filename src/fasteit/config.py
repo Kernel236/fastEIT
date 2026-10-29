@@ -106,6 +106,13 @@ class PreprocessingConfig:
             JOSS 2026, DOI: 10.21105/joss.08179) (sections 7, 7b).
         lung_mask_min_region_pixels: Islands of the lung mask smaller than this are
             removed (eitprocessing ``FilterROIBySize`` default, section 9).
+        heart_rate_warning_low_bpm, heart_rate_warning_high_bpm: A heart rate entered
+            outside this range gives a warning in the log (adult range of
+            eitprocessing ``RateDetection``).
+        heart_rate_warning_margin_bpm: A heart rate closer than this to 1, 2 or 3
+            times the respiratory rate gives a warning: the MDN notches then fall on
+            the breathing (section 5b). Half width of the notch (10/min) plus 2/min,
+            a heuristic margin suggested in the physics review.
         exclusion_margin_seconds: Every exclusion (manual or from the device) is
             widened by this margin on both sides, because the forward-backward
             filters spread an artifact over the neighbouring samples. Same width as
@@ -137,6 +144,9 @@ class PreprocessingConfig:
     duration_ratio_high: float = 2.0
     lung_mask_threshold_fraction: float = 0.15
     lung_mask_min_region_pixels: int = 10
+    heart_rate_warning_low_bpm: float = 40.0
+    heart_rate_warning_high_bpm: float = 200.0
+    heart_rate_warning_margin_bpm: float = 12.0
     exclusion_margin_seconds: float = 0.5
 
     def __post_init__(self) -> None:

@@ -11,6 +11,7 @@ from scipy import signal as scipy_signal
 from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.cardiac_filter import (
     SECONDS_PER_MINUTE,
+    heart_rate_warnings,
     mdn_filter,
     moving_average,
     moving_average_window,
@@ -227,3 +228,34 @@ def test_mdn_rejects_nan_at_some_frames():
     x[500] = np.nan
     with pytest.raises(ValueError, match="some frames only"):
         mdn(x, 50, 0.5, 1.5)
+
+
+# --- heart rate warnings ---
+
+
+def hr_warnings(heart_bpm, respiratory_bpm):
+    return heart_rate_warnings(
+        heart_bpm,
+        respiratory_bpm,
+        low_bpm=CFG.heart_rate_warning_low_bpm,
+        high_bpm=CFG.heart_rate_warning_high_bpm,
+        margin_bpm=CFG.heart_rate_warning_margin_bpm,
+    )
+
+
+def test_a_plausible_heart_rate_gives_no_warning():
+    assert hr_warnings(85, 18) == []
+
+
+@pytest.mark.parametrize(
+    "heart_bpm, respiratory_bpm, message",
+    [
+        (30, 6, "outside"),  # e.g. a typing error
+        (250, 18, "outside"),
+        (60, 30, "2 x"),  # breathing harmonic under the cardiac notch
+        (95, 30, "3 x"),
+    ],
+)
+def test_suspect_heart_rates_give_a_warning(heart_bpm, respiratory_bpm, message):
+    warnings = hr_warnings(heart_bpm, respiratory_bpm)
+    assert len(warnings) == 1 and message in warnings[0]
