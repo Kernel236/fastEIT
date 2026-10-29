@@ -75,6 +75,27 @@ class PreprocessingConfig:
         invalid_data_margin_seconds: A breath closer than this to invalid data is
             flagged (``near_invalid`` of ``detect_breaths``); eitprocessing removes it,
             fastEIT keeps it (section 8).
+        breath_short_seconds, breath_long_seconds: A breath shorter or longer than this
+            is flagged (``flag_short``, ``flag_long``). Thresholds of the fastEIT
+            roadmap (task 4.11): 0.5 s is 120 breaths/min; a breath above 20 s is a
+            possible apnoea (section 8).
+        ti_ratio_low, ti_ratio_high: A breath with Ti/Ttot outside this range is
+            flagged (``flag_suspect_ti_ratio``). Ti is valley to peak of the impedance,
+            not the ventilator Ti. Wide limits around the usual 0.3-0.5, so that only
+            a suspect detection is flagged; obstructive or fast-breathing patients can
+            fall outside without an error (roadmap task 4.11, section 8).
+        local_window_breaths: Number of breaths, centred on each breath and including
+            it, whose median is the reference for the outlier flags. 21 breaths are
+            about 40 s at 30 breaths/min: long enough to ignore one event, short enough
+            to follow a PEEP change (section 8).
+        local_min_breaths: Fewest breaths in the window to compute the local median
+            (at the start and end of a short recording); with fewer, no outlier flag.
+        amplitude_ratio_low, amplitude_ratio_high: A breath with an amplitude below
+            or above these times the local median is flagged
+            (``flag_amplitude_outlier``). Ratios were preferred to a robust z-score,
+            which flagged normal variability in regular recordings (section 8).
+        duration_ratio_high: A breath longer than this times the local median duration
+            is flagged (``flag_duration_outlier``), e.g. two breaths merged into one.
     """
 
     moving_average_seconds: float = 0.1
@@ -91,6 +112,15 @@ class PreprocessingConfig:
     breath_min_duration_seconds: float = 2 / 3
     breath_low_amplitude_fraction: float = 0.25
     invalid_data_margin_seconds: float = 0.5
+    breath_short_seconds: float = 0.5
+    breath_long_seconds: float = 20.0
+    ti_ratio_low: float = 0.2
+    ti_ratio_high: float = 0.6
+    local_window_breaths: int = 21
+    local_min_breaths: int = 5
+    amplitude_ratio_low: float = 0.5
+    amplitude_ratio_high: float = 2.0
+    duration_ratio_high: float = 2.0
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
