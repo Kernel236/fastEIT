@@ -27,7 +27,7 @@ dependencies = [
     "pyarrow>=12.0",
     "matplotlib>=3.7",
     "h5py>=3.8",
-    "scikit-image>=0.22",
+    "scikit-image>=0.22",  # watershed lung mask (preprocessing/lung_mask.py)
 ]
 
 [project.optional-dependencies]
