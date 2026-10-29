@@ -4,6 +4,7 @@ Skipped when eitprocessing is not installed (it is not a fastEIT dependency) or 
 the real test recordings are not available. Evidence: notebooks/05_preprocessing_choices.ipynb.
 """
 
+import copy
 from pathlib import Path
 
 import numpy as np
@@ -86,8 +87,6 @@ def detect_like_fasteit(eit, pixels):
 
 
 def detect_like_eitprocessing(eit, pixels):
-    import copy
-
     from eitprocessing.features.breath_detection import BreathDetection
 
     eit_copy = copy.deepcopy(eit)
@@ -178,4 +177,50 @@ def test_breaths_near_a_spike_are_flagged_where_eitprocessing_removes_them():
     assert near_invalid.any()
     np.testing.assert_array_equal(
         ours[~near_invalid], detect_like_eitprocessing(eit, pixels)
+    )
+
+
+@pytest.mark.slow  # about 35 s: eitprocessing computes every map again
+@needs_real_files
+def test_watershed_mask_matches_eitprocessing_on_real_recordings():
+    from eitprocessing.roi.watershed import WatershedLungspace
+
+    from fasteit.preprocessing.cardiac_filter import moving_average
+    from fasteit.preprocessing.lung_mask import watershed_mask
+
+    cfg = PreprocessingConfig()
+    for path in REAL_BIN_FILES:
+        eit = next(iter(load_eit_data(path, vendor="draeger").eit_data.values()))
+        pixels = moving_average(
+            np.asarray(eit.pixel_impedance, float), eit.sample_frequency, 0.1
+        )
+        breaths, _ = detect_like_fasteit(eit, pixels)
+        ours, _, _ = watershed_mask(
+            pixels,
+            pixels.sum(axis=(1, 2)),
+            breaths,
+            np.ones(len(breaths), dtype=bool),
+            cfg.lung_mask_threshold_fraction,
+        )
+        eit_copy = copy.deepcopy(eit)
+        eit_copy.pixel_impedance = pixels
+        reference = WatershedLungspace(
+            threshold_fraction=cfg.lung_mask_threshold_fraction
+        ).apply(eit_copy)
+        np.testing.assert_array_equal(ours, ~np.isnan(reference.mask), path.name)
+
+
+@pytest.mark.parametrize("seed", range(5))
+def test_small_region_removal_matches_eitprocessing(seed):
+    from eitprocessing.roi import PixelMask
+    from eitprocessing.roi.filter_by_size import FilterROIBySize
+
+    from fasteit.preprocessing.lung_mask import remove_small_regions
+
+    mask = np.random.default_rng(seed).random((32, 32)) > 0.55
+    reference = FilterROIBySize(min_region_size=10).apply(
+        PixelMask(np.where(mask, 1.0, np.nan))
+    )
+    np.testing.assert_array_equal(
+        remove_small_regions(mask, 10), ~np.isnan(reference.mask)
     )
