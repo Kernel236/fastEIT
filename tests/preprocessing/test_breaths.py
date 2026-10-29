@@ -47,6 +47,12 @@ def test_fill_with_nearest_splits_a_run_between_its_neighbours():
     np.testing.assert_array_equal(filled, [1, 1, 1, 3, 3, 3])
 
 
+def test_fill_with_nearest_gives_the_middle_of_an_odd_run_to_the_next_value():
+    x = np.array([1.0, np.nan, np.nan, np.nan, 3.0])
+    filled = fill_with_nearest(x, np.array([1, 2, 3]))
+    np.testing.assert_array_equal(filled, [1, 1, 3, 3, 3])
+
+
 def test_fill_with_nearest_at_the_edges():
     x = np.array([np.nan, np.nan, 2.0, 5.0, np.nan])
     filled = fill_with_nearest(x, np.array([0, 1, 4]))
@@ -135,6 +141,33 @@ def test_trim_edges_keeps_only_peaks_between_the_first_and_last_valley():
     assert peaks.min() > valleys.min() and peaks.max() < valleys.max()
 
 
+# Hand-built signals around a zero baseline, valleys at 1, 5, 9 and peaks at 3, 7.
+#                           v        p        v        p        v
+EDGE_SIGNAL = np.array([-0.5, -1, 0, 1, 0, -1, 0, 1, 0, -1, 0.5])
+
+
+def test_trim_edges_drops_a_first_valley_reached_during_an_expiration():
+    # Before valley 1 the signal is only -0.5: the recording started mid-expiration.
+    peaks, valleys = trim_edges(
+        EDGE_SIGNAL, np.array([3, 7]), np.array([1, 5, 9]), np.zeros(11)
+    )
+    assert list(valleys) == [5, 9] and list(peaks) == [7]
+
+
+def test_trim_edges_drops_a_last_valley_followed_by_no_inspiration():
+    signal = EDGE_SIGNAL[::-1]  # the same case at the end: valleys 1, 5, 9
+    peaks, valleys = trim_edges(
+        signal, np.array([3, 7]), np.array([1, 5, 9]), np.zeros(11)
+    )
+    assert list(valleys) == [1, 5] and list(peaks) == [3]
+
+
+def test_trim_edges_can_drop_every_breath():
+    signal = np.array([-0.5, -1, 0, 1, 0, -1, -0.5])
+    peaks, valleys = trim_edges(signal, np.array([3]), np.array([1, 5]), np.zeros(7))
+    assert len(peaks) == 0 and len(valleys) == 0
+
+
 def test_trim_edges_without_valleys():
     peaks, valleys = trim_edges(
         np.zeros(10), np.array([3]), np.array([], int), np.zeros(10)
@@ -218,6 +251,12 @@ def test_spikes_at_the_first_and_last_sample_are_filled_and_flagged():
     # The filled edge sample can change the incomplete breath at that edge.
     np.testing.assert_array_equal(breaths[1:-1], clean[1 : len(breaths) - 1])
     assert not near_invalid[1:-1].any()  # only edge breaths can be close
+
+
+def test_breaths_in_a_signal_shorter_than_the_baseline_window():
+    # 10 s at 50 Hz = 500 samples, shorter than the 15 s baseline window.
+    breaths, _ = detect(breathing(rate_hz=0.5, seconds=10))  # 5 breaths
+    assert 3 <= len(breaths) <= 5
 
 
 @pytest.mark.parametrize(
