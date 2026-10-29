@@ -106,6 +106,10 @@ class PreprocessingConfig:
             JOSS 2026, DOI: 10.21105/joss.08179) (sections 7, 7b).
         lung_mask_min_region_pixels: Islands of the lung mask smaller than this are
             removed (eitprocessing ``FilterROIBySize`` default, section 9).
+        exclusion_margin_seconds: Every exclusion (manual or from the device) is
+            widened by this margin on both sides, because the forward-backward
+            filters spread an artifact over the neighbouring samples. Same width as
+            the margin around invalid data in eitprocessing ``BreathDetection``.
     """
 
     moving_average_seconds: float = 0.1
@@ -133,6 +137,7 @@ class PreprocessingConfig:
     duration_ratio_high: float = 2.0
     lung_mask_threshold_fraction: float = 0.15
     lung_mask_min_region_pixels: int = 10
+    exclusion_margin_seconds: float = 0.5
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
