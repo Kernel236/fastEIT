@@ -7,7 +7,8 @@ Fixed order of the steps (notebooks/05_preprocessing_choices.ipynb):
    the user, otherwise only a moving average);
 4. breath detection on the global signal (sum of all pixels);
 5. quality flags and exclusions of each breath;
-6. lung mask from the valid breaths, regions of interest, regional signals.
+6. lung mask from the valid breaths, regions of interest, regional signals;
+7. auxiliary signals (pressures, flow, device markers) with "no data" as NaN.
 
 Every step writes what it did in ``EITRecording.log`` (saved with the results) and
 in the Python logger ``fasteit.preprocessing.pipeline`` (technical log, configured by
@@ -28,6 +29,7 @@ from fasteit.config import PreprocessingConfig
 from fasteit.models.eit_recording import EITRecording, RecordingContext, Segment
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.draeger.bin.bin_utils import replace_draeger_sentinels
+from fasteit.preprocessing.auxiliary import auxiliary_signals
 from fasteit.preprocessing.breath_quality import quality_flags
 from fasteit.preprocessing.breaths import detect_breaths
 from fasteit.preprocessing.cardiac_filter import (
@@ -369,6 +371,13 @@ def preprocess(
     roi_masks = lung_regions(mask)
     roi_signals = _regional_signals(pixels, roi_masks, log)
 
+    # 7. Auxiliary signals (pressures, flow, device markers), cleaned, not filtered.
+    aux = auxiliary_signals(raw)
+    if len(aux.columns):
+        log.info(f"Auxiliary signals with data: {', '.join(aux.columns)}.")
+    else:
+        log.info("No auxiliary signals with data.")
+
     return EITRecording(
         raw=raw,
         config=config,
@@ -393,5 +402,6 @@ def preprocess(
         tiv_map=tiv_map,
         roi_masks=roi_masks,
         roi_signals=roi_signals,
+        aux=aux,
         log=tuple(log.messages),
     )

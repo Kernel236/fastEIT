@@ -80,6 +80,7 @@ def small_recording():
         tiv_map=np.ones((2, 2)),
         roi_masks={"ventral": np.ones((2, 2), dtype=bool)},
         roi_signals=pd.DataFrame({"ventral": np.zeros(4)}),
+        aux=pd.DataFrame({"airway_pressure": np.zeros(4)}),
         log=("done",),
     )
 

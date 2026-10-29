@@ -119,6 +119,9 @@ class EITRecording:
                        breath excluded), used for the mask.
         roi_masks:     Regions of interest, each inside the lung mask.
         roi_signals:   (N, n_regions) sum of the pixels of each region.
+        aux:           (N, n_channels) auxiliary signals with data (pressures, flow,
+                       volume, device breath markers), "no data" values as NaN, not
+                       filtered; rows are frame numbers like the breath indices.
         log:           What each step did, with fallbacks and warnings.
     """
 
@@ -138,6 +141,7 @@ class EITRecording:
     tiv_map: np.ndarray
     roi_masks: dict[str, np.ndarray]
     roi_signals: pd.DataFrame
+    aux: pd.DataFrame
     log: tuple[str, ...]
 
     def __post_init__(self) -> None:

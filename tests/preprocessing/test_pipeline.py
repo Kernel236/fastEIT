@@ -205,6 +205,19 @@ def test_an_empty_region_has_a_nan_signal_and_a_warning():
     assert any("Region left is empty" in line for line in recording.log)
 
 
+def test_auxiliary_signals_are_cleaned_and_aligned_with_the_frames():
+    raw, _ = synthetic_raw()
+    pressure = np.full(len(raw.frames), 5.0, dtype=np.float32)
+    pressure[100] = np.nan
+    raw.aux_signals = {"airway_pressure": pressure}
+    recording = preprocess(raw)
+    assert len(recording.aux) == len(recording.time)
+    assert recording.aux.airway_pressure.isna().sum() == 1
+    assert any(
+        "Auxiliary signals with data: airway_pressure" in m for m in recording.log
+    )
+
+
 def test_vendors_other_than_draeger_get_a_warning():
     recording = preprocess(synthetic_raw(vendor="timpel")[0])
     assert any("verified on Draeger" in line for line in recording.log)
@@ -227,3 +240,7 @@ def test_real_recordings_give_the_breaths_of_the_evidence_notebook():
         flagged = ~breaths.is_valid & ~breaths.excluded
         assert flagged.sum() <= ti + amplitude + duration, name
         assert 300 < recording.lung_mask.sum() < 600, name
+        if name.startswith("patient01"):  # PressurePod connected, no ventilator
+            assert "esophageal_pressure_pod" in recording.aux, name
+            assert "peep" not in recording.aux, name
+            assert recording.aux.min_max_flag.isin([-1, 0, 1]).all(), name
