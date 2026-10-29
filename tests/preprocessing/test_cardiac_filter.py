@@ -1,9 +1,12 @@
 """Tests for the cardiac filter module."""
 
 import numpy as np
+import pytest
+from scipy import signal as scipy_signal
 
 from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.cardiac_filter import (
+    mdn_filter,
     moving_average,
     moving_average_window,
     respiratory_rate,
@@ -65,3 +68,40 @@ def test_respiratory_rate_ignores_a_smaller_cardiac_component():
 def test_respiratory_rate_works_on_a_signal_shorter_than_the_window():
     breathing = sine(0.5, fs=20, seconds=20)  # 20 s < 30 s Welch window
     assert abs(respiratory_rate(breathing, fs=20) * 60 - 30) < 2
+
+
+# ── MDN filter ─────────────────────────────────────────────────────────────────
+
+
+def power_near(x, fs, f0, half_width=0.05):
+    frequencies, power = scipy_signal.welch(x, fs, nperseg=len(x) // 4)
+    return power[np.abs(frequencies - f0) < half_width].sum()
+
+
+def test_mdn_removes_the_heart_and_keeps_the_breathing():
+    fs = 50
+    breathing = sine(0.5, fs, seconds=120)
+    heart = sine(1.5, fs, seconds=120, amplitude=0.2)
+    filtered = mdn_filter(
+        breathing + heart, fs, respiratory_rate_hz=0.5, heart_rate_hz=1.5
+    )
+    cardiac_drop_db = 10 * np.log10(
+        power_near(filtered, fs, 1.5) / power_near(heart, fs, 1.5)
+    )
+    assert cardiac_drop_db < -30
+    assert np.ptp(filtered[500:-500]) / np.ptp(breathing[500:-500]) > 0.99
+
+
+def test_mdn_filters_pixels_along_time():
+    pixels = np.random.default_rng(1).normal(size=(1000, 4, 4))
+    filtered = mdn_filter(pixels, fs=50, respiratory_rate_hz=0.5, heart_rate_hz=1.5)
+    assert filtered.shape == pixels.shape
+
+
+def test_mdn_rejects_a_heart_rate_not_above_the_respiratory_rate():
+    with pytest.raises(ValueError, match="must be above"):
+        mdn_filter(np.zeros(500), fs=50, respiratory_rate_hz=0.5, heart_rate_hz=0.5)
+
+
+def test_heart_rate_is_not_set_by_default():
+    assert PreprocessingConfig().heart_rate_bpm is None

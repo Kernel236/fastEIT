@@ -107,3 +107,68 @@ def respiratory_rate(
     curvature = left - 2 * centre + right
     shift = 0.5 * (left - right) / curvature if curvature != 0 else 0.0
     return float(range_frequencies[peak] + shift * step)
+
+
+def mdn_filter(
+    signals: np.ndarray,
+    fs: float,
+    respiratory_rate_hz: float,
+    heart_rate_hz: float,
+    notch_half_width_hz: float = 10.0 / SECONDS_PER_MINUTE,
+    upper_limit_hz: float = 220.0 / SECONDS_PER_MINUTE,
+    order: int = 10,
+) -> np.ndarray:
+    """Remove the cardiac component with a multiple digital notch (MDN) filter.
+
+    Wisse et al., "Improved filtering methods to suppress cardiovascular
+    contamination in EIT recordings", Physiol Meas 2024, DOI: 10.1088/1361-6579/ad46e3.
+    Implementation follows eitprocessing ``MDNFilter`` (v1.8.8):
+
+    1. one band-stop (Butterworth, zero phase) around each cardiac harmonic
+       ``k * heart_rate ± notch_half_width``, up to ``upper_limit_hz``;
+    2. the first band-stop never starts below (respiratory_rate + heart_rate) / 2,
+       so that it does not cut the breathing;
+    3. a low-pass at ``upper_limit_hz`` removes what is left above it.
+
+    Only used when the user gives the heart rate (section 5c of the evidence notebook).
+
+    Args:
+        signals:             Array with time on axis 0 (pixels or a 1-D signal).
+        fs:                  Sampling frequency in Hz.
+        respiratory_rate_hz: Respiratory rate in Hz.
+        heart_rate_hz:       Heart rate in Hz.
+        notch_half_width_hz: Half width of each band-stop.
+        upper_limit_hz:      Highest frequency filtered.
+        order:               Butterworth order of each band-stop and of the low-pass.
+
+    Returns:
+        Filtered array of the same shape as ``signals``.
+
+    Raises:
+        ValueError: if a rate is not positive or the heart rate is not above the
+            respiratory rate.
+    """
+    if respiratory_rate_hz <= 0 or heart_rate_hz <= 0:
+        raise ValueError("Respiratory and heart rate must be positive (in Hz).")
+    if heart_rate_hz <= respiratory_rate_hz:
+        raise ValueError(
+            f"Heart rate ({heart_rate_hz:.2f} Hz) must be above the respiratory rate "
+            f"({respiratory_rate_hz:.2f} Hz)."
+        )
+
+    filtered = np.asarray(signals, dtype=float)
+    n_harmonics = int((upper_limit_hz + notch_half_width_hz) // heart_rate_hz)
+
+    for harmonic in range(1, n_harmonics + 1):
+        centre = harmonic * heart_rate_hz
+        low, high = centre - notch_half_width_hz, centre + notch_half_width_hz
+        if harmonic == 1:
+            # Keep the band-stop away from the breathing.
+            low = max(low, (respiratory_rate_hz + heart_rate_hz) / 2)
+        band_stop = signal.butter(
+            order, [low, high], btype="bandstop", fs=fs, output="sos"
+        )
+        filtered = signal.sosfiltfilt(band_stop, filtered, axis=0)
+
+    low_pass = signal.butter(order, upper_limit_hz, btype="low", fs=fs, output="sos")
+    return signal.sosfiltfilt(low_pass, filtered, axis=0)

@@ -42,12 +42,26 @@ class PreprocessingConfig:
             DOI: 10.21105/joss.08179).
         spectrum_window_seconds: Length of the Welch window used for the respiratory
             rate (eitprocessing ``RateDetection`` default).
+        heart_rate_bpm: Heart rate entered by the user (beats/min), e.g. from the
+            monitor. If given, the MDN filter removes the cardiac component; if None,
+            only the moving average is applied. The heart rate is never estimated
+            from the data: the estimate was wrong in 2 of 11 recordings and a wrong
+            heart rate close to the respiratory rate damages the breaths (section 5b).
+        mdn_notch_half_width_bpm, mdn_upper_limit_bpm, mdn_order: Multiple digital
+            notch filter (Wisse et al., Physiol Meas 2024, DOI: 10.1088/1361-6579/ad46e3):
+            half width of each band-stop around a cardiac harmonic, highest frequency
+            filtered, and Butterworth order. Defaults of the eitprocessing ``MDNFilter``
+            (v1.8.8).
     """
 
     moving_average_seconds: float = 0.1
     respiratory_rate_min_bpm: float = 6.0
     respiratory_rate_max_bpm: float = 60.0
     spectrum_window_seconds: float = 30.0
+    heart_rate_bpm: float | None = None
+    mdn_notch_half_width_bpm: float = 10.0
+    mdn_upper_limit_bpm: float = 220.0
+    mdn_order: int = 10
 
 
 @dataclass
