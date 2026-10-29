@@ -100,6 +100,12 @@ class PreprocessingConfig:
             which flagged normal variability in regular recordings (section 8).
         duration_ratio_high: A breath longer than this times the local median duration
             is flagged (``flag_duration_outlier``), e.g. two breaths merged into one.
+        lung_mask_threshold_fraction: A pixel is lung when its mean TIV (and, for the
+            watershed, its amplitude) is at least this fraction of the maximum TIV.
+            Default of eitprocessing ``WatershedLungspace`` (v1.8.8; Somhorst et al.,
+            JOSS 2026, DOI: 10.21105/joss.08179) (sections 7, 7b).
+        lung_mask_min_region_pixels: Islands of the lung mask smaller than this are
+            removed (eitprocessing ``FilterROIBySize`` default, section 9).
     """
 
     moving_average_seconds: float = 0.1
@@ -125,6 +131,8 @@ class PreprocessingConfig:
     amplitude_ratio_low: float = 0.5
     amplitude_ratio_high: float = 2.0
     duration_ratio_high: float = 2.0
+    lung_mask_threshold_fraction: float = 0.15
+    lung_mask_min_region_pixels: int = 10
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
