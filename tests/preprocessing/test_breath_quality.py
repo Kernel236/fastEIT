@@ -1,5 +1,6 @@
 """Tests for the breath quality flags."""
 
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -131,6 +132,60 @@ def test_short_and_long_breaths():
 def test_no_breaths_give_an_empty_table_with_all_columns():
     result = flags(np.zeros(10), 50, np.empty((0, 3), dtype=int))
     assert len(result) == 0 and "flag_invalid_data" in result.columns
+
+
+def test_values_exactly_on_a_limit_are_not_flagged():
+    # 0.5 s and 20 s, both with Ti/Ttot 0.4.
+    signal = np.zeros(206)
+    signal[[2, 85]] = 1.0
+    result = flags(signal, 10, np.array([[0, 2, 5], [5, 85, 205]]))
+    assert not result.any(axis=None)
+
+
+@pytest.mark.parametrize(
+    "ti_samples, flagged", [(6, True), (8, False), (24, False), (26, True)]
+)
+def test_ti_ratio_limits(ti_samples, flagged):
+    signal, breaths = breaths_from_durations([4.0] * 30)  # 40 samples per breath
+    signal[breaths[15, 1]] = 0.0
+    breaths[15, 1] = breaths[15, 0] + ti_samples  # Ti/Ttot 0.15, 0.2, 0.6, 0.65
+    signal[breaths[15, 1]] = 1.0
+    assert flags(signal, 10, breaths).flag_suspect_ti_ratio[15] == flagged
+
+
+@pytest.mark.parametrize(
+    "peak_height, flagged", [(0.4, True), (0.5, False), (2.0, False), (2.5, True)]
+)
+def test_amplitude_limits_on_both_sides(peak_height, flagged):
+    signal, breaths = breaths_from_durations([4.0] * 30)
+    signal[breaths[15, 1]] = peak_height
+    assert flags(signal, 10, breaths).flag_amplitude_outlier[15] == flagged
+
+
+def test_every_column_is_boolean():
+    signal, breaths = breaths_from_durations([4.0] * 30)
+    result = flags(signal, 10, breaths, near_invalid=[False] * 30)
+    assert all(dtype == np.bool_ for dtype in result.dtypes)
+
+
+def test_a_breath_of_zero_duration_is_short_without_warnings():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = flags(np.zeros(10), 10, np.array([[5, 5, 5]]))
+    assert result.flag_short[0] and not result.flag_suspect_ti_ratio[0]
+
+
+@pytest.mark.parametrize(
+    "breaths, near_invalid, message",
+    [
+        (np.array([[0, 2], [4, 6]]), [False, False], "shape"),
+        (np.array([0, 2, 4]), [False], "shape"),
+        (np.array([[0, 2, 4]]), [False, False], "near_invalid"),
+    ],
+)
+def test_unusable_breaths_are_rejected(breaths, near_invalid, message):
+    with pytest.raises(ValueError, match=message):
+        flags(np.zeros(10), 10, breaths, near_invalid)
 
 
 # --- real recordings (notebook 05, section 8) ---
