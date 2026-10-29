@@ -67,3 +67,64 @@ def test_respiratory_rate_matches_eitprocessing_on_real_recordings():
             window_seconds=cfg.spectrum_window_seconds,
         )
         assert ours == pytest.approx(reference, abs=1e-6), path.name
+
+
+def detect_like_fasteit(eit, pixels):
+    from fasteit.preprocessing.breaths import detect_breaths
+
+    cfg = PreprocessingConfig()
+    return detect_breaths(
+        pixels.sum(axis=(1, 2)),
+        eit.sample_frequency,
+        invalid_percentile=cfg.invalid_data_percentile,
+        invalid_multiplier=cfg.invalid_data_multiplier,
+        baseline_seconds=cfg.breath_baseline_seconds,
+        min_duration_seconds=cfg.breath_min_duration_seconds,
+        low_amplitude_fraction=cfg.breath_low_amplitude_fraction,
+        invalid_margin_seconds=cfg.invalid_data_margin_seconds,
+    )
+
+
+def detect_like_eitprocessing(eit, pixels):
+    import copy
+
+    from eitprocessing.features.breath_detection import BreathDetection
+
+    eit_copy = copy.deepcopy(eit)
+    eit_copy.pixel_impedance = pixels
+    breaths = BreathDetection().find_breaths(eit_copy.get_summed_impedance()).values
+    return np.array(
+        [
+            np.searchsorted(eit.time, [b.start_time, b.middle_time, b.end_time])
+            for b in breaths
+        ]
+    )
+
+
+@needs_real_files
+def test_breaths_match_eitprocessing_on_real_recordings():
+    from fasteit.preprocessing.cardiac_filter import moving_average
+
+    for path in REAL_BIN_FILES:
+        eit = next(iter(load_eit_data(path, vendor="draeger").eit_data.values()))
+        pixels = moving_average(
+            np.asarray(eit.pixel_impedance, float), eit.sample_frequency, 0.1
+        )
+        ours, near_invalid = detect_like_fasteit(eit, pixels)
+        np.testing.assert_array_equal(
+            ours[~near_invalid], detect_like_eitprocessing(eit, pixels)
+        )
+
+
+@needs_real_files
+def test_breaths_near_a_spike_are_flagged_where_eitprocessing_removes_them():
+    eit = next(
+        iter(load_eit_data(REAL_BIN_FILES[-1], vendor="draeger").eit_data.values())
+    )
+    pixels = np.asarray(eit.pixel_impedance, float).copy()
+    pixels[3000:3003] += 50 * np.abs(pixels).max()  # a disconnection-like spike
+    ours, near_invalid = detect_like_fasteit(eit, pixels)
+    assert near_invalid.any()
+    np.testing.assert_array_equal(
+        ours[~near_invalid], detect_like_eitprocessing(eit, pixels)
+    )
