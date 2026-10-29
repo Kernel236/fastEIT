@@ -68,6 +68,11 @@ def replace_no_data_sentinels(
     return out
 
 
+def replace_draeger_sentinels(values: np.ndarray) -> np.ndarray:
+    """Return a float32 copy with both Draeger "no data" encodings replaced by NaN."""
+    return replace_no_data_sentinels(values, _FLOAT_SENTINELS, _BIT_SENTINELS)
+
+
 def estimate_sampling_frequency_hz(timestamps_day_fraction: np.ndarray) -> float:
     """Derive fs from the validated frame timestamps.
 
