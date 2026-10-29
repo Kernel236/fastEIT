@@ -39,6 +39,7 @@ dev = [
     "pytest-cov>=4.1",
     "ruff>=0.4",
     "coverage[toml]>=7.3",
+    "eitprocessing==1.8.8",  # reference for the equivalence tests (tests/preprocessing)
 ]
 
 [project.urls]
