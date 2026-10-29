@@ -55,6 +55,10 @@ class PreprocessingConfig:
             half width of each band-stop around a cardiac harmonic, highest frequency
             filtered, and Butterworth order. Defaults of the eitprocessing ``MDNFilter``
             (v1.8.8).
+        invalid_data_percentile, invalid_data_multiplier: A sample of the global signal
+            is invalid when it is beyond mean ± multiplier × (distance between the mean
+            and the given percentile, low or high). Defaults of eitprocessing
+            ``BreathDetection`` (v1.8.8) (section 8).
     """
 
     moving_average_seconds: float = 0.1
@@ -65,6 +69,8 @@ class PreprocessingConfig:
     mdn_notch_half_width_bpm: float = 10.0
     mdn_upper_limit_bpm: float = 220.0
     mdn_order: int = 10
+    invalid_data_percentile: float = 5.0
+    invalid_data_multiplier: float = 4.0
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
