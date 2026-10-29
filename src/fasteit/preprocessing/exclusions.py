@@ -87,11 +87,25 @@ def fill_missing_frames(pixels: np.ndarray, missing: np.ndarray) -> np.ndarray:
     return pixels[source]
 
 
+def _label_list(label: str) -> list[str]:
+    """``"artifact, movement"`` -> ``["artifact", "movement"]``; empty labels dropped."""
+    return [name for name in label.split(", ") if name]
+
+
 def widen(segments: list[Segment], margin: float, duration: float) -> list[Segment]:
     """Each segment made longer by ``margin`` seconds on both sides.
 
     The result is clipped to the recording, from 0 to ``duration`` seconds.
+
+    Raises:
+        ValueError: if a segment starts after the end of the recording.
     """
+    for segment in segments:
+        if segment.start >= duration:
+            raise ValueError(
+                f"Exclusion {segment.start:g}-{segment.end:g} s starts after the end "
+                f"of the recording ({duration:.1f} s)."
+            )
     return [
         dataclasses.replace(
             segment,
@@ -105,9 +119,10 @@ def widen(segments: list[Segment], margin: float, duration: float) -> list[Segme
 def merge_overlapping(segments: list[Segment]) -> list[Segment]:
     """Join the segments of the same source that overlap or touch.
 
-    Manual and device segments are never joined, so a manual exclusion stays as the
-    user wrote it. The labels of joined segments are listed together, e.g.
-    ``"artifact, movement"``; the parameters are those of the first segment.
+    Manual and device segments are never joined, so a manual exclusion stays apart
+    from the device ones (both are widened by the margin before). The labels of
+    joined segments are listed together, e.g. ``"artifact, movement"``; the
+    parameters are those of the first segment.
 
     Returns:
         Segments sorted by start time.
@@ -116,9 +131,10 @@ def merge_overlapping(segments: list[Segment]) -> list[Segment]:
     for segment in sorted(segments, key=lambda s: (s.source, s.start)):
         last = merged[-1] if merged else None
         if last and last.source == segment.source and segment.start <= last.end:
-            labels = last.label.split(", ")
-            if segment.label not in labels:
-                labels.append(segment.label)
+            labels = _label_list(last.label)
+            labels += [
+                name for name in _label_list(segment.label) if name not in labels
+            ]
             merged[-1] = dataclasses.replace(
                 last, end=max(last.end, segment.end), label=", ".join(labels)
             )
@@ -139,12 +155,17 @@ def breaths_in_segments(
 
     Returns:
         ``excluded``: boolean array (n_breaths,); ``labels``: for each breath the
-        labels of the exclusions it touches, e.g. ``"artifact"``, or None.
+        labels of the exclusions it touches, e.g. ``"artifact"`` (``"unlabelled"``
+        if none has a label), or None if the breath is not excluded.
     """
     excluded = np.zeros(len(breath_starts), dtype=bool)
     labels: list[str | None] = []
     for i, (start, end) in enumerate(zip(breath_starts, breath_ends, strict=True)):
-        touched = [s.label for s in segments if s.overlaps(start, end)]
+        touched = [s for s in segments if s.overlaps(start, end)]
         excluded[i] = bool(touched)
-        labels.append(", ".join(dict.fromkeys(touched)) if touched else None)
+        names = [name for s in touched for name in _label_list(s.label)]
+        if touched:
+            labels.append(", ".join(dict.fromkeys(names)) or "unlabelled")
+        else:
+            labels.append(None)
     return excluded, labels
