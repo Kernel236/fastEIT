@@ -7,7 +7,7 @@ Wraps pyEIT's GREIT implementation to convert ``RawImpedanceData.measurements``
 Algorithm reference:
     Adler A, Arnold JH, Bayford R, et al.
     "GREIT: a unified approach to 2D linear EIT reconstruction of lung images."
-    *Physiol. Meas.* 30 (2009) S35–S55.
+    *Physiol. Meas.* 30 (2009) S35-S55.
     DOI: 10.1088/0967-3334/30/6/S03
 
 Default parameters (p=0.2, lamb=1e-2, n=32) are those recommended in the
@@ -56,18 +56,18 @@ def build_greit(
     Creates a circular unit-disk mesh, an adjacent-drive protocol (dist_exc=1,
     step_meas=1, parser_meas='fmmu'), and a GREIT solver ready for ``solve()``.
 
-    **Measurement ordering — why ``fmmu``:**
+    **Measurement ordering - why ``fmmu``:**
     The PulmoVista 500 sweeps voltage measurements starting from the electrode
     immediately adjacent to the current sink and rotates around the ring.
     This matches pyEIT's ``fmmu`` (rotating) protocol, not ``std`` (absolute).
-    Source: Dräger PulmoVista 500 IFU SW 1.3n, p. 144 — measurement diagram
+    Source: Dräger PulmoVista 500 IFU SW 1.3n, p. 144 - measurement diagram
     shows V1 at the pair adjacent to the sink electrode for each drive pattern.
 
     Args:
         n_el:  Number of electrodes. Default 16 (Dräger PulmoVista 500).
         h0:    Mesh density parameter passed to ``pyeit.mesh.create``.
                Default 0.1.
-        p:     GREIT noise figure (0–1).
+        p:     GREIT noise figure (0-1).
                Default 0.2 (Adler 2009 recommendation).
         lamb:  Tikhonov regularisation parameter. Default 1e-2.
         n:     Output image size (``n × n`` pixels). Default 32.
@@ -76,7 +76,7 @@ def build_greit(
         Tuple ``(greit_solver, protocol)`` ready for reconstruction.
 
     References:
-        Adler et al., *Physiol. Meas.* 30 (2009) S35–S55.
+        Adler et al., *Physiol. Meas.* 30 (2009) S35-S55.
         DOI: 10.1088/0967-3334/30/6/S03
     """
     _check_pyeit()
@@ -100,11 +100,11 @@ def reconstruct_greit(
     Converts ``RawImpedanceData.measurements`` (shape ``(N_frames, 208)``)
     to reconstructed 32×32 pixel images via the GREIT algorithm.
 
-    **Baseline selection** — GREIT produces *differential* images relative to a
+    **Baseline selection** - GREIT produces *differential* images relative to a
     reference frame. The default (``ref_frame=None``, mean of all frames) is the
     right choice for single-file analysis (tidal variation, regional distribution).
 
-    **EELI and cross-recording comparison** — End-Expiratory Lung Impedance (EELI)
+    **EELI and cross-recording comparison** - End-Expiratory Lung Impedance (EELI)
     is the only clinically meaningful *absolute* value in EIT: it reflects the
     functional residual capacity (FRC). To compare EELI across recordings (e.g.
     two NIV interfaces in the same patient), all files must share the same external
@@ -149,7 +149,7 @@ def reconstruct_greit(
         ValueError:  If ``measurements`` does not have shape ``(N, 208)``.
 
     References:
-        Adler et al., *Physiol. Meas.* 30 (2009) S35–S55.
+        Adler et al., *Physiol. Meas.* 30 (2009) S35-S55.
         DOI: 10.1088/0967-3334/30/6/S03
     """
     _check_pyeit()
@@ -180,7 +180,7 @@ def reconstruct_greit(
     for i, v1 in enumerate(measurements):
         # GREIT computes Δσ (conductivity change): decreases when air enters the lungs.
         # Clinical EIT convention is the opposite (impedance increases with air).
-        # Negate so images match the .bin Dräger convention — peaks up during inspiration.
+        # Negate so images match the .bin Dräger convention - peaks up during inspiration.
         # Rotate 90° CCW (k=1) to match anatomical orientation: heart left-anterior,
         # right lung on the right (same as a CT cross-section viewed from the feet).
         ds = solver.solve(v1, v0)

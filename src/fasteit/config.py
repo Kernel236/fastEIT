@@ -1,12 +1,12 @@
 """Configuration dataclasses for the fasteit pipeline.
 
 Single source of truth for tuneable parameters. Parsers and algorithms read
-values from here — change once, propagates everywhere.
+values from here - change once, propagates everywhere.
 
 Structure:
-    PreprocessingConfig — filter, lung mask, ROI params (TODO Task 0.6.1)
-    AnalysisConfig      — breath detection, PEEP detection params (TODO Task 0.6.1)
-    Config              — top-level container for pipeline sections
+    PreprocessingConfig - filter, lung mask, ROI params (TODO Task 0.6.1)
+    AnalysisConfig      - breath detection, PEEP detection params (TODO Task 0.6.1)
+    Config              - top-level container for pipeline sections
 
 Usage:
     from fasteit.config import Config
@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 # ---------------------------------------------------------------------------
-# Pipeline configs (populated incrementally in Fase 4–5)
+# Pipeline configs (populated incrementally in Fase 4-5)
 # ---------------------------------------------------------------------------
 
 

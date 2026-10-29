@@ -1,4 +1,4 @@
-# fastEIT — Data Model
+# fastEIT - Data Model
 
 Specifications for all data containers. For parser details, calibration
 constants, and loader utilities see [`parsers.md`](parsers.md). For architecture
@@ -8,7 +8,7 @@ All containers inherit from `BaseData` (`models/base_data.py`).
 
 ---
 
-## 1. `BaseData` — common base
+## 1. `BaseData` - common base
 
 ```
 filename    str          Source file path
@@ -16,7 +16,7 @@ file_format str          "bin" | "eit" | "asc" | "csv" | "txt"
 vendor      str          "draeger" | "timpel"
 fs          float|None   Sampling frequency in Hz (parser-derived)
 metadata    dict         Header fields, firmware version, warnings, etc.
-n_frames    int          Set by subclass __post_init__ — never passed by caller
+n_frames    int          Set by subclass __post_init__ - never passed by caller
 duration    float        n_frames / fs  (0.0 if fs is None)
 ```
 
@@ -41,7 +41,7 @@ aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frame
                          Dräger .bin: 52 or 58 Medibus channels, sentinel values
                          left unchanged (replaced in preprocessing).
                          Timpel: 6 device channels (airway_pressure, flow,
-                         volume, min_flag, max_flag, qrs_flag — cols 1024-1029).
+                         volume, min_flag, max_flag, qrs_flag - cols 1024-1029).
                          None if the source file carries no auxiliary signals.
 ```
 
@@ -50,15 +50,15 @@ aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frame
 ```python
 data.timestamps      # frames["ts"]           shape (N,)
 data.pixels          # frames["pixels"]        shape (N, 32, 32)
-data.min_max_flags   # frames["min_max_flag"]  shape (N,)  — Dräger .bin only
-data.event_markers   # frames["event_marker"]  shape (N,)  — Dräger .bin only
-data.event_texts     # frames["event_text"]    shape (N,)  — Dräger .bin only
+data.min_max_flags   # frames["min_max_flag"]  shape (N,)  - Dräger .bin only
+data.event_markers   # frames["event_marker"]  shape (N,)  - Dräger .bin only
+data.event_texts     # frames["event_text"]    shape (N,)  - Dräger .bin only
 data.global_signal   # pixels.sum(axis=(1,2))  shape (N,)
 data.roi_signals     # 4 horizontal strips     shape (N, 4)
-data.roi_signal(n)   # single ROI 0–3          shape (N,)
+data.roi_signal(n)   # single ROI 0-3          shape (N,)
 ```
 
-`global_signal` and `roi_signals` are raw sums with no lung mask — the mask
+`global_signal` and `roi_signals` are raw sums with no lung mask - the mask
 is applied in the preprocessing layer.
 
 **Timestamp conventions:**
@@ -102,8 +102,8 @@ measurements   np.ndarray   shape (N_frames, 208)
 
 aux_signals    dict|None    Named per-frame arrays. Populated by DragerEitParser:
                               "timestamp"          float64 (N,)    fraction of day
-                              "trans_A"            float64 (N,208) raw ADC — primary
-                              "trans_B"            float64 (N,208) raw ADC — reference
+                              "trans_A"            float64 (N,208) raw ADC - primary
+                              "trans_B"            float64 (N,208) raw ADC - reference
                               "injection_current"  float64 (N,16)  raw ADC counts
                               "I_real"             float64 (N,16)  injected current [A]
                               "voltage_A"          float64 (N,16)  raw ADC counts

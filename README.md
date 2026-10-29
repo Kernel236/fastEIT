@@ -32,24 +32,24 @@ pip install -e ".[dev]"
 ```python
 from fasteit.parsers.loader import load_data
 
-# Dräger .bin — reconstructed 32×32 frames + Medibus signals
+# Dräger .bin - reconstructed 32×32 frames + Medibus signals
 data = load_data("patient01.bin")
 print(data.n_frames, data.fs)       # e.g. 11500, 50.0
 print(data.pixels.shape)            # (11500, 32, 32)
 print(data.global_signal[:10])      # first 10 frames global EIT signal
 
-# Dräger .eit — raw transimpedances for pyEIT reconstruction
+# Dräger .eit - raw transimpedances for pyEIT reconstruction
 data = load_data("patient01.eit")
 print(data.n_frames, data.fs)          # e.g. 11500, 50.0
-print(data.measurements.shape)        # (11500, 208) — 208 = 16 inj × 13 meas
+print(data.measurements.shape)        # (11500, 208) - 208 = 16 inj × 13 meas
 print(list(data.aux_signals.keys()))   # timestamp, trans_A, trans_B, I_real, V_diff, medibus, ...
 
-# Dräger .asc — continuous frame-by-frame signal export
+# Dräger .asc - continuous frame-by-frame signal export
 data = load_data("patient01.asc")
 print(data.n_frames, data.fs)       # e.g. 11500, 50.0
 print(data.table.columns.tolist())  # all available signal columns
 
-# Timpel .csv — reconstructed frames + aux signals
+# Timpel .csv - reconstructed frames + aux signals
 data = load_data("recording.csv")
 print(data.n_frames, data.fs)       # e.g. 9000, 50.0
 print(data.pixels.shape)            # (9000, 32, 32)
@@ -71,17 +71,17 @@ Pre-alpha. Data model and parsing layer implemented.
 
 | Parser | Status | Formats |
 |--------|--------|---------|
-| `DragerBinParser` | Implemented | `.bin` — base frame (4358 b) and PressurePod frame (4382 b); registry-driven, new frame sizes require only a dtype + one entry |
-| `DragerAscParser` | Implemented | `.asc`, `.txt`, `.csv` — continuous waveform export |
-| `DragerEitParser` | Implemented | `.eit` — ASCII header + binary frames (5495 b/frame); 208 calibrated transimpedances + Medibus aux signals |
-| `TimpelTabularParser` | Implemented | `.csv`, `.txt`, `.asc` — reconstructed frame export |
+| `DragerBinParser` | Implemented | `.bin` - base frame (4358 b) and PressurePod frame (4382 b); registry-driven, new frame sizes require only a dtype + one entry |
+| `DragerAscParser` | Implemented | `.asc`, `.txt`, `.csv` - continuous waveform export |
+| `DragerEitParser` | Implemented | `.eit` - ASCII header + binary frames (5495 b/frame); 208 calibrated transimpedances + Medibus aux signals |
+| `TimpelTabularParser` | Implemented | `.csv`, `.txt`, `.asc` - reconstructed frame export |
 
 All parsers are accessible via the single entry point `load_data(path)`, which
 auto-detects vendor and format.
 
 `RawImpedanceData` from `.eit` files can be passed to pyEIT through
 `reconstruct_greit()` (optional dependency: `pip install fasteit[pyeit]`; implements
-GREIT — Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03).
+GREIT - Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03).
 This function is far from reliable: it was written only to show one possible
 application of the `.eit` parser. It uses a generic circular mesh, so the images do
 not match the Dräger reconstruction stored in `.bin` files.
@@ -95,9 +95,9 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 
 ## Documentation
 
-- [`docs/data_model.md`](docs/data_model.md) — data container field specifications
-- [`docs/parsers.md`](docs/parsers.md) — parser reference: formats, calibration, GREIT bridge, loader utilities
-- [`docs/parsing_layer.md`](docs/parsing_layer.md) — architecture and extension recipes
+- [`docs/data_model.md`](docs/data_model.md) - data container field specifications
+- [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
+- [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
 
 ## Contributing
 
@@ -113,4 +113,4 @@ validated for clinical decision-making. Use in clinical settings requires indepe
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0 - see [LICENSE](LICENSE).

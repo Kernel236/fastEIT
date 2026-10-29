@@ -12,8 +12,8 @@ class BaseParser(ABC):
     """Abstract base class for file parsers.
 
     Concrete subclasses must implement:
-        - parse(path)    — read the file and return a data container
-        - validate(path) — check that the file is in the expected format
+        - parse(path)    - read the file and return a data container
+        - validate(path) - check that the file is in the expected format
 
     The recommended entry point is parse_safe(), which validates before parsing.
     """

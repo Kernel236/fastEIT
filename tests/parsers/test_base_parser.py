@@ -34,7 +34,7 @@ class _AlwaysInvalidParser(BaseParser):
 
 
 def test_base_parser_cannot_be_instantiated():
-    """BaseParser is abstract — direct instantiation must raise TypeError."""
+    """BaseParser is abstract - direct instantiation must raise TypeError."""
     with pytest.raises(TypeError):
         BaseParser()  # type: ignore[abstract]
 

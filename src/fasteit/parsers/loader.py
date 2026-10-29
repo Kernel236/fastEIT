@@ -33,7 +33,7 @@ ParserFactory = Callable[[], BaseParser]
 
 _VENDOR_ALIASES: dict[str, str] = {
     "draeger": "draeger",
-    "drager": "draeger",  # missing 'a' — common typo
+    "drager": "draeger",  # missing 'a' - common typo
     "dräger": "draeger",  # umlaut form
     "timpel": "timpel",
 }
@@ -167,7 +167,7 @@ def load_folder(
         # All .bin files in a folder
         recordings = load_folder("/data/patient01/", pattern="*.bin")
 
-        # Mixed folder — all supported formats
+        # Mixed folder - all supported formats
         recordings = load_folder("/data/patient01/")
     """
     import sys

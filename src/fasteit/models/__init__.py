@@ -1,10 +1,10 @@
 """
 Core data models for fasteit.
 
-- BaseData               — base container for raw parsed data
-- ReconstructedFrameData — pixel matrices + synchronized signals (Dräger .bin, Timpel .csv/.txt/.asc)
-- ContinuousSignalData   — signal-only tables, no matrices (.asc)
-- RawImpedanceData       — raw transimpedances for pyEIT (.eit)
+- BaseData               - base container for raw parsed data
+- ReconstructedFrameData - pixel matrices + synchronized signals (Dräger .bin, Timpel .csv/.txt/.asc)
+- ContinuousSignalData   - signal-only tables, no matrices (.asc)
+- RawImpedanceData       - raw transimpedances for pyEIT (.eit)
 """
 
 from .base_data import BaseData

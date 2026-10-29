@@ -1,5 +1,5 @@
 """
-fasteit — EIT data parsing, preprocessing, and clinical feature extraction.
+fasteit - EIT data parsing, preprocessing, and clinical feature extraction.
 
 Python library for parsing Dräger PulmoVista files (.bin, .eit, .txt),
 preprocessing EIT signals, and extracting breath-level clinical features

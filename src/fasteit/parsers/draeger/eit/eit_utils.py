@@ -11,8 +11,8 @@ import numpy as np
 # 8-byte separator between ASCII header and binary frame data.
 SEPARATOR: bytes = b"**\r\n\r\n\r\n"
 
-# Empirical calibration constants — EIDORS read_draeger_file.m (GPL),
-# estimated 2016-04-07 by A. Adler. Understanding only — no code copied.
+# Empirical calibration constants - EIDORS read_draeger_file.m (GPL),
+# estimated 2016-04-07 by A. Adler. Understanding only - no code copied.
 # Not present in the .eit header; hardcoded from EIDORS best-guess estimates.
 #   FT_A, FT_B : transimpedance scaling  (vv = FT_A*trans_A - FT_B*trans_B)
 #   FC_CURRENT : ADC counts → Ampere     (injection_current / FC_CURRENT)
