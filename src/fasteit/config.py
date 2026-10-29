@@ -22,9 +22,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(frozen=True)
 class PreprocessingConfig:
     """Parameters of the preprocessing layer (layer 2).
+
+    Frozen: a recording keeps the exact parameters it was made with. To change one,
+    make a new config, e.g. ``dataclasses.replace(config, heart_rate_bpm=80)``.
 
     Every default states where it comes from. The evidence for each choice is in
     ``notebooks/05_preprocessing_choices.ipynb`` (section given in brackets).
@@ -111,12 +114,15 @@ class PreprocessingConfig:
             eitprocessing ``RateDetection``).
         heart_rate_warning_margin_bpm: A heart rate closer than this to 1, 2 or 3
             times the respiratory rate gives a warning: the MDN notches then fall on
-            the breathing (section 5b). Half width of the notch (10/min) plus 2/min,
-            a heuristic margin suggested in the physics review.
+            the breathing (section 5b). Half width of the notch (10/min) plus a
+            heuristic 2/min, so that the notch edge stays clear of the harmonic.
         exclusion_margin_seconds: Every exclusion (manual or from the device) is
             widened by this margin on both sides, because the forward-backward
             filters spread an artifact over the neighbouring samples. Same width as
-            the margin around invalid data in eitprocessing ``BreathDetection``.
+            the margin around invalid data in eitprocessing ``BreathDetection``. The
+            narrow MDN notches can ring longer, at the heart rate and with a small
+            amplitude; the first and last seconds of every recording also carry
+            filter edge effects and are not excluded.
     """
 
     moving_average_seconds: float = 0.1
@@ -154,6 +160,14 @@ class PreprocessingConfig:
             raise ValueError(
                 f"heart_rate_bpm must be positive, got {self.heart_rate_bpm}."
             )
+        if not 0 < self.lung_mask_threshold_fraction < 1:
+            raise ValueError("lung_mask_threshold_fraction must be between 0 and 1.")
+        if self.lung_mask_min_region_pixels < 1:
+            raise ValueError("lung_mask_min_region_pixels must be at least 1.")
+        if self.exclusion_margin_seconds < 0:
+            raise ValueError("exclusion_margin_seconds must not be negative.")
+        if not self.ti_ratio_low < self.ti_ratio_high:
+            raise ValueError("ti_ratio_low must be below ti_ratio_high.")
 
 
 @dataclass
