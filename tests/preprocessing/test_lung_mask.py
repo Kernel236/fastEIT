@@ -8,6 +8,7 @@ from fasteit.preprocessing.breaths import detect_breaths
 from fasteit.preprocessing.lung_mask import (
     amplitude_per_breath,
     pixel_lag,
+    remove_small_regions,
     tiv_per_breath,
     watershed_mask,
 )
@@ -119,3 +120,21 @@ def test_no_usable_breath_is_an_error():
     pixels, global_signal, breaths, _, _ = synthetic_recording()
     with pytest.raises(ValueError, match="No usable breaths"):
         mask_of(pixels, global_signal, breaths, np.zeros(len(breaths), dtype=bool))
+
+
+# --- small regions ---
+
+
+def test_islands_smaller_than_the_minimum_are_removed():
+    mask = np.zeros((12, 12), dtype=bool)
+    mask[0:2, 0:5] = True  # 10 pixels: kept
+    mask[6:9, 6:9] = True  # 9 pixels: removed
+    cleaned = remove_small_regions(mask, CFG.lung_mask_min_region_pixels)
+    assert cleaned[0:2, 0:5].all() and not cleaned[6:9, 6:9].any()
+
+
+def test_pixels_touching_only_by_a_corner_are_separate_islands():
+    mask = np.zeros((12, 12), dtype=bool)
+    mask[0:3, 0:3] = True  # 9 pixels
+    mask[3:6, 3:6] = True  # 9 pixels, touching the first by one corner
+    assert not remove_small_regions(mask, CFG.lung_mask_min_region_pixels).any()

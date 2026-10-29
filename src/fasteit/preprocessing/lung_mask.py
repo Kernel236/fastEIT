@@ -195,3 +195,15 @@ def watershed_mask(
     regions = segmentation.watershed(-amplitude_map, markers)
     mask = np.isin(regions, kept) & amplitude_mask
     return mask, tiv_map, amplitude_map
+
+
+def remove_small_regions(mask: np.ndarray, min_pixels: int) -> np.ndarray:
+    """Remove the islands of the mask smaller than ``min_pixels`` (step 5).
+
+    Pixels belong to the same island when they share a side (4-connectivity), as in
+    eitprocessing ``FilterROIBySize``.
+    """
+    side_neighbours = ndimage.generate_binary_structure(2, 1)
+    labels, n_regions = ndimage.label(mask, structure=side_neighbours)
+    sizes = ndimage.sum(mask, labels, index=np.arange(1, n_regions + 1))
+    return np.isin(labels, np.flatnonzero(sizes >= min_pixels) + 1)
