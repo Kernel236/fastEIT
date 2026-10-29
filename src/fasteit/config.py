@@ -59,6 +59,12 @@ class PreprocessingConfig:
             is invalid when it is beyond mean ± multiplier × (distance between the mean
             and the given percentile, low or high). Defaults of eitprocessing
             ``BreathDetection`` (v1.8.8) (section 8).
+        breath_baseline_seconds: Width of the Blackman moving average used as a local
+            threshold: a peak must be above it and a valley below it, which lets the
+            detection follow changes of EELI (eitprocessing default, section 8).
+        breath_min_duration_seconds: Minimum time between two peaks and between two
+            valleys (eitprocessing default 2/3 s; the original MATLAB scripts used
+            about 0.67 s too).
     """
 
     moving_average_seconds: float = 0.1
@@ -71,6 +77,8 @@ class PreprocessingConfig:
     mdn_order: int = 10
     invalid_data_percentile: float = 5.0
     invalid_data_multiplier: float = 4.0
+    breath_baseline_seconds: float = 15.0
+    breath_min_duration_seconds: float = 2 / 3
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:

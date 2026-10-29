@@ -12,6 +12,7 @@ A breath is a triplet of frame indices: start (valley), peak, end (next valley).
 from __future__ import annotations
 
 import numpy as np
+from scipy.signal import find_peaks
 
 
 def invalid_samples(
@@ -77,3 +78,49 @@ def fill_with_nearest(signal: np.ndarray, missing: np.ndarray) -> np.ndarray:
             filled[run[:half]] = filled[first - 1]
             filled[run[half:]] = filled[last + 1]
     return filled
+
+
+def local_baseline(signal: np.ndarray, fs: float, seconds: float) -> np.ndarray:
+    """Slow moving average of the signal, used as a local threshold (step 2).
+
+    Weighted with a Blackman window, centred, with the first and last value repeated at
+    the edges. The window has an odd number of samples and is shortened to fit a signal
+    shorter than ``seconds``.
+
+    Args:
+        signal:  1-D signal.
+        fs:      Sampling frequency in Hz.
+        seconds: Window width in seconds.
+
+    Returns:
+        Array of the same length as ``signal``.
+    """
+    window = int(fs * seconds)
+    if window % 2 == 0:
+        window += 1
+    if window > len(signal):
+        window = (len(signal) - 1) // 2 * 2 + 1
+    weights = np.blackman(window)
+    weights = weights / weights.sum()
+    padded = np.pad(signal, (window - 1) // 2, mode="edge")
+    return np.convolve(padded, weights, mode="valid")
+
+
+def peaks_and_valleys(
+    signal: np.ndarray, baseline: np.ndarray, fs: float, min_duration: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Candidate peaks above the baseline and valleys below it (step 3).
+
+    Args:
+        signal:       1-D signal.
+        baseline:     Local threshold of the same length (``local_baseline``).
+        fs:           Sampling frequency in Hz.
+        min_duration: Minimum time in seconds between two peaks and between two valleys.
+
+    Returns:
+        Indices of the peaks and indices of the valleys.
+    """
+    distance = max(min_duration * fs, 1)
+    peaks, _ = find_peaks(signal, distance=distance, height=baseline)
+    valleys, _ = find_peaks(-signal, distance=distance, height=-baseline)
+    return peaks, valleys
