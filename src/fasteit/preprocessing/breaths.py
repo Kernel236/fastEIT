@@ -221,6 +221,32 @@ def drop_low_amplitude(
     return drop_doubles(signal, peaks, valleys)
 
 
+def flag_near_invalid(
+    breaths: np.ndarray, invalid: np.ndarray, margin: int
+) -> np.ndarray:
+    """Which breaths are close to an invalid sample (step 8).
+
+    Same window as eitprocessing: from ``start - margin`` (included) to
+    ``end + margin`` (excluded), like a Python slice. eitprocessing removes these
+    breaths; fastEIT keeps them with a flag.
+
+    Args:
+        breaths: Integer array of shape (n_breaths, 3): start, peak, end frame.
+        invalid: Indices of the invalid samples (``invalid_samples``).
+        margin:  Margin in samples.
+
+    Returns:
+        Boolean array of length n_breaths.
+    """
+    return np.array(
+        [
+            np.any((invalid >= start - margin) & (invalid < end + margin))
+            for start, _, end in breaths
+        ],
+        dtype=bool,
+    )
+
+
 def detect_breaths(
     signal: np.ndarray,
     fs: float,
@@ -289,15 +315,5 @@ def detect_breaths(
         return no_breaths
 
     breaths = np.column_stack([valleys[:-1], peaks, valleys[1:]])
-
-    # Same window as eitprocessing: from start - margin (included) to end + margin
-    # (excluded), like a Python slice.
     margin = math.ceil(invalid_margin_seconds * fs)
-    near_invalid = np.array(
-        [
-            np.any((invalid >= start - margin) & (invalid < end + margin))
-            for start, _, end in breaths
-        ],
-        dtype=bool,
-    )
-    return breaths, near_invalid
+    return breaths, flag_near_invalid(breaths, invalid, margin)

@@ -9,6 +9,7 @@ from fasteit.preprocessing.breaths import (
     drop_doubles,
     drop_low_amplitude,
     fill_with_nearest,
+    flag_near_invalid,
     invalid_samples,
     local_baseline,
     peaks_and_valleys,
@@ -185,6 +186,33 @@ def test_breaths_near_a_spike_are_flagged_not_removed():
     breaths, near_invalid = detect(x)
     assert len(breaths) == len(clean)
     assert 1 <= near_invalid.sum() <= 3
+
+
+@pytest.mark.parametrize(
+    "invalid_index, expected",
+    [
+        (4, [False, False]),  # just before start - margin of the first breath
+        (5, [True, False]),  # start - margin is included
+        (24, [True, True]),  # inside end + margin of the first breath
+        (25, [False, True]),  # end + margin is excluded
+        (44, [False, True]),  # last sample of end + margin of the second breath
+        (45, [False, False]),
+    ],
+)
+def test_flag_near_invalid_window_is_half_open(invalid_index, expected):
+    breaths = np.array([[10, 15, 20], [20, 30, 40]])
+    flags = flag_near_invalid(breaths, np.array([invalid_index]), margin=5)
+    assert list(flags) == expected
+
+
+def test_spikes_at_the_first_and_last_sample_are_filled_and_flagged():
+    clean, _ = detect(breathing(seconds=60))
+    x = breathing(seconds=60)
+    x[0] = x[-1] = 100.0
+    breaths, near_invalid = detect(x)
+    # The filled edge sample can change the incomplete breath at that edge.
+    np.testing.assert_array_equal(breaths[1:-1], clean[1 : len(breaths) - 1])
+    assert not near_invalid[1:-1].any()  # only edge breaths can be close
 
 
 @pytest.mark.parametrize(
