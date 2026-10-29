@@ -280,10 +280,12 @@ def detect_breaths(
 
     breaths = np.column_stack([valleys[:-1], peaks, valleys[1:]])
 
+    # Same window as eitprocessing: from start - margin (included) to end + margin
+    # (excluded), like a Python slice.
     margin = math.ceil(invalid_margin_seconds * fs)
     near_invalid = np.array(
         [
-            np.any((invalid >= start - margin) & (invalid <= end + margin))
+            np.any((invalid >= start - margin) & (invalid < end + margin))
             for start, _, end in breaths
         ],
         dtype=bool,
