@@ -258,12 +258,22 @@ def detect_breaths(
         frame of each breath; ``near_invalid``: boolean array of length n_breaths.
 
     Raises:
-        ValueError: if the signal contains NaN or inf.
+        ValueError: if ``fs`` is not positive, the signal is not a non-empty 1-D array
+            or it contains NaN or inf.
     """
+    if not fs > 0:
+        raise ValueError(f"Sampling frequency must be positive, got {fs}.")
     signal = np.asarray(signal, dtype=float)
+    if signal.ndim != 1 or len(signal) == 0:
+        raise ValueError("Global signal must be a non-empty 1-D array.")
     if not np.all(np.isfinite(signal)):
         raise ValueError("Global signal contains NaN or inf.")
     no_breaths = (np.empty((0, 3), dtype=int), np.empty(0, dtype=bool))
+
+    # A constant signal has no breaths. Checked here because rounding in the mean can
+    # make every sample of a constant signal "invalid" (eitprocessing then fails).
+    if np.ptp(signal) == 0:
+        return no_breaths
 
     invalid = invalid_samples(signal, invalid_percentile, invalid_multiplier)
     data = fill_with_nearest(signal, invalid)

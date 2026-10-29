@@ -187,13 +187,30 @@ def test_breaths_near_a_spike_are_flagged_not_removed():
     assert 1 <= near_invalid.sum() <= 3
 
 
-def test_no_breaths_in_a_flat_or_too_short_signal():
-    assert len(detect(np.zeros(3000))[0]) == 0
-    assert len(detect(breathing(seconds=1))[0]) == 0
+@pytest.mark.parametrize(
+    "x",
+    [
+        np.zeros(3000),
+        np.full(3000, 0.1),  # the mean of 0.1 repeated is not exactly 0.1
+        breathing(seconds=1),
+        np.array([1.0]),
+        np.array([1.0, 2.0]),
+    ],
+)
+def test_no_breaths_in_a_flat_or_too_short_signal(x):
+    breaths, near_invalid = detect(x)
+    assert breaths.shape == (0, 3) and near_invalid.shape == (0,)
 
 
-def test_detect_breaths_rejects_nan():
-    x = breathing()
-    x[10] = np.nan
-    with pytest.raises(ValueError, match="NaN"):
-        detect(x)
+@pytest.mark.parametrize(
+    "x, fs, message",
+    [
+        (np.array([1.0, np.nan, 2.0]), 50, "NaN"),
+        (np.array([]), 50, "non-empty 1-D"),
+        (np.zeros((100, 2)), 50, "non-empty 1-D"),
+        (breathing(), 0, "positive"),
+    ],
+)
+def test_detect_breaths_rejects_unusable_input(x, fs, message):
+    with pytest.raises(ValueError, match=message):
+        detect(x, fs)
