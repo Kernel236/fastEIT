@@ -211,9 +211,17 @@ def drop_low_amplitude(
 
     Returns:
         Peaks and valleys, alternating.
+
+    Raises:
+        ValueError: if there is not exactly one more valley than peaks.
     """
     if len(peaks) == 0 or len(valleys) == 0:
         return peaks, valleys
+    if len(valleys) != len(peaks) + 1:
+        raise ValueError(
+            "Peaks and valleys must alternate, starting and ending with a valley "
+            "(run drop_doubles first)."
+        )
     rise = signal[peaks] - signal[valleys[:-1]]
     fall = signal[peaks] - signal[valleys[1:]]
     amplitude = (rise + fall) / 2

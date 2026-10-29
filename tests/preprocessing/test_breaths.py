@@ -167,6 +167,11 @@ def test_a_small_peak_is_merged_into_the_breath_around_it():
     assert list(valleys) == [0, 2, 4, 8]
 
 
+def test_drop_low_amplitude_rejects_peaks_and_valleys_that_do_not_alternate():
+    with pytest.raises(ValueError, match="alternate"):
+        drop_low_amplitude(np.zeros(9), np.array([1, 3]), np.array([0, 8]), 0.25)
+
+
 def test_breaths_of_a_regular_signal():
     breaths, near_invalid = detect(breathing(rate_hz=0.5, seconds=60))  # 30 breaths
     assert 27 <= len(breaths) <= 29  # incomplete breaths at the edges are dropped
