@@ -61,6 +61,11 @@ def test_config_defaults():
     assert (CFG.respiratory_rate_min_bpm, CFG.respiratory_rate_max_bpm) == (6.0, 60.0)
 
 
+def test_config_rejects_a_non_positive_heart_rate():
+    with pytest.raises(ValueError, match="positive"):
+        PreprocessingConfig(heart_rate_bpm=0)
+
+
 # ── moving average ─────────────────────────────────────────────────────────────
 
 

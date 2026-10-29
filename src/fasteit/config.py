@@ -4,9 +4,12 @@ Single source of truth for tuneable parameters. Parsers and algorithms read
 values from here - change once, propagates everywhere.
 
 Structure:
-    PreprocessingConfig - filter, lung mask, ROI params (TODO Task 0.6.1)
-    AnalysisConfig      - breath detection, PEEP detection params (TODO Task 0.6.1)
+    PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions
+    AnalysisConfig      - layer 3: PEEP steps (to be filled)
     Config              - top-level container for pipeline sections
+
+Rates and frequencies are given per minute here, as read on a monitor; the
+preprocessing functions work in Hz and the pipeline converts.
 
 Usage:
     from fasteit.config import Config
@@ -17,10 +20,6 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
-# ---------------------------------------------------------------------------
-# Pipeline configs (populated incrementally in Fase 4-5)
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -35,11 +34,13 @@ class PreprocessingConfig:
             rate is given, so no cardiac filter is applied (section 5c). It is the
             ``smooth()`` of the original MATLAB analysis scripts, defined in seconds
             instead of samples so that it behaves the same at 20 and 50 Hz. It removes
-            fast noise but leaves the cardiac component almost untouched.
+            fast noise but leaves the cardiac component almost untouched (a 100/min
+            oscillation keeps about 96 % of its amplitude at 50 Hz, 91 % at 20 Hz).
         respiratory_rate_min_bpm, respiratory_rate_max_bpm: Range (breaths/min) searched
             for the respiratory peak of the spectrum. Adult limits of eitprocessing
-            ``RateDetection`` (v1.8.8; Somhorst et al., JOSS 2026,
-            DOI: 10.21105/joss.08179).
+            ``RateDetection`` (v1.8.8; Somhorst et al., JOSS 2026;11(117):8179,
+            DOI: 10.21105/joss.08179). Not valid for neonates, paediatric patients or
+            high-frequency oscillation.
         spectrum_window_seconds: Length of the Welch window used for the respiratory
             rate (eitprocessing ``RateDetection`` default).
         heart_rate_bpm: Heart rate entered by the user (beats/min), e.g. from the
@@ -47,6 +48,8 @@ class PreprocessingConfig:
             only the moving average is applied. The heart rate is never estimated
             from the data: the estimate was wrong in 2 of 11 recordings and a wrong
             heart rate close to the respiratory rate damages the breaths (section 5b).
+            It is a snapshot: a heart rate that drifts during the recording, or an
+            arrhythmia such as atrial fibrillation, is not removed by the MDN filter.
         mdn_notch_half_width_bpm, mdn_upper_limit_bpm, mdn_order: Multiple digital
             notch filter (Wisse et al., Physiol Meas 2024, DOI: 10.1088/1361-6579/ad46e3):
             half width of each band-stop around a cardiac harmonic, highest frequency
@@ -63,18 +66,21 @@ class PreprocessingConfig:
     mdn_upper_limit_bpm: float = 220.0
     mdn_order: int = 10
 
+    def __post_init__(self) -> None:
+        if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
+            raise ValueError(
+                f"heart_rate_bpm must be positive, got {self.heart_rate_bpm}."
+            )
+
 
 @dataclass
 class AnalysisConfig:
-    """Parameters for breath detection and PEEP step detection.
+    """Parameters of layer 3 (PEEP step detection). To be filled.
 
-    TODO (Task 0.6.1 / Fase 4-5): populate fields when implementing:
-        - Breath detection (Task 4.10.1)
-        - PEEP detection (Task 5.7.1)
     All defaults must cite supporting literature.
     """
 
-    pass  # fields added in Fase 5
+    pass
 
 
 @dataclass
