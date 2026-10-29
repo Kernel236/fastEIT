@@ -138,3 +138,35 @@ def test_pixels_touching_only_by_a_corner_are_separate_islands():
     mask[0:3, 0:3] = True  # 9 pixels
     mask[3:6, 3:6] = True  # 9 pixels, touching the first by one corner
     assert not remove_small_regions(mask, CFG.lung_mask_min_region_pixels).any()
+
+
+# --- edge cases ---
+
+
+def test_amplitude_of_a_pixel_is_its_tidal_swing():
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    amplitude = amplitude_per_breath(pixels, global_signal, breaths)
+    lung_centre = np.exp(0.0)  # the lung peak is 1 at row 6, column 5
+    np.testing.assert_allclose(amplitude[1:-1, 6, 5], lung_centre, atol=0.05)
+
+
+def test_peaks_moved_out_of_the_recording_do_not_crash():
+    # Global peaks 0 and 5 move before the start for a pixel 30 samples late:
+    # both windows are clipped to frame 0 and become empty.
+    n_frames = 400
+    t = np.arange(n_frames)
+    pixel = np.sin(2 * np.pi * (t - 30) / 80) ** 2
+    pixels = pixel[:, None, None] * np.ones((1, 1, 2))
+    global_signal = np.sin(2 * np.pi * t / 80) ** 2
+    peaks = np.array([0, 5, 60, 140, 220, 300, 380])
+    breaths = np.column_stack([peaks - 1, peaks, peaks + 1])
+    amplitude = amplitude_per_breath(pixels, global_signal, breaths)
+    assert amplitude.shape == (7, 1, 2)
+
+
+def test_an_inverted_signal_has_no_lung_mask():
+    # Every pixel falls while the global signal rises: the TIV map is all negative.
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    falling = -global_signal[:, None, None] * np.ones((1, 3, 3))
+    with pytest.raises(ValueError, match="no positive maximum"):
+        mask_of(falling, global_signal, breaths)

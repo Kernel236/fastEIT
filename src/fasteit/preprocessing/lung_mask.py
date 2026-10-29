@@ -3,8 +3,11 @@
 Reimplementation of eitprocessing ``WatershedLungspace`` (v1.8.8; Somhorst et al.,
 JOSS 2026;11(117):8179, DOI: 10.21105/joss.08179), with the pixel amplitude in its
 "phase shift" mode (``PixelBreath``) and the small-region filter ``FilterROIBySize``.
-Checked to give the same masks on 11 real recordings
-(notebooks/05_preprocessing_choices.ipynb, sections 7b and 9).
+Checked to give the same masks as eitprocessing on 11 real recordings when every
+breath is used (notebooks/05_preprocessing_choices.ipynb, sections 7b and 9).
+
+The mask is the VENTILATED lung, not the anatomical lung: a collapsed region with a
+TIV below the threshold is outside it.
 
 Steps:
 1. TIV map: pixel value at the end of inspiration of the global signal minus the
@@ -52,10 +55,17 @@ def tiv_per_breath(pixels: np.ndarray, breaths: np.ndarray) -> np.ndarray:
 def pixel_lag(
     global_detrended: np.ndarray, pixel_detrended: np.ndarray, max_lag: float
 ) -> int | None:
-    """Delay of a pixel behind the global signal, in samples.
+    """Lag between the global signal and a pixel, in samples.
 
     The cross-correlation peak closest to zero lag within ``± max_lag`` (the higher
-    one if two are equally close), as in eitprocessing ``PixelBreath``.
+    one if two are equally close), as in eitprocessing ``PixelBreath``. The lag is
+    minus the delay of the pixel: a pixel that inflates 10 samples after the global
+    signal gives -10, and its own peaks are at ``global_peaks - lag``.
+
+    Args:
+        global_detrended: Global signal without its linear trend.
+        pixel_detrended:  Pixel signal without its linear trend.
+        max_lag:          Largest lag searched, in samples.
 
     Returns:
         The lag, or None if the cross-correlation has no clear positive peak.
@@ -74,12 +84,25 @@ def pixel_lag(
     return int(closest[np.argmax(xcorr[np.searchsorted(lags, closest)])])
 
 
+def _extremes(pixel: np.ndarray, edges: np.ndarray, find) -> np.ndarray:
+    """Index of the minimum or maximum (``find``) of ``pixel`` between consecutive edges.
+
+    An empty window (two equal edges, e.g. both clipped to the end of the recording)
+    gives its edge; that breath is then skipped because its start, peak and end are
+    not in order. eitprocessing crashes in this case.
+    """
+    return np.array(
+        [a + find(pixel[a:b]) if b > a else a for a, b in itertools.pairwise(edges)],
+        dtype=int,
+    )
+
+
 def amplitude_per_breath(
     pixels: np.ndarray, global_signal: np.ndarray, breaths: np.ndarray
 ) -> np.ndarray:
     """Amplitude of each pixel in each breath, on the pixel's own timing.
 
-    For each pixel: the global peaks are shifted by the pixel's delay
+    For each pixel: the global peaks are moved to the pixel's own timing
     (``pixel_lag``); between two shifted peaks the pixel minimum is its start of
     inspiration, between two minima its maximum is its peak; amplitude = peak -
     start. As in eitprocessing, the first and last breath have no value, a breath
@@ -88,7 +111,8 @@ def amplitude_per_breath(
     breaths is left out.
 
     Args:
-        pixels:        Array (N, rows, cols) without NaN at some frames only.
+        pixels:        Array (N, rows, cols); a pixel is either NaN in every frame
+                       or in none.
         global_signal: 1-D signal used for the breath detection.
         breaths:       Integer array (n_breaths, 3), consecutive breaths.
 
@@ -117,17 +141,13 @@ def amplitude_per_breath(
             shifted = global_peaks - lag
             skipped = set(np.flatnonzero((shifted < 0) | (shifted >= n_frames)))
             shifted = np.clip(shifted, 0, n_frames - 1)
-            minima = np.array(
-                [a + np.argmin(pixel[a:b]) for a, b in itertools.pairwise(shifted)]
-            )
+            minima = _extremes(pixel, shifted, np.argmin)
             starts, ends = minima[:-1], minima[1:]
-            tops = np.array(
-                [a + np.argmax(pixel[a:b]) for a, b in zip(starts, ends, strict=True)],
-                dtype=int,
-            )
+            tops = _extremes(pixel, minima, np.argmax)
             skipped |= set(np.flatnonzero((starts >= tops) | (tops >= ends)))
-            # Same condition as eitprocessing (a pixel losing every breath is kept,
-            # all NaN).
+            # As in eitprocessing, a pixel that loses every breath is not dropped
+            # here: it stays all NaN. eitprocessing counts twice a breath skipped for
+            # two reasons; here it counts once, which can only matter near the limit.
             if len(starts) > len(skipped) > len(starts) * MAX_SKIPPED_FRACTION:
                 continue
 
@@ -159,11 +179,13 @@ def watershed_mask(
         threshold_fraction: Fraction of the maximum TIV (0.15 in eitprocessing).
 
     Returns:
-        ``mask`` (rows, cols) bool, mean ``tiv_map`` and mean ``amplitude_map``.
+        ``mask`` (rows, cols) bool, mean ``tiv_map`` and mean ``amplitude_map``. The
+        first and last breath are never in the means (they have no amplitude); a
+        pixel without data is NaN in the maps.
 
     Raises:
-        ValueError: if no breath can be used or no amplitude peak lies inside the TIV
-            mask.
+        ValueError: if no breath can be used, the TIV map has no positive maximum
+            (inverted signal), or no amplitude peak lies inside the TIV mask.
     """
     tiv = tiv_per_breath(pixels, breaths)
     amplitude = amplitude_per_breath(pixels, global_signal, breaths)
@@ -178,6 +200,11 @@ def watershed_mask(
         tiv_map = np.nanmean(tiv[used], axis=0)
         amplitude_map = np.nanmean(amplitude[used], axis=0)
     threshold = threshold_fraction * np.nanmax(tiv_map)
+    if not threshold > 0:
+        raise ValueError(
+            "The TIV map has no positive maximum: check that impedance rises with "
+            "inspiration."
+        )
     tiv_mask = tiv_map >= threshold
     amplitude_mask = amplitude_map >= threshold
 
