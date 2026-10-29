@@ -9,7 +9,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from fasteit.preprocessing.cardiac_filter import mdn_filter, respiratory_rate
+from fasteit.config import PreprocessingConfig
+from fasteit.preprocessing.cardiac_filter import (
+    SECONDS_PER_MINUTE,
+    mdn_filter,
+    respiratory_rate,
+)
 
 pytest.importorskip("eitprocessing")
 
@@ -32,7 +37,16 @@ def test_mdn_filter_matches_eitprocessing(fs, respiratory_hz, heart_hz):
     reference = MDNFilter(respiratory_rate=respiratory_hz, heart_rate=heart_hz).apply(
         pixels, sample_frequency=fs, axis=0
     )
-    ours = mdn_filter(pixels, fs, respiratory_hz, heart_hz)
+    cfg = PreprocessingConfig()
+    ours = mdn_filter(
+        pixels,
+        fs,
+        respiratory_hz,
+        heart_hz,
+        notch_half_width_hz=cfg.mdn_notch_half_width_bpm / SECONDS_PER_MINUTE,
+        upper_limit_hz=cfg.mdn_upper_limit_bpm / SECONDS_PER_MINUTE,
+        order=cfg.mdn_order,
+    )
     np.testing.assert_allclose(ours, reference, atol=1e-10)
 
 
@@ -44,5 +58,12 @@ def test_respiratory_rate_matches_eitprocessing_on_real_recordings():
             eit, suppress_length_warnings=True, suppress_edge_case_warning=True
         )
         global_signal = np.nansum(np.asarray(eit.pixel_impedance, float), axis=(1, 2))
-        ours = respiratory_rate(global_signal, eit.sample_frequency)
+        cfg = PreprocessingConfig()
+        ours = respiratory_rate(
+            global_signal,
+            eit.sample_frequency,
+            min_bpm=cfg.respiratory_rate_min_bpm,
+            max_bpm=cfg.respiratory_rate_max_bpm,
+            window_seconds=cfg.spectrum_window_seconds,
+        )
         assert ours == pytest.approx(reference, abs=1e-6), path.name
