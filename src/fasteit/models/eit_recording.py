@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 
@@ -20,7 +21,11 @@ class Segment:
                     add ``"peep_step"`` and ``"transition"``.
         label:      Why, e.g. ``"artifact"``, ``"movement"``, ``"timing_error"``.
         source:     Who created it: ``"manual"``, ``"device"`` or ``"auto"``.
-        parameters: For automatic segments, how they were found.
+        parameters: For automatic segments, how they were found. Not used for
+                    hashing, so segments can be put in a set.
+
+    Two segments that share an end point, e.g. [0, 10] and [10, 20], touch: a breath
+    ending at 10 s overlaps both.
     """
 
     start: float
@@ -28,9 +33,15 @@ class Segment:
     category: str = "exclusion"
     label: str = ""
     source: str = "manual"
-    parameters: dict = field(default_factory=dict)
+    parameters: dict = field(default_factory=dict, hash=False)
 
     def __post_init__(self) -> None:
+        if not (math.isfinite(self.start) and math.isfinite(self.end)):
+            raise ValueError(
+                f"Segment times must be finite, got {self.start}, {self.end}"
+            )
+        if self.start < 0:
+            raise ValueError(f"Segment start must be >= 0, got {self.start}")
         if self.end <= self.start:
             raise ValueError(
                 f"Segment end ({self.end}) must be after start ({self.start})"
