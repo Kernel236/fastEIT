@@ -195,7 +195,7 @@ def test_watershed_mask_matches_eitprocessing_on_real_recordings():
             np.asarray(eit.pixel_impedance, float), eit.sample_frequency, 0.1
         )
         breaths, _ = detect_like_fasteit(eit, pixels)
-        ours, _, _ = watershed_mask(
+        ours, tiv_map, amplitude_map = watershed_mask(
             pixels,
             pixels.sum(axis=(1, 2)),
             breaths,
@@ -204,9 +204,14 @@ def test_watershed_mask_matches_eitprocessing_on_real_recordings():
         )
         eit_copy = copy.deepcopy(eit)
         eit_copy.pixel_impedance = pixels
+        captured = {}
         reference = WatershedLungspace(
             threshold_fraction=cfg.lung_mask_threshold_fraction
-        ).apply(eit_copy)
+        ).apply(eit_copy, captures=captured)
+        np.testing.assert_allclose(tiv_map, captured["mean tiv"].values, atol=1e-10)
+        np.testing.assert_allclose(
+            amplitude_map, captured["mean amplitude"].values, atol=1e-10
+        )
         np.testing.assert_array_equal(ours, ~np.isnan(reference.mask), path.name)
 
 

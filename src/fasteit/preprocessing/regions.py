@@ -2,8 +2,8 @@
 
 Orientation of Draeger images (PulmoVista 500 instructions for use): seen from the
 feet, like a CT slice. Row 0 is ventral; column 0 is the patient's RIGHT, column 31
-the patient's left. Checked on the power at the heart rate per pixel
-(notebooks/05_preprocessing_choices.ipynb, section 9).
+the patient's left. Consistent with the power at the heart rate per pixel
+(notebooks/05_preprocessing_choices.ipynb, section 9). Verified on Draeger only.
 
 Regions (section 9):
 - ventral/dorsal halves and four layers are cut on the vertical extent of the lung
@@ -15,6 +15,16 @@ Regions (section 9):
   the sternum-spine axis with the belt centred on the patient;
 - quadrants = ventral/dorsal x right/left;
 - every region is intersected with the lung mask.
+
+Limit: these regions are relative to the VENTILATED lung. If the dorsal lung
+collapses, its pixels leave the mask and "dorsal" becomes the dorsal half of what is
+still ventilated, so the ventral/dorsal split hides part of a ventral shift of
+ventilation.
+Indices meant to show a shift of ventilation (centre of ventilation, dorsal fraction,
+silent spaces) must be computed in image coordinates, not on these regions.
+
+Not the same as ``ReconstructedFrameData.roi_signals`` (layer 1), which are four
+fixed strips of 8 image rows each.
 """
 
 from __future__ import annotations
