@@ -30,15 +30,27 @@ def breath_measures(signal: np.ndarray, fs: float, breaths: np.ndarray) -> pd.Da
 
     Returns:
         DataFrame with one row per breath and columns ``duration_s`` (Ttot),
-        ``ti_ratio`` (Ti/Ttot) and ``amplitude`` (units of the signal).
+        ``ti_ratio`` (Ti/Ttot) and ``amplitude`` (units of the signal). A breath of
+        zero duration has ``ti_ratio`` NaN.
+
+    Raises:
+        ValueError: if ``breaths`` is not an array of shape (n_breaths, 3).
     """
-    start, peak, end = np.asarray(breaths, dtype=int).reshape(-1, 3).T
+    signal = np.asarray(signal, dtype=float)
+    breaths = np.asarray(breaths, dtype=int)
+    if breaths.ndim != 2 or breaths.shape[1] != 3:
+        raise ValueError(
+            f"breaths must have shape (n_breaths, 3), got {breaths.shape}."
+        )
+    start, peak, end = breaths.T
     rise = signal[peak] - signal[start]
     fall = signal[peak] - signal[end]
+    with np.errstate(divide="ignore", invalid="ignore"):  # zero duration -> NaN
+        ti_ratio = (peak - start) / (end - start)
     return pd.DataFrame(
         {
             "duration_s": (end - start) / fs,
-            "ti_ratio": (peak - start) / (end - start),
+            "ti_ratio": ti_ratio,
             "amplitude": (rise + fall) / 2,
         }
     )
@@ -113,8 +125,15 @@ def quality_flags(
     Returns:
         DataFrame of booleans, one column per flag. The pipeline adds whether the
         breath is excluded and ``is_valid`` (no flag and not excluded).
+
+    Raises:
+        ValueError: if ``breaths`` and ``near_invalid`` have different lengths.
     """
-    measures = breath_measures(signal, fs, breaths)
+    measures = breath_measures(signal, fs, breaths)  # also checks the shape
+    if len(near_invalid) != len(measures):
+        raise ValueError(
+            f"near_invalid has {len(near_invalid)} values for {len(measures)} breaths."
+        )
     amplitude_ratio = ratio_to_local_median(
         measures.amplitude, window_breaths, min_breaths
     )
