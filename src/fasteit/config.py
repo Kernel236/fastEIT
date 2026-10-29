@@ -56,20 +56,25 @@ class PreprocessingConfig:
             filtered, and Butterworth order. Defaults of the eitprocessing ``MDNFilter``
             (v1.8.8).
         invalid_data_percentile, invalid_data_multiplier: A sample of the global signal
-            is invalid when it is beyond mean ± multiplier × (distance between the mean
-            and the given percentile, low or high). Defaults of eitprocessing
-            ``BreathDetection`` (v1.8.8) (section 8).
+            is invalid (a gross outlier: an artefact or an extreme manoeuvre) when it
+            is beyond mean ± multiplier × (distance between the mean and the given
+            percentile, low or high). Defaults of eitprocessing ``BreathDetection``
+            (v1.8.8) (section 8).
         breath_baseline_seconds: Width of the Blackman moving average used as a local
-            threshold: a peak must be above it and a valley below it, which lets the
-            detection follow changes of EELI (eitprocessing default, section 8).
+            threshold: a peak must be above it and a valley below it. It follows slow
+            EELI drift; breaths within about this time of a sudden EELI step (PEEP
+            change) are unreliable. Below about 8 breaths/min the window starts to
+            follow the breathing itself (eitprocessing default, section 8).
         breath_min_duration_seconds: Minimum time between two peaks and between two
-            valleys (eitprocessing default 2/3 s; the original MATLAB scripts used
-            about 0.67 s too).
+            valleys, i.e. a maximum of 90 breaths/min (eitprocessing default 2/3 s; the
+            original MATLAB scripts used about 0.67 s too).
         breath_low_amplitude_fraction: Peaks with an amplitude below this fraction of the
-            median amplitude are merged into the breath around them (eitprocessing
-            default).
-        invalid_data_margin_seconds: A breath closer than this to invalid data gets
-            ``flag_invalid_data`` (eitprocessing removes it; fastEIT keeps it, section 8).
+            median amplitude of the whole signal are merged into the breath around them
+            (eitprocessing default). Merged peaks are not necessarily clinically
+            irrelevant, e.g. hypopnoea in spontaneous breathing.
+        invalid_data_margin_seconds: A breath closer than this to invalid data is
+            flagged (``near_invalid`` of ``detect_breaths``); eitprocessing removes it,
+            fastEIT keeps it (section 8).
     """
 
     moving_average_seconds: float = 0.1

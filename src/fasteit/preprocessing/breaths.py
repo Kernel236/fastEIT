@@ -1,12 +1,27 @@
 """Breath detection on the global impedance signal.
 
 Reimplementation of eitprocessing ``BreathDetection`` (v1.8.8; Somhorst et al.,
-JOSS 2026;11(117):8179, DOI: 10.21105/joss.08179), checked to give the same breaths
-on 11 real recordings (notebooks/05_preprocessing_choices.ipynb, section 8).
+JOSS 2026;11(117):8179, DOI: 10.21105/joss.08179). It gives the same breaths as
+eitprocessing on 11 regular real recordings (notebooks/05_preprocessing_choices.ipynb,
+section 8) and on synthetic signals with a spike and with small breaths. This shows
+equivalence with eitprocessing, not accuracy against a gold standard.
 
 One change: breaths close to invalid data are flagged, not removed.
 
 A breath is a triplet of frame indices: start (valley), peak, end (next valley).
+Impedance is assumed to rise with inspiration (as in the Draeger .bin pixels).
+
+Limitations (to keep in mind when reading Ti, Te and the respiratory rate):
+- the valley is the minimum of impedance, i.e. of lung volume, not the start of
+  the inspiratory effort or the ventilator trigger; the peak includes any
+  inspiratory pause. Timings are impedance-based and not interchangeable with the
+  ventilator values;
+- patient-ventilator asynchrony is not detected: an ineffective effort is usually
+  not a peak, and two inspirations without a valley between them become one breath;
+- the 15 s baseline follows slow EELI drift, but after a sudden EELI step (PEEP
+  change, recruitment) the breaths within about 15 s of the step are unreliable;
+- without a heart rate the cardiac component is not removed, so small breaths and
+  the exact position of valleys and peaks are less reliable.
 """
 
 from __future__ import annotations
@@ -20,12 +35,14 @@ from scipy.signal import find_peaks
 def invalid_samples(
     signal: np.ndarray, percentile: float, multiplier: float
 ) -> np.ndarray:
-    """Indices of the samples too far from the mean to be breathing (step 1).
+    """Indices of the gross outliers of the signal (step 1).
 
     A sample is invalid when it is below ``mean - multiplier * (mean - low)`` or above
     ``mean + multiplier * (high - mean)``, where ``low`` and ``high`` are the
     ``percentile`` and ``100 - percentile`` percentiles of the signal. With the
-    defaults (5, 4) only gross outliers are caught, e.g. a disconnection spike.
+    defaults (5, 4) only gross outliers are caught: artefacts such as a disconnection
+    spike, but also extreme manoeuvres such as a sustained inflation or a large
+    recruitment step, which are physiological.
 
     Args:
         signal:     1-D global signal.
@@ -46,9 +63,10 @@ def invalid_samples(
 def fill_with_nearest(signal: np.ndarray, missing: np.ndarray) -> np.ndarray:
     """Replace the samples at ``missing`` with the nearest valid sample (step 1).
 
-    In a run of missing samples the first half takes the value just before the run
-    and the second half the value just after it. A run at the start or at the end of
-    the signal takes the only valid neighbour.
+    In a run of missing samples the first ``len(run) // 2`` samples take the value
+    just before the run and the others the value just after it (so the middle sample
+    of an odd run takes the value after). A run at the start or at the end of the
+    signal takes the only valid neighbour.
 
     Args:
         signal:  1-D signal.
@@ -140,11 +158,12 @@ def trim_edges(
     Args:
         signal:   1-D signal.
         peaks:    Candidate peak indices.
-        valleys:  Candidate valley indices.
+        valleys:  Candidate valley indices, never the first or last sample (true for
+                  the output of ``peaks_and_valleys``).
         baseline: Local threshold of the same length as ``signal``.
 
     Returns:
-        Peaks and valleys without the edge cases.
+        Peaks and valleys without the edge cases (both empty if no breath is left).
     """
     if len(valleys) == 0:
         return peaks, valleys
