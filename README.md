@@ -78,6 +78,7 @@ recording = preprocess(
 recording.breaths            # one row per breath: times, quality flags, is_valid
 recording.lung_mask          # (32, 32) ventilated lung
 recording.roi_signals        # ventral/dorsal, layers, right/left, quadrants
+recording.aux                # pressures, flow, device markers ("no data" as NaN)
 print("\n".join(recording.log))  # what each step did, with warnings
 ```
 

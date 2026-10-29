@@ -9,6 +9,7 @@ One module per step, in pipeline order:
 - breath_quality - quality flags of each breath
 - lung_mask      - watershed lung mask from the valid breaths
 - regions        - regions of interest inside the lung mask
+- auxiliary      - pressures, flow and device markers, "no data" values as NaN
 - pipeline       - preprocess(), all the steps in a fixed order
 
 Evidence for every choice: notebooks/05_preprocessing_choices.ipynb.

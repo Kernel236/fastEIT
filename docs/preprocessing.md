@@ -54,6 +54,7 @@ the inputs (file, config, exclusions, context) and can recompute the rest.
 | 6 | Quality flags and exclusions of each breath; `is_valid` = no flag and not excluded | `breath_quality`, `exclusions` | notebook §8 |
 | 7 | Lung mask from the valid breaths: watershed of the TIV and amplitude maps at 15 % of the maximum TIV, islands < 10 pixels removed | `lung_mask` | eitprocessing `WatershedLungspace`, `FilterROIBySize` |
 | 8 | Regions of interest inside the mask and their signals | `regions` | notebook §9 |
+| 9 | Auxiliary signals (pressures, flow, volume, device breath markers): "no data" values as NaN, channels without data left out, not filtered | `auxiliary` | - |
 
 Breaths are **flagged, never removed**: the clinician decides what to use.
 
@@ -84,10 +85,20 @@ Quality flags of each breath:
 | `breaths` | one row per breath: times and frames, flags, `excluded`, `exclusion_label`, `is_valid` |
 | `lung_mask`, `tiv_map` | ventilated lung and the mean TIV map it comes from |
 | `roi_masks`, `roi_signals` | `ventral`, `dorsal`, `right`, `left`, `layer_1`-`layer_4`, four quadrants |
+| `aux` | auxiliary signals with data, one row per frame (e.g. `airway_pressure_pod`, `esophageal_pressure_pod`, Medibus `peep`, `min_max_flag`) |
 | `log` | what each step did, with warnings |
 
 Images are seen from the feet, like a CT slice: row 0 is ventral, column 0 is the
 patient's right.
+
+Breath frames index every signal of the same length, for example the pressure at
+the start and at the peak of a breath:
+
+```python
+breath = recording.valid_breaths.iloc[0]
+tiv_map = recording.pixels[breath.peak_idx] - recording.pixels[breath.start_idx]
+paw = recording.aux.airway_pressure_pod[[breath.start_idx, breath.peak_idx]]
+```
 
 ## 4. Logs
 
@@ -125,6 +136,7 @@ src/fasteit/
     ├── exclusions.py          device and manual exclusions
     ├── breaths.py             breath detection
     ├── breath_quality.py      quality flags
+    ├── auxiliary.py           pressures, flow and device markers, cleaned
     ├── lung_mask.py           watershed lung mask
     ├── regions.py             regions of interest
     └── pipeline.py            preprocess()
