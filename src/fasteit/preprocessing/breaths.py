@@ -124,3 +124,68 @@ def peaks_and_valleys(
     peaks, _ = find_peaks(signal, distance=distance, height=baseline)
     valleys, _ = find_peaks(-signal, distance=distance, height=-baseline)
     return peaks, valleys
+
+
+def trim_edges(
+    signal: np.ndarray, peaks: np.ndarray, valleys: np.ndarray, baseline: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Drop the incomplete breaths at the start and end of the signal (step 4).
+
+    The first valley is dropped if the signal before it never rises above the baseline
+    (the recording started in the middle of an expiration), and the same for the last
+    valley. Then only the peaks between the first and the last valley are kept.
+
+    Args:
+        signal:   1-D signal.
+        peaks:    Candidate peak indices.
+        valleys:  Candidate valley indices.
+        baseline: Local threshold of the same length as ``signal``.
+
+    Returns:
+        Peaks and valleys without the edge cases.
+    """
+    if len(valleys) == 0:
+        return peaks, valleys
+    if signal[: valleys[0]].max() < baseline[valleys[0]]:
+        valleys = valleys[1:]
+    if len(valleys) and signal[valleys[-1] :].max() < baseline[valleys[-1]]:
+        valleys = valleys[:-1]
+    if len(valleys) == 0:
+        return peaks[:0], valleys
+    peaks = peaks[(peaks > valleys[0]) & (peaks < valleys[-1])]
+    return peaks, valleys
+
+
+def drop_doubles(
+    signal: np.ndarray, peaks: np.ndarray, valleys: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Keep one peak between two valleys and one valley between two peaks (step 5).
+
+    Walking from the first valley: if two valleys have no peak between them, the
+    higher valley is dropped; if two valleys have more than one peak between them, the
+    lower of the first two peaks is dropped. Repeat until every pair of consecutive
+    valleys holds exactly one peak.
+
+    Args:
+        signal:  1-D signal.
+        peaks:   Peak indices.
+        valleys: Valley indices.
+
+    Returns:
+        Peaks and valleys, alternating.
+    """
+    peaks, valleys = list(peaks), list(valleys)
+    i = 0
+    while i < len(valleys) - 1:
+        between = [k for k, p in enumerate(peaks) if valleys[i] < p < valleys[i + 1]]
+        if not between:
+            higher = i if signal[valleys[i]] > signal[valleys[i + 1]] else i + 1
+            del valleys[higher]
+            continue
+        if len(between) > 1:
+            first, second = between[0], between[1]
+            lower = first if signal[peaks[first]] < signal[peaks[second]] else second
+            del peaks[lower]
+            continue
+        i += 1
+    return np.array(peaks, dtype=int), np.array(valleys, dtype=int)

@@ -5,10 +5,12 @@ import pytest
 
 from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.breaths import (
+    drop_doubles,
     fill_with_nearest,
     invalid_samples,
     local_baseline,
     peaks_and_valleys,
+    trim_edges,
 )
 
 CFG = PreprocessingConfig()
@@ -96,3 +98,42 @@ def test_ripples_closer_than_the_minimum_duration_are_not_extra_peaks():
     x = breathing(seconds=60) + 0.05 * breathing(rate_hz=5, seconds=60)
     peaks, _ = candidates(x)
     assert len(peaks) <= 31
+
+
+# ── edges and doubles ──────────────────────────────────────────────────────────
+
+
+def test_two_peaks_between_two_valleys_keep_the_higher():
+    signal = np.array([0, 5, 2, 8, 0], dtype=float)
+    peaks, valleys = drop_doubles(signal, np.array([1, 3]), np.array([0, 4]))
+    assert list(peaks) == [3] and list(valleys) == [0, 4]
+
+
+def test_two_valleys_without_a_peak_keep_the_lower():
+    signal = np.array([1, 0, 9, 0.5, -1, 9, 0], dtype=float)
+    peaks, valleys = drop_doubles(signal, np.array([2, 5]), np.array([1, 3, 4, 6]))
+    assert list(valleys) == [1, 4, 6] and list(peaks) == [2, 5]
+
+
+def test_peaks_and_valleys_alternate_after_drop_doubles():
+    x = breathing(seconds=60) + 0.3 * breathing(rate_hz=1.3, seconds=60)
+    base = local_baseline(x, 50, CFG.breath_baseline_seconds)
+    peaks, valleys = peaks_and_valleys(x, base, 50, CFG.breath_min_duration_seconds)
+    peaks, valleys = drop_doubles(x, *trim_edges(x, peaks, valleys, base))
+    assert len(peaks) == len(valleys) - 1
+    assert np.all((valleys[:-1] < peaks) & (peaks < valleys[1:]))
+
+
+def test_trim_edges_keeps_only_peaks_between_the_first_and_last_valley():
+    x = breathing(seconds=20)
+    base = local_baseline(x, 50, CFG.breath_baseline_seconds)
+    peaks, valleys = peaks_and_valleys(x, base, 50, CFG.breath_min_duration_seconds)
+    peaks, valleys = trim_edges(x, peaks, valleys, base)
+    assert peaks.min() > valleys.min() and peaks.max() < valleys.max()
+
+
+def test_trim_edges_without_valleys():
+    peaks, valleys = trim_edges(
+        np.zeros(10), np.array([3]), np.array([], int), np.zeros(10)
+    )
+    assert len(valleys) == 0 and list(peaks) == [3]
