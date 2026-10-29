@@ -8,8 +8,9 @@
 | **Coverage** | [![codecov](https://codecov.io/gh/Kernel236/fastEIT/branch/dev/graph/badge.svg)](https://codecov.io/gh/Kernel236/fastEIT) |
 | **CI / CD** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) ![deploy](https://img.shields.io/badge/deploy-todo-lightgrey) |
 
-Python library for parsing Electrical Impedance Tomography (EIT) data from the Dräger
-PulmoVista 500. Provides structured data containers for research in mechanical ventilation and lung monitoring.
+Python library for parsing and preprocessing Electrical Impedance Tomography (EIT) data
+from the Dräger PulmoVista 500. Provides structured data containers and a breath-by-breath
+preprocessing for research in mechanical ventilation and lung monitoring.
 
 ## Installation
 
@@ -55,9 +56,40 @@ print(data.n_frames, data.fs)       # e.g. 9000, 50.0
 print(data.pixels.shape)            # (9000, 32, 32)
 ```
 
+## Preprocessing
+
+`preprocess()` turns a recording with pixels (Dräger `.bin`, Timpel) into an
+`EITRecording` ready for breath-by-breath analysis: cardiac filter, breaths with
+quality flags, exclusions, lung mask, regions of interest and regional signals.
+
+```python
+from fasteit.config import PreprocessingConfig
+from fasteit.models import RecordingContext, Segment
+from fasteit.parsers.loader import load_data
+from fasteit.preprocessing import preprocess
+
+raw = load_data("patient01.bin")
+recording = preprocess(
+    raw,
+    config=PreprocessingConfig(heart_rate_bpm=85),  # optional: enables the MDN filter
+    exclusions=[Segment(120, 180, label="cough")],  # optional: parts to exclude
+    context=RecordingContext(patient_id="PZ01", position="supine"),
+)
+recording.breaths            # one row per breath: times, quality flags, is_valid
+recording.lung_mask          # (32, 32) ventilated lung
+recording.roi_signals        # ventral/dorsal, layers, right/left, quadrants
+print("\n".join(recording.log))  # what each step did, with warnings
+```
+
+The steps reimplement [eitprocessing](https://github.com/EIT-ALIVE/eitprocessing)
+v1.8.8 (Somhorst et al., *JOSS* 2026, DOI: 10.21105/joss.08179) and are checked
+against it; the evidence for every choice is in
+`notebooks/05_preprocessing_choices.ipynb`. See
+[`docs/preprocessing.md`](docs/preprocessing.md).
+
 ## Project status
 
-Pre-alpha. Data model and parsing layer implemented.
+Pre-alpha. Data model, parsing layer and preprocessing layer implemented.
 
 **Data model** (`models/`):
 
@@ -66,6 +98,7 @@ Pre-alpha. Data model and parsing layer implemented.
 | `ReconstructedFrameData` | 32×32 pixel matrices + synchronized signals | Dräger `.bin`, Timpel `.csv`/`.txt`/`.asc` |
 | `ContinuousSignalData` | Signal table, one row per frame | `.asc` |
 | `RawImpedanceData` | Calibrated transimpedances + aux signals for pyEIT | `.eit` |
+| `EITRecording` | Preprocessed recording: breaths, lung mask, regions, log | `preprocess()` |
 
 **Parsers** (`parsers/`):
 
@@ -98,6 +131,7 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 - [`docs/data_model.md`](docs/data_model.md) - data container field specifications
 - [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
 - [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
+- [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, outputs, logs and limits
 
 ## Contributing
 
