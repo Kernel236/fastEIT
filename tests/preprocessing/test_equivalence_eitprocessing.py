@@ -93,12 +93,63 @@ def detect_like_eitprocessing(eit, pixels):
     eit_copy = copy.deepcopy(eit)
     eit_copy.pixel_impedance = pixels
     breaths = BreathDetection().find_breaths(eit_copy.get_summed_impedance()).values
-    return np.array(
-        [
-            np.searchsorted(eit.time, [b.start_time, b.middle_time, b.end_time])
-            for b in breaths
-        ]
+    return breaths_as_frames(breaths, eit.time)
+
+
+def breaths_as_frames(breaths, time):
+    """eitprocessing Breath objects -> (n, 3) frame indices like fastEIT."""
+    frames = [
+        np.searchsorted(time, [b.start_time, b.middle_time, b.end_time])
+        for b in breaths
+    ]
+    return np.array(frames, dtype=int).reshape(-1, 3)
+
+
+def synthetic_global_signal(case, fs=50, seconds=180):
+    """18/min breathing with a slow drift and noise, plus the requested problem."""
+    t = np.arange(0, seconds, 1 / fs)
+    x = np.sin(2 * np.pi * 0.3 * t) + 0.3 * t / seconds
+    x += 0.05 * np.random.default_rng(0).normal(size=t.size)
+    if case == "spike":
+        x[4000:4003] += 40
+    if case == "small breaths":
+        x[(t % 20) < 3.3] *= 0.1  # one breath in six is a tenth of the others
+    return t, x
+
+
+@pytest.mark.parametrize("case", ["clean", "spike", "small breaths"])
+def test_breaths_match_eitprocessing_on_a_synthetic_signal(case):
+    from eitprocessing.datahandling.continuousdata import ContinuousData
+    from eitprocessing.features.breath_detection import BreathDetection
+
+    from fasteit.preprocessing.breaths import detect_breaths
+
+    fs = 50
+    t, x = synthetic_global_signal(case, fs)
+    global_signal = ContinuousData(
+        label="global",
+        name="global",
+        unit="a.u.",
+        category="impedance",
+        time=t,
+        values=x,
+        sample_frequency=fs,
     )
+    reference = BreathDetection().find_breaths(global_signal).values
+
+    cfg = PreprocessingConfig()
+    ours, near_invalid = detect_breaths(
+        x,
+        fs,
+        invalid_percentile=cfg.invalid_data_percentile,
+        invalid_multiplier=cfg.invalid_data_multiplier,
+        baseline_seconds=cfg.breath_baseline_seconds,
+        min_duration_seconds=cfg.breath_min_duration_seconds,
+        low_amplitude_fraction=cfg.breath_low_amplitude_fraction,
+        invalid_margin_seconds=cfg.invalid_data_margin_seconds,
+    )
+    assert near_invalid.any() == (case == "spike")
+    np.testing.assert_array_equal(ours[~near_invalid], breaths_as_frames(reference, t))
 
 
 @needs_real_files
