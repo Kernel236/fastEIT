@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from scipy import signal as scipy_signal
 
 from fasteit.config import PreprocessingConfig
 from fasteit.models.eit_recording import Segment
@@ -131,12 +132,91 @@ def test_data_without_frames_is_an_error():
         preprocess(ReconstructedFrameData(fs=FS))
 
 
+def test_the_cardiac_filter_applied_is_recorded():
+    assert preprocess(synthetic_raw()[0]).cardiac_filter == "moving_average"
+    config = PreprocessingConfig(heart_rate_bpm=80)
+    assert preprocess(synthetic_raw()[0], config).cardiac_filter == "mdn"
+    # A heart rate below the respiratory rate cannot be filtered: fallback, logged.
+    slow_heart = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=10))
+    assert slow_heart.cardiac_filter == "moving_average"
+    assert any("NOT removed" in line for line in slow_heart.log)
+
+
+def test_mdn_removes_a_cardiac_oscillation_from_the_pixels():
+    raw, lungs = synthetic_raw()
+    t = np.arange(len(raw.frames)) / FS
+    heart = 0.05 * np.sin(2 * np.pi * (80 / 60) * t)
+    raw.frames["pixels"] += (heart[:, None, None] * lungs).astype(np.float32)
+
+    def cardiac_power(recording):
+        frequencies, power = scipy_signal.welch(
+            recording.global_signal, FS, nperseg=600
+        )
+        return power[np.abs(frequencies - 80 / 60) < 0.1].sum()
+
+    unfiltered = preprocess(raw)
+    filtered = preprocess(raw, PreprocessingConfig(heart_rate_bpm=80))
+    assert cardiac_power(filtered) < cardiac_power(unfiltered) / 100
+
+
+def test_draeger_no_data_values_become_excluded_frames():
+    raw, _ = synthetic_raw(vendor="draeger")
+    raw.frames["pixels"][600:603, 10, 10] = -1000.0
+    raw.frames["pixels"][900, 12, 12] = np.array([0xFF7FC99E], np.uint32).view(
+        np.float32
+    )[0]
+    recording = preprocess(raw)
+    assert [s.label for s in recording.exclusions] == ["missing_data", "missing_data"]
+    assert np.isfinite(recording.pixels).all()
+    assert raw.frames["pixels"][600, 10, 10] == -1000.0  # parsed data untouched
+
+
+def test_a_gap_in_the_frame_times_is_excluded():
+    raw, _ = synthetic_raw()
+    raw.frames["ts"][1000:] += 0.2  # 4 frames dropped at 50 s
+    recording = preprocess(raw)
+    assert [s.label for s in recording.exclusions] == ["time_gap"]
+    assert recording.breaths.excluded.sum() >= 1
+
+
+def test_time_going_back_is_an_error():
+    raw, _ = synthetic_raw()
+    raw.frames["ts"][1000:] -= 1.0
+    with pytest.raises(ValueError, match="increase"):
+        preprocess(raw)
+
+
+def test_breath_table_and_regions_have_stable_types():
+    recording = preprocess(
+        synthetic_raw()[0], exclusions=[Segment(30, 40, label="cough")]
+    )
+    labels = recording.breaths.exclusion_label
+    assert labels.dtype == "string" and labels.isna().any()
+    roi = recording.roi_signals
+    np.testing.assert_allclose(roi.ventral + roi.dorsal, recording.global_signal)
+    assert recording.image_mask.sum() > recording.lung_mask.sum()
+
+
+def test_an_empty_region_has_a_nan_signal_and_a_warning():
+    raw, lungs = synthetic_raw()
+    raw.frames["pixels"][:, :, 16:] = 0.0  # one lung only (patient right)
+    recording = preprocess(raw)
+    assert recording.roi_signals.left.isna().all()
+    assert any("Region left is empty" in line for line in recording.log)
+
+
+def test_vendors_other_than_draeger_get_a_warning():
+    recording = preprocess(synthetic_raw(vendor="timpel")[0])
+    assert any("verified on Draeger" in line for line in recording.log)
+
+
 # --- real recordings ---
 
 
 @pytest.mark.slow  # about 25 s
 @pytest.mark.skipif(
-    not (TEST_FILES / "patient02.bin").exists(), reason="real .bin files not available"
+    not all((TEST_FILES / name).exists() for name in NOTEBOOK_COUNTS),
+    reason="real .bin files not available",
 )
 def test_real_recordings_give_the_breaths_of_the_evidence_notebook():
     for name, (n_breaths, ti, amplitude, duration) in NOTEBOOK_COUNTS.items():
@@ -144,5 +224,6 @@ def test_real_recordings_give_the_breaths_of_the_evidence_notebook():
         breaths = recording.breaths
         assert len(breaths) == n_breaths, name
         assert breaths.flag_suspect_ti_ratio.sum() == ti, name
-        assert (~breaths.is_valid).sum() <= ti + amplitude + duration, name
+        flagged = ~breaths.is_valid & ~breaths.excluded
+        assert flagged.sum() <= ti + amplitude + duration, name
         assert 300 < recording.lung_mask.sum() < 600, name

@@ -83,8 +83,14 @@ class RecordingContext:
 class EITRecording:
     """A recording ready for breath-by-breath analysis (output of ``preprocess()``).
 
-    Immutable: to change a parameter or an exclusion, call ``preprocess()`` again.
-    The arrays are read-only and the parsed data in ``raw`` is never modified.
+    To change a parameter or an exclusion, call ``preprocess()`` again. The fields
+    cannot be reassigned, the config is frozen, the arrays are read-only and the
+    parsed data in ``raw`` is never modified. The DataFrames and dicts can still be
+    changed in place by Python: do not modify them, make a copy.
+
+    All signals are in arbitrary impedance units (EELI is relative, not comparable
+    between recordings). Breath frames (``start_idx``, ``peak_idx``, ``end_idx``)
+    are extrema of ``detection_signal``, the signal they were found on.
 
     Attributes:
         raw:           Data from the parser, untouched.
@@ -94,14 +100,23 @@ class EITRecording:
                        merged.
         time:          (N,) seconds from the start of the recording.
         rates:         ``respiratory_rate_hz`` from the spectrum (None if it could
-                       not be estimated) and ``heart_rate_hz`` (None if not given).
-        pixels:        (N, rows, cols) float32, after the cardiac step.
+                       not be estimated) and ``heart_rate_hz`` as entered by the
+                       user (None if not given).
+        cardiac_filter: Filter actually applied: ``"mdn"`` (cardiac component
+                       removed) or ``"moving_average"`` (not removed).
+        pixels:        (N, rows, cols) float32, after the cardiac step; NaN for pixels
+                       without data in the whole recording.
+        image_mask:    (rows, cols) bool, pixels with a signal (the image inside the
+                       belt outline); wider than the lung, e.g. for silent spaces.
+        detection_signal: (N,) sum of all pixels after the cardiac step, used for
+                       the breath detection and the quality flags.
         global_signal: (N,) sum of the pixels inside the lung mask.
         breaths:       One row per breath: times and frames of start, peak and end,
                        quality flags, ``excluded``, ``exclusion_label``,
                        ``is_valid``.
-        lung_mask:     (rows, cols) bool, functional lung.
-        tiv_map:       (rows, cols) mean TIV of the valid breaths, used for the mask.
+        lung_mask:     (rows, cols) bool, ventilated lung (not the anatomical lung).
+        tiv_map:       (rows, cols) mean TIV of the valid breaths (first and last
+                       breath excluded), used for the mask.
         roi_masks:     Regions of interest, each inside the lung mask.
         roi_signals:   (N, n_regions) sum of the pixels of each region.
         log:           What each step did, with fallbacks and warnings.
@@ -112,8 +127,11 @@ class EITRecording:
     context: RecordingContext
     exclusions: tuple[Segment, ...]
     time: np.ndarray
-    rates: dict
+    rates: dict[str, float | None]
+    cardiac_filter: str
     pixels: np.ndarray
+    image_mask: np.ndarray
+    detection_signal: np.ndarray
     global_signal: np.ndarray
     breaths: pd.DataFrame
     lung_mask: np.ndarray
@@ -126,6 +144,8 @@ class EITRecording:
         read_only = [
             self.time,
             self.pixels,
+            self.image_mask,
+            self.detection_signal,
             self.global_signal,
             self.lung_mask,
             self.tiv_map,

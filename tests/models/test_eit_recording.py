@@ -70,7 +70,10 @@ def small_recording():
         exclusions=(),
         time=np.arange(4) / 50,
         rates={"respiratory_rate_hz": 0.3, "heart_rate_hz": None},
+        cardiac_filter="moving_average",
         pixels=np.zeros((4, 2, 2), dtype=np.float32),
+        image_mask=np.ones((2, 2), dtype=bool),
+        detection_signal=np.zeros(4),
         global_signal=np.zeros(4),
         breaths=breaths,
         lung_mask=np.ones((2, 2), dtype=bool),
@@ -87,6 +90,8 @@ def test_recording_arrays_are_read_only():
         recording.pixels[0, 0, 0] = 1.0
     with pytest.raises(ValueError, match="read-only"):
         recording.roi_masks["ventral"][0, 0] = False
+    with pytest.raises(ValueError, match="read-only"):
+        recording.detection_signal[0] = 1.0
 
 
 def test_recording_fields_cannot_be_replaced():
