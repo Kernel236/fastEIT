@@ -1,14 +1,19 @@
 """Tests for the breath quality flags."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from fasteit.config import PreprocessingConfig
+from fasteit.parsers.loader import load_data
 from fasteit.preprocessing.breath_quality import (
     breath_measures,
     quality_flags,
     ratio_to_local_median,
 )
+from fasteit.preprocessing.breaths import detect_breaths
+from fasteit.preprocessing.cardiac_filter import moving_average
 
 CFG = PreprocessingConfig()
 
@@ -126,3 +131,52 @@ def test_short_and_long_breaths():
 def test_no_breaths_give_an_empty_table_with_all_columns():
     result = flags(np.zeros(10), 50, np.empty((0, 3), dtype=int))
     assert len(result) == 0 and "flag_invalid_data" in result.columns
+
+
+# --- real recordings (notebook 05, section 8) ---
+
+TEST_FILES = Path(__file__).parents[2] / "src/fasteit/test_files"
+
+# file: (breaths, suspect Ti/Ttot, amplitude outliers, duration outliers)
+NOTEBOOK_COUNTS = {
+    "01_Healthy_Lung_01.bin": (9, 1, 0, 0),
+    "patient01_rec02.bin": (14, 0, 0, 0),
+    "patient01_rec03.bin": (55, 1, 0, 0),
+    "patient01_rec04.bin": (117, 2, 0, 0),
+    "patient01_rec05.bin": (104, 0, 0, 0),
+    "patient01_rec07.bin": (100, 0, 0, 0),
+    "patient01_rec09.bin": (68, 1, 0, 1),
+    "patient01_rec11.bin": (89, 1, 0, 0),
+    "patient01_rec12.bin": (88, 1, 1, 1),
+    "patient01_rec13.bin": (155, 1, 0, 0),
+    "patient02.bin": (147, 1, 0, 1),
+}
+
+
+@pytest.mark.parametrize("name", NOTEBOOK_COUNTS)
+def test_flag_counts_match_the_evidence_notebook(name):
+    path = TEST_FILES / name
+    if not path.exists():
+        pytest.skip("real .bin files not available (gitignored)")
+    data = load_data(path)
+    pixels = moving_average(np.asarray(data.pixels, float), data.fs, 0.1)
+    signal = pixels.sum(axis=(1, 2))
+    breaths, near_invalid = detect_breaths(
+        signal,
+        data.fs,
+        invalid_percentile=CFG.invalid_data_percentile,
+        invalid_multiplier=CFG.invalid_data_multiplier,
+        baseline_seconds=CFG.breath_baseline_seconds,
+        min_duration_seconds=CFG.breath_min_duration_seconds,
+        low_amplitude_fraction=CFG.breath_low_amplitude_fraction,
+        invalid_margin_seconds=CFG.invalid_data_margin_seconds,
+    )
+    result = flags(signal, data.fs, breaths, near_invalid)
+    counts = (
+        len(result),
+        result.flag_suspect_ti_ratio.sum(),
+        result.flag_amplitude_outlier.sum(),
+        result.flag_duration_outlier.sum(),
+    )
+    assert counts == NOTEBOOK_COUNTS[name]
+    assert not result[["flag_short", "flag_long", "flag_invalid_data"]].any(axis=None)
