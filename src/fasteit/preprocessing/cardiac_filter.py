@@ -8,7 +8,9 @@ Policy (notebooks/05_preprocessing_choices.ipynb, section 5c):
 from __future__ import annotations
 
 import numpy as np
-from scipy import ndimage
+from scipy import ndimage, signal
+
+SECONDS_PER_MINUTE = 60.0
 
 
 def moving_average_window(fs: float, seconds: float) -> int:
@@ -50,3 +52,58 @@ def moving_average(signals: np.ndarray, fs: float, seconds: float = 0.1) -> np.n
     return ndimage.uniform_filter1d(
         np.asarray(signals, dtype=float), size=window, axis=0, mode="nearest"
     )
+
+
+def respiratory_rate(
+    global_signal: np.ndarray,
+    fs: float,
+    min_bpm: float = 6.0,
+    max_bpm: float = 60.0,
+    window_seconds: float = 30.0,
+) -> float:
+    """Respiratory rate (Hz) from the power spectrum of the global signal.
+
+    Same method as the respiratory part of eitprocessing ``RateDetection``
+    (v1.8.8; Somhorst et al., JOSS 2026, DOI: 10.21105/joss.08179): Welch
+    spectrum (Hann window, 50 % overlap), highest peak between ``min_bpm`` and
+    ``max_bpm``, refined with a parabola through the peak and its two neighbours.
+    In the evidence notebook (section 4) it agrees with the device breath markers
+    within 1.7 breaths/min.
+
+    Args:
+        global_signal:  1-D signal, e.g. the sum of all pixels per frame.
+        fs:             Sampling frequency in Hz.
+        min_bpm:        Lowest respiratory rate searched, breaths/min.
+        max_bpm:        Highest respiratory rate searched, breaths/min.
+        window_seconds: Welch window; shortened to the signal length if needed.
+
+    Returns:
+        Respiratory rate in Hz (multiply by 60 for breaths/min).
+    """
+    x = np.asarray(global_signal, dtype=float)
+    segment = min(int(window_seconds * fs), len(x))
+    frequencies, power = signal.welch(
+        x,
+        fs,
+        window=signal.windows.hann(segment, sym=False),
+        nperseg=segment,
+        noverlap=int(segment * 0.5),
+        detrend="constant",
+    )
+
+    in_range = (frequencies >= min_bpm / SECONDS_PER_MINUTE) & (
+        frequencies <= max_bpm / SECONDS_PER_MINUTE
+    )
+    range_frequencies, range_power = frequencies[in_range], power[in_range]
+    peak = int(np.argmax(range_power))
+
+    # A peak on the edge of the range cannot be refined: return the grid value.
+    if peak == 0 or peak == len(range_power) - 1:
+        return float(range_frequencies[peak])
+
+    # Parabolic interpolation through the peak and its two neighbours.
+    left, centre, right = range_power[peak - 1 : peak + 2]
+    step = range_frequencies[peak + 1] - range_frequencies[peak]
+    curvature = left - 2 * centre + right
+    shift = 0.5 * (left - right) / curvature if curvature != 0 else 0.0
+    return float(range_frequencies[peak] + shift * step)

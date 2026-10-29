@@ -36,9 +36,18 @@ class PreprocessingConfig:
             ``smooth()`` of the original MATLAB analysis scripts, defined in seconds
             instead of samples so that it behaves the same at 20 and 50 Hz. It removes
             fast noise but leaves the cardiac component almost untouched.
+        respiratory_rate_min_bpm, respiratory_rate_max_bpm: Range (breaths/min) searched
+            for the respiratory peak of the spectrum. Adult limits of eitprocessing
+            ``RateDetection`` (v1.8.8; Somhorst et al., JOSS 2026,
+            DOI: 10.21105/joss.08179).
+        spectrum_window_seconds: Length of the Welch window used for the respiratory
+            rate (eitprocessing ``RateDetection`` default).
     """
 
     moving_average_seconds: float = 0.1
+    respiratory_rate_min_bpm: float = 6.0
+    respiratory_rate_max_bpm: float = 60.0
+    spectrum_window_seconds: float = 30.0
 
 
 @dataclass

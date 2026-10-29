@@ -3,7 +3,11 @@
 import numpy as np
 
 from fasteit.config import PreprocessingConfig
-from fasteit.preprocessing.cardiac_filter import moving_average, moving_average_window
+from fasteit.preprocessing.cardiac_filter import (
+    moving_average,
+    moving_average_window,
+    respiratory_rate,
+)
 
 
 def sine(frequency_hz, fs, seconds=60.0, amplitude=1.0):
@@ -41,3 +45,23 @@ def test_pixels_keep_their_shape_and_are_smoothed_along_time():
     smoothed = moving_average(pixels, fs=50)
     assert smoothed.shape == pixels.shape
     assert smoothed.std() < pixels.std()
+
+
+# ── respiratory rate ───────────────────────────────────────────────────────────
+
+
+def test_respiratory_rate_of_a_30_per_minute_sine():
+    breathing = sine(0.5, fs=50, seconds=120)
+    assert abs(respiratory_rate(breathing, fs=50) * 60 - 30) < 0.5
+
+
+def test_respiratory_rate_ignores_a_smaller_cardiac_component():
+    signal_ = sine(0.25, fs=50, seconds=120) + sine(
+        1.5, fs=50, seconds=120, amplitude=0.1
+    )
+    assert abs(respiratory_rate(signal_, fs=50) * 60 - 15) < 0.5
+
+
+def test_respiratory_rate_works_on_a_signal_shorter_than_the_window():
+    breathing = sine(0.5, fs=20, seconds=20)  # 20 s < 30 s Welch window
+    assert abs(respiratory_rate(breathing, fs=20) * 60 - 30) < 2
