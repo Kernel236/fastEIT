@@ -11,6 +11,8 @@ A breath is a triplet of frame indices: start (valley), peak, end (next valley).
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from scipy.signal import find_peaks
 
@@ -189,3 +191,101 @@ def drop_doubles(
             continue
         i += 1
     return np.array(peaks, dtype=int), np.array(valleys, dtype=int)
+
+
+def drop_low_amplitude(
+    signal: np.ndarray, peaks: np.ndarray, valleys: np.ndarray, fraction: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Merge peaks that are too small to be a breath into the breath around them (step 6).
+
+    The amplitude of a peak is the mean of its rise from the valley before and its fall
+    to the valley after. Peaks below ``fraction`` times the median amplitude are
+    removed, then ``drop_doubles`` keeps the lower of the two valleys left next to each
+    other, so the small peak becomes part of a longer breath.
+
+    Args:
+        signal:   1-D signal.
+        peaks:    Peak indices, alternating with ``valleys`` (one more valley than peaks).
+        valleys:  Valley indices.
+        fraction: Fraction of the median amplitude below which a peak is removed.
+
+    Returns:
+        Peaks and valleys, alternating.
+    """
+    if len(peaks) == 0 or len(valleys) == 0:
+        return peaks, valleys
+    rise = signal[peaks] - signal[valleys[:-1]]
+    fall = signal[peaks] - signal[valleys[1:]]
+    amplitude = (rise + fall) / 2
+    peaks = peaks[amplitude >= fraction * np.median(amplitude)]
+    return drop_doubles(signal, peaks, valleys)
+
+
+def detect_breaths(
+    signal: np.ndarray,
+    fs: float,
+    invalid_percentile: float,
+    invalid_multiplier: float,
+    baseline_seconds: float,
+    min_duration_seconds: float,
+    low_amplitude_fraction: float,
+    invalid_margin_seconds: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Find the breaths in the global signal (steps 1-8 of eitprocessing BreathDetection).
+
+    1. invalid samples are replaced with the nearest valid value;
+    2. a slow Blackman moving average is the local baseline;
+    3. peaks above it and valleys below it, at least ``min_duration_seconds`` apart;
+    4. incomplete breaths at the edges are dropped;
+    5. one peak between two valleys, one valley between two peaks;
+    6. too small peaks are merged into the breath around them;
+    7. breaths = valley, peak, next valley;
+    8. breaths closer than ``invalid_margin_seconds`` to invalid data are flagged
+       (eitprocessing removes them).
+
+    Args:
+        signal:                 1-D global signal without NaN (after the cardiac filter).
+        fs:                     Sampling frequency in Hz.
+        invalid_percentile:     See ``invalid_samples``.
+        invalid_multiplier:     See ``invalid_samples``.
+        baseline_seconds:       Width of the local baseline.
+        min_duration_seconds:   Minimum time between two peaks and between two valleys.
+        low_amplitude_fraction: See ``drop_low_amplitude``.
+        invalid_margin_seconds: Margin around invalid samples for the flag.
+
+    Returns:
+        ``breaths``: integer array of shape (n_breaths, 3) with the start, peak and end
+        frame of each breath; ``near_invalid``: boolean array of length n_breaths.
+
+    Raises:
+        ValueError: if the signal contains NaN or inf.
+    """
+    signal = np.asarray(signal, dtype=float)
+    if not np.all(np.isfinite(signal)):
+        raise ValueError("Global signal contains NaN or inf.")
+    no_breaths = (np.empty((0, 3), dtype=int), np.empty(0, dtype=bool))
+
+    invalid = invalid_samples(signal, invalid_percentile, invalid_multiplier)
+    data = fill_with_nearest(signal, invalid)
+    baseline = local_baseline(data, fs, baseline_seconds)
+    peaks, valleys = peaks_and_valleys(data, baseline, fs, min_duration_seconds)
+    if len(valleys) < 2 or len(peaks) < 1:
+        return no_breaths
+
+    peaks, valleys = trim_edges(data, peaks, valleys, baseline)
+    peaks, valleys = drop_doubles(data, peaks, valleys)
+    peaks, valleys = drop_low_amplitude(data, peaks, valleys, low_amplitude_fraction)
+    if len(peaks) == 0:
+        return no_breaths
+
+    breaths = np.column_stack([valleys[:-1], peaks, valleys[1:]])
+
+    margin = math.ceil(invalid_margin_seconds * fs)
+    near_invalid = np.array(
+        [
+            np.any((invalid >= start - margin) & (invalid <= end + margin))
+            for start, _, end in breaths
+        ],
+        dtype=bool,
+    )
+    return breaths, near_invalid

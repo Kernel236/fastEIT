@@ -5,7 +5,9 @@ import pytest
 
 from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.breaths import (
+    detect_breaths,
     drop_doubles,
+    drop_low_amplitude,
     fill_with_nearest,
     invalid_samples,
     local_baseline,
@@ -137,3 +139,61 @@ def test_trim_edges_without_valleys():
         np.zeros(10), np.array([3]), np.array([], int), np.zeros(10)
     )
     assert len(valleys) == 0 and list(peaks) == [3]
+
+
+# ── low amplitude and full detection ───────────────────────────────────────────
+
+
+def detect(x, fs=50):
+    return detect_breaths(
+        x,
+        fs,
+        invalid_percentile=CFG.invalid_data_percentile,
+        invalid_multiplier=CFG.invalid_data_multiplier,
+        baseline_seconds=CFG.breath_baseline_seconds,
+        min_duration_seconds=CFG.breath_min_duration_seconds,
+        low_amplitude_fraction=CFG.breath_low_amplitude_fraction,
+        invalid_margin_seconds=CFG.invalid_data_margin_seconds,
+    )
+
+
+def test_a_small_peak_is_merged_into_the_breath_around_it():
+    signal = np.array([0, 10, 0, 10, 0, 1, 0.5, 10, 0], dtype=float)
+    peaks, valleys = drop_low_amplitude(
+        signal, np.array([1, 3, 5, 7]), np.array([0, 2, 4, 6, 8]), 0.25
+    )
+    assert list(peaks) == [1, 3, 7]
+    assert list(valleys) == [0, 2, 4, 8]
+
+
+def test_breaths_of_a_regular_signal():
+    breaths, near_invalid = detect(breathing(rate_hz=0.5, seconds=60))  # 30 breaths
+    assert 27 <= len(breaths) <= 29  # incomplete breaths at the edges are dropped
+    assert np.all(breaths[:, 0] < breaths[:, 1]) and np.all(
+        breaths[:, 1] < breaths[:, 2]
+    )
+    assert np.all(
+        breaths[1:, 0] == breaths[:-1, 2]
+    )  # each breath starts where the last ended
+    assert not near_invalid.any()
+
+
+def test_breaths_near_a_spike_are_flagged_not_removed():
+    clean, _ = detect(breathing(seconds=60))
+    x = breathing(seconds=60)
+    x[1500:1503] = 100.0
+    breaths, near_invalid = detect(x)
+    assert len(breaths) == len(clean)
+    assert 1 <= near_invalid.sum() <= 3
+
+
+def test_no_breaths_in_a_flat_or_too_short_signal():
+    assert len(detect(np.zeros(3000))[0]) == 0
+    assert len(detect(breathing(seconds=1))[0]) == 0
+
+
+def test_detect_breaths_rejects_nan():
+    x = breathing()
+    x[10] = np.nan
+    with pytest.raises(ValueError, match="NaN"):
+        detect(x)

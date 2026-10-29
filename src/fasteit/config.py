@@ -65,6 +65,11 @@ class PreprocessingConfig:
         breath_min_duration_seconds: Minimum time between two peaks and between two
             valleys (eitprocessing default 2/3 s; the original MATLAB scripts used
             about 0.67 s too).
+        breath_low_amplitude_fraction: Peaks with an amplitude below this fraction of the
+            median amplitude are merged into the breath around them (eitprocessing
+            default).
+        invalid_data_margin_seconds: A breath closer than this to invalid data gets
+            ``flag_invalid_data`` (eitprocessing removes it; fastEIT keeps it, section 8).
     """
 
     moving_average_seconds: float = 0.1
@@ -79,6 +84,8 @@ class PreprocessingConfig:
     invalid_data_multiplier: float = 4.0
     breath_baseline_seconds: float = 15.0
     breath_min_duration_seconds: float = 2 / 3
+    breath_low_amplitude_fraction: float = 0.25
+    invalid_data_margin_seconds: float = 0.5
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
