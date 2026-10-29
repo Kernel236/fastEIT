@@ -65,3 +65,71 @@ def ratio_to_local_median(
         window_breaths, center=True, min_periods=min_breaths
     ).median()
     return (series / local_median).to_numpy()
+
+
+def quality_flags(
+    signal: np.ndarray,
+    fs: float,
+    breaths: np.ndarray,
+    near_invalid: np.ndarray,
+    short_seconds: float,
+    long_seconds: float,
+    ti_ratio_low: float,
+    ti_ratio_high: float,
+    window_breaths: int,
+    min_breaths: int,
+    amplitude_ratio_low: float,
+    amplitude_ratio_high: float,
+    duration_ratio_high: float,
+) -> pd.DataFrame:
+    """One true/false column per quality check, one row per breath.
+
+    - ``flag_short`` / ``flag_long``: duration below ``short_seconds`` or above
+      ``long_seconds``;
+    - ``flag_suspect_ti_ratio``: Ti/Ttot outside ``ti_ratio_low``-``ti_ratio_high``;
+    - ``flag_amplitude_outlier``: amplitude below ``amplitude_ratio_low`` or above
+      ``amplitude_ratio_high`` times the median of the surrounding breaths;
+    - ``flag_duration_outlier``: duration above ``duration_ratio_high`` times the
+      median of the surrounding breaths;
+    - ``flag_invalid_data``: close to invalid data (``near_invalid`` of
+      ``detect_breaths``).
+
+    On 946 breaths of 11 regular recordings these rules flagged 9 Ti/Ttot, 1 amplitude
+    and 3 duration outliers, all visible events (section 8 of the evidence notebook).
+
+    Args:
+        signal:       1-D global signal used for the breath detection.
+        fs:           Sampling frequency in Hz.
+        breaths:      Integer array (n_breaths, 3) from ``detect_breaths``.
+        near_invalid: Boolean array (n_breaths,) from ``detect_breaths``.
+        short_seconds, long_seconds: Duration limits in seconds.
+        ti_ratio_low, ti_ratio_high: Ti/Ttot limits.
+        window_breaths, min_breaths: Window of ``ratio_to_local_median``.
+        amplitude_ratio_low, amplitude_ratio_high: Amplitude limits as ratios to the
+            local median.
+        duration_ratio_high: Duration limit as a ratio to the local median.
+
+    Returns:
+        DataFrame of booleans, one column per flag. The pipeline adds whether the
+        breath is excluded and ``is_valid`` (no flag and not excluded).
+    """
+    measures = breath_measures(signal, fs, breaths)
+    amplitude_ratio = ratio_to_local_median(
+        measures.amplitude, window_breaths, min_breaths
+    )
+    duration_ratio = ratio_to_local_median(
+        measures.duration_s, window_breaths, min_breaths
+    )
+    # A NaN ratio (too few breaths around) compares as False: no flag.
+    return pd.DataFrame(
+        {
+            "flag_short": measures.duration_s < short_seconds,
+            "flag_long": measures.duration_s > long_seconds,
+            "flag_suspect_ti_ratio": (measures.ti_ratio < ti_ratio_low)
+            | (measures.ti_ratio > ti_ratio_high),
+            "flag_amplitude_outlier": (amplitude_ratio < amplitude_ratio_low)
+            | (amplitude_ratio > amplitude_ratio_high),
+            "flag_duration_outlier": duration_ratio > duration_ratio_high,
+            "flag_invalid_data": np.asarray(near_invalid, dtype=bool),
+        }
+    )
