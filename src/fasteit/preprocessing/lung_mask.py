@@ -25,9 +25,11 @@ and low amplitude at its edges, as reconstructed EIT images are.
 from __future__ import annotations
 
 import itertools
+import warnings
 
 import numpy as np
-from scipy import signal
+from scipy import ndimage, signal
+from skimage import feature, segmentation
 
 # Constants of eitprocessing PixelBreath (v1.8.8), not meant to be tuned.
 MAX_LAG_BREATHS = 1  # pixel delay searched within ± one mean breath duration
@@ -133,3 +135,63 @@ def amplitude_per_breath(
             amplitude[[i for i in skipped if i < len(amplitude)]] = np.nan
             amplitudes[1:-1, row, col] = amplitude
     return amplitudes
+
+
+def watershed_mask(
+    pixels: np.ndarray,
+    global_signal: np.ndarray,
+    breaths: np.ndarray,
+    use_breath: np.ndarray,
+    threshold_fraction: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Lung mask from the TIV and amplitude maps (steps 1-4).
+
+    TIV and amplitude are computed on all breaths, because the pixel timing needs
+    consecutive breaths, and averaged only over the breaths in ``use_breath`` that
+    have both a TIV and an amplitude (e.g. the valid breaths). With every breath used
+    the result is the same as eitprocessing ``WatershedLungspace``.
+
+    Args:
+        pixels:             Array (N, rows, cols), after the cardiac filter.
+        global_signal:      1-D signal used for the breath detection.
+        breaths:            Integer array (n_breaths, 3) from ``detect_breaths``.
+        use_breath:         Boolean array (n_breaths,): breaths to average over.
+        threshold_fraction: Fraction of the maximum TIV (0.15 in eitprocessing).
+
+    Returns:
+        ``mask`` (rows, cols) bool, mean ``tiv_map`` and mean ``amplitude_map``.
+
+    Raises:
+        ValueError: if no breath can be used or no amplitude peak lies inside the TIV
+            mask.
+    """
+    tiv = tiv_per_breath(pixels, breaths)
+    amplitude = amplitude_per_breath(pixels, global_signal, breaths)
+    has_values = ~np.isnan(tiv).all(axis=(1, 2)) & ~np.isnan(amplitude).all(axis=(1, 2))
+    used = has_values & np.asarray(use_breath, dtype=bool)
+    if not used.any():
+        raise ValueError("No usable breaths: the lung mask cannot be computed.")
+
+    with warnings.catch_warnings():
+        # A pixel without any amplitude (e.g. outside the belt) stays NaN.
+        warnings.simplefilter("ignore", RuntimeWarning)
+        tiv_map = np.nanmean(tiv[used], axis=0)
+        amplitude_map = np.nanmean(amplitude[used], axis=0)
+    threshold = threshold_fraction * np.nanmax(tiv_map)
+    tiv_mask = tiv_map >= threshold
+    amplitude_mask = amplitude_map >= threshold
+
+    # One numbered marker per local maximum of the amplitude map.
+    peak_rows_cols = feature.peak_local_max(
+        np.nan_to_num(amplitude_map), exclude_border=False
+    )
+    is_peak = np.zeros(amplitude_map.shape, dtype=bool)
+    is_peak[tuple(peak_rows_cols.T)] = True
+    markers, _ = ndimage.label(is_peak)
+    kept = np.unique(markers[is_peak & tiv_mask])
+    if len(kept) == 0:
+        raise ValueError("No amplitude peak inside the TIV mask: no lung mask.")
+
+    regions = segmentation.watershed(-amplitude_map, markers)
+    mask = np.isin(regions, kept) & amplitude_mask
+    return mask, tiv_map, amplitude_map

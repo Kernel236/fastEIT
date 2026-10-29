@@ -9,6 +9,7 @@ from fasteit.preprocessing.lung_mask import (
     amplitude_per_breath,
     pixel_lag,
     tiv_per_breath,
+    watershed_mask,
 )
 
 CFG = PreprocessingConfig()
@@ -51,6 +52,14 @@ def synthetic_recording():
     return pixels, global_signal, breaths, is_lung & late, artifact > 0.15
 
 
+def mask_of(pixels, global_signal, breaths, use_breath=None):
+    if use_breath is None:
+        use_breath = np.ones(len(breaths), dtype=bool)
+    return watershed_mask(
+        pixels, global_signal, breaths, use_breath, CFG.lung_mask_threshold_fraction
+    )
+
+
 # --- maps ---
 
 
@@ -81,3 +90,32 @@ def test_amplitude_has_no_value_for_the_first_and_last_breath():
 def test_amplitude_needs_at_least_three_breaths():
     pixels, global_signal, breaths, _, _ = synthetic_recording()
     assert np.isnan(amplitude_per_breath(pixels, global_signal, breaths[:2])).all()
+
+
+# --- watershed ---
+
+
+def test_watershed_keeps_the_late_lung_and_drops_the_artifact():
+    pixels, global_signal, breaths, late_lung, artifact = synthetic_recording()
+    mask, tiv_map, _ = mask_of(pixels, global_signal, breaths)
+    tiv_mask = tiv_map >= CFG.lung_mask_threshold_fraction * tiv_map.max()
+    assert mask[late_lung].all()
+    assert not tiv_mask[late_lung].all()  # the TIV map alone loses the late part
+    assert not mask[artifact].any()
+
+
+def test_maps_are_averaged_only_over_the_chosen_breaths():
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    pixels = pixels.copy()
+    pixels[breaths[5, 0] : breaths[5, 2]] *= 3  # one much larger breath
+    use = np.ones(len(breaths), dtype=bool)
+    use[5] = False
+    _, with_it, _ = mask_of(pixels, global_signal, breaths)
+    _, without_it, _ = mask_of(pixels, global_signal, breaths, use)
+    assert without_it.max() < with_it.max()
+
+
+def test_no_usable_breath_is_an_error():
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    with pytest.raises(ValueError, match="No usable breaths"):
+        mask_of(pixels, global_signal, breaths, np.zeros(len(breaths), dtype=bool))
