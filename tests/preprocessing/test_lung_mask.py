@@ -1,0 +1,83 @@
+"""Tests for the lung mask module."""
+
+import numpy as np
+import pytest
+
+from fasteit.config import PreprocessingConfig
+from fasteit.preprocessing.breaths import detect_breaths
+from fasteit.preprocessing.lung_mask import (
+    amplitude_per_breath,
+    pixel_lag,
+    tiv_per_breath,
+)
+
+CFG = PreprocessingConfig()
+FS = 20
+
+
+def breathing(t, delay_s=0.0, rate_hz=0.25):
+    """Inflation from 0 to 1 and back, 15 breaths/min, delayed by ``delay_s``."""
+    return np.sin(np.pi * rate_hz * (t - delay_s)) ** 2
+
+
+def synthetic_recording():
+    """16 x 16 image: one lung whose dorsal part inflates 1 s late, and an artifact.
+
+    The artifact oscillates in antiphase (2 s late) on the right of the image.
+    """
+    t = np.arange(0, 90, 1 / FS)
+    rows, cols = np.mgrid[0:16, 0:16]
+    lung = np.exp(-(((rows - 6) / 4) ** 2 + ((cols - 5) / 3) ** 2))
+    late = (rows >= 8) & (lung > 0.1)
+    artifact = 0.8 * np.exp(-(((rows - 6) / 1.2) ** 2 + ((cols - 13) / 1.2) ** 2))
+
+    pixels = breathing(t)[:, None, None] * np.where(late, 0, lung)
+    pixels += breathing(t, 1.0)[:, None, None] * np.where(late, lung, 0)
+    pixels += breathing(t, 2.0)[:, None, None] * artifact
+    pixels += 0.01 * np.random.default_rng(0).normal(size=pixels.shape)
+
+    global_signal = pixels.sum(axis=(1, 2))
+    breaths, _ = detect_breaths(
+        global_signal,
+        FS,
+        invalid_percentile=CFG.invalid_data_percentile,
+        invalid_multiplier=CFG.invalid_data_multiplier,
+        baseline_seconds=CFG.breath_baseline_seconds,
+        min_duration_seconds=CFG.breath_min_duration_seconds,
+        low_amplitude_fraction=CFG.breath_low_amplitude_fraction,
+        invalid_margin_seconds=CFG.invalid_data_margin_seconds,
+    )
+    is_lung = lung >= CFG.lung_mask_threshold_fraction
+    return pixels, global_signal, breaths, is_lung & late, artifact > 0.15
+
+
+# --- maps ---
+
+
+def test_tiv_per_breath_is_peak_minus_start_of_the_global_breath():
+    pixels = np.arange(10.0)[:, None, None] * np.ones((1, 2, 2))
+    tiv = tiv_per_breath(pixels, np.array([[1, 4, 6], [6, 9, 9]]))
+    np.testing.assert_array_equal(tiv[:, 0, 0], [3.0, 3.0])
+
+
+def test_pixel_lag_finds_the_delay():
+    t = np.arange(0, 60, 1 / FS)
+    reference = breathing(t) - breathing(t).mean()
+    late = breathing(t, 0.5) - breathing(t, 0.5).mean()
+    assert pixel_lag(reference, late, max_lag=4 * FS) == pytest.approx(-0.5 * FS, abs=1)
+
+
+def test_pixel_lag_of_a_flat_correlation_is_none():
+    assert pixel_lag(np.zeros(100), np.zeros(100), max_lag=20) is None
+
+
+def test_amplitude_has_no_value_for_the_first_and_last_breath():
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    amplitude = amplitude_per_breath(pixels, global_signal, breaths)
+    assert np.isnan(amplitude[[0, -1]]).all()
+    assert not np.isnan(amplitude[1:-1, 6, 5]).any()
+
+
+def test_amplitude_needs_at_least_three_breaths():
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    assert np.isnan(amplitude_per_breath(pixels, global_signal, breaths[:2])).all()
