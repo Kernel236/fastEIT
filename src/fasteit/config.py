@@ -77,17 +77,21 @@ class PreprocessingConfig:
             fastEIT keeps it (section 8).
         breath_short_seconds, breath_long_seconds: A breath shorter or longer than this
             is flagged (``flag_short``, ``flag_long``). Thresholds of the fastEIT
-            roadmap (task 4.11): 0.5 s is 120 breaths/min; a breath above 20 s is a
-            possible apnoea (section 8).
+            roadmap (task 4.11). 0.5 s is 120 breaths/min, far above the adult range
+            and below the 2/3 s minimum of the detection, so it mainly catches
+            detection artefacts. A breath above 20 s is a very long cycle: a pause or
+            apnoea, or a missed breath (section 8).
         ti_ratio_low, ti_ratio_high: A breath with Ti/Ttot outside this range is
-            flagged (``flag_suspect_ti_ratio``). Ti is valley to peak of the impedance,
-            not the ventilator Ti. Wide limits around the usual 0.3-0.5, so that only
-            a suspect detection is flagged; obstructive or fast-breathing patients can
-            fall outside without an error (roadmap task 4.11, section 8).
+            flagged (``flag_suspect_ti_ratio``). Ti/Ttot here is the rise fraction of
+            the impedance curve (valley to peak over valley to valley): it only
+            approximates the clinical Ti/Ttot, so the range is a plausibility check on
+            the detection, not a clinical judgement. Wide limits around the usual
+            0.3-0.5; obstructive or fast-breathing patients can fall outside without an
+            error (roadmap task 4.11, section 8).
         local_window_breaths: Number of breaths, centred on each breath and including
             it, whose median is the reference for the outlier flags. 21 breaths are
-            about 40 s at 30 breaths/min: long enough to ignore one event, short enough
-            to follow a PEEP change (section 8).
+            about 40 s at 30 breaths/min (about 2 min at 10 breaths/min): long enough
+            to ignore one event, short enough to follow a PEEP change (section 8).
         local_min_breaths: Fewest breaths in the window to compute the local median
             (at the start and end of a short recording); with fewer, no outlier flag.
         amplitude_ratio_low, amplitude_ratio_high: A breath with an amplitude below

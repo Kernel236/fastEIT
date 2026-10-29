@@ -6,7 +6,8 @@ notebooks/05_preprocessing_choices.ipynb, section 8; they are fastEIT choices, n
 taken from a paper.
 
 All measures come from the global impedance signal, so Ti and Ttot are
-impedance-based (valley to peak, valley to valley) and not the ventilator values.
+impedance-based (valley to peak, valley to valley) and not the ventilator values;
+the amplitude is in arbitrary impedance units, not a volume.
 """
 
 from __future__ import annotations
