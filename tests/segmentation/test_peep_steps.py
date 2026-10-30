@@ -6,6 +6,7 @@ import pytest
 from fasteit.config import SegmentationConfig
 from fasteit.models.eit_recording import Segment
 from fasteit.segmentation.peep_steps import (
+    analysed_breaths,
     find_steps,
     step_of_each_breath,
     steps_from_segments,
@@ -98,3 +99,29 @@ def test_steps_placed_by_hand_take_the_breaths_inside_them():
 def test_unusable_steps_placed_by_hand_are_rejected(segments, message):
     with pytest.raises(ValueError, match=message):
         steps_from_segments(np.arange(10.0), np.arange(1.0, 11.0), segments)
+
+
+# --- breaths analysed ---
+
+
+def test_first_seconds_are_skipped_then_the_last_valid_breaths_are_kept():
+    starts = np.arange(0, 80, 4.0)  # one step of 20 breaths, every 4 s
+    valid = np.ones(20, dtype=bool)
+    valid[18] = False
+    analysed = analysed_breaths(starts, np.zeros(20, dtype=int), valid, 15.0, 10)
+    assert np.flatnonzero(analysed).tolist() == [9, 10, 11, 12, 13, 14, 15, 16, 17, 19]
+
+
+def test_a_short_step_keeps_what_is_left_after_the_skip():
+    starts = np.arange(0, 40, 4.0)  # 10 breaths over 40 s
+    analysed = analysed_breaths(
+        starts, np.zeros(10, dtype=int), np.ones(10, dtype=bool), 15.0, 10
+    )
+    assert np.flatnonzero(analysed).tolist() == [4, 5, 6, 7, 8, 9]  # from 16 s on
+
+
+def test_each_step_is_handled_on_its_own_and_breaths_without_step_are_never_analysed():
+    starts = np.arange(0, 120, 4.0)
+    step = np.repeat([0, 1, -1], 10)
+    analysed = analysed_breaths(starts, step, np.ones(30, dtype=bool), 15.0, 3)
+    assert np.flatnonzero(analysed).tolist() == [7, 8, 9, 17, 18, 19]

@@ -115,3 +115,35 @@ def steps_from_segments(
         step[inside] = k
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
     return step, levels
+
+
+def analysed_breaths(
+    breath_starts: np.ndarray,
+    step: np.ndarray,
+    valid: np.ndarray,
+    skip_seconds: float,
+    max_breaths: int,
+) -> np.ndarray:
+    """Breaths analysed in each automatic step.
+
+    The breaths in the first ``skip_seconds`` of the step (from its first breath) are
+    left out, as EELI is still moving; then the last ``max_breaths`` valid breaths of
+    the step are analysed (notebook 06, section 5).
+
+    Args:
+        breath_starts: Start time of each breath, in seconds.
+        step:          Step number of each breath (-1 = no step).
+        valid:         ``is_valid`` of each breath.
+        skip_seconds:  Time left out after the change of PEEP.
+        max_breaths:   Most breaths analysed per step.
+
+    Returns:
+        Boolean array, True for the analysed breaths.
+    """
+    analysed = np.zeros(len(step), dtype=bool)
+    for k in np.unique(step[step >= 0]):
+        in_step = np.flatnonzero(step == k)
+        after_skip = breath_starts[in_step] >= breath_starts[in_step[0]] + skip_seconds
+        usable = in_step[after_skip & valid[in_step]]
+        analysed[usable[-max_breaths:]] = True
+    return analysed
