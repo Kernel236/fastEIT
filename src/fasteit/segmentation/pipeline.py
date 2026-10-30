@@ -5,7 +5,7 @@ Steps (notebooks/06_peep_trial_segmentation.ipynb, section 7):
    signals; otherwise the PEEP and plateau computed by the ventilator (Medibus);
 2. pressures of each breath: PEEP, plateau, driving pressure;
 3. PEEP steps: placed by hand if given, otherwise found from the PEEP of each breath;
-4. breaths analysed in each step.
+4. breaths analysed in each step, and the step table.
 """
 
 from __future__ import annotations
@@ -17,8 +17,9 @@ import numpy as np
 import pandas as pd
 
 from fasteit.config import SegmentationConfig
-from fasteit.models.eit_recording import EITRecording, Segment
+from fasteit.models.eit_recording import PHASE, EITRecording, Segment
 from fasteit.models.peep_trial import PeepTrial
+from fasteit.run_log import RunLog
 from fasteit.segmentation.breath_pressures import (
     inspiration_onsets,
     plateau_pressures,
@@ -33,23 +34,14 @@ from fasteit.segmentation.peep_steps import (
 
 logger = logging.getLogger(__name__)
 
-PHASE = "phase"  # Segment.category of a part of the recording with its own protocol
-PEEP_TRIAL = "peep_trial"  # Segment.label of the PEEP trial phase
-
-
-class _Log:
-    """Collects the messages of one call and sends them to the logger."""
-
-    def __init__(self) -> None:
-        self.messages: list[str] = []
-
-    def info(self, message: str) -> None:
-        self.messages.append(message)
-        logger.info(message)
-
-    def warning(self, message: str) -> None:
-        self.messages.append(f"WARNING: {message}")
-        logger.warning(message)
+PEEP_TRIAL = "peep_trial"  # label of the PEEP trial phase
+# Below this fraction of breaths with a reading, a warning is given.
+MIN_FRACTION_READ = 0.5
+PRESSURE_UNITS = {"draeger": "mbar", "timpel": "cmH2O"}
+STEP_COLUMNS = [
+    "step", "peep", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
+    "plateau", "driving_pressure", "n_driving_pressure", "enough_driving_pressure",
+]  # fmt: skip
 
 
 def _has_data(aux: pd.DataFrame, column: str) -> bool:
@@ -69,12 +61,11 @@ def _median_over_breaths(
 
 
 def _breath_pressures(
-    recording: EITRecording, config: SegmentationConfig, log: _Log
+    recording: EITRecording, config: SegmentationConfig, log: RunLog
 ) -> tuple[str | None, np.ndarray, np.ndarray]:
     """PEEP and plateau of each breath, and the channel they come from."""
     aux, fs, breaths = recording.aux, recording.fs, recording.breaths
     starts, ends = breaths.start_idx.to_numpy(), breaths.end_idx.to_numpy()
-    nothing = np.full(len(breaths), np.nan)
 
     channel = next((c for c in config.pressure_channels if _has_data(aux, c)), None)
     if channel is not None:
@@ -86,54 +77,172 @@ def _breath_pressures(
         plateau = plateau_pressures(
             paw, fs, onsets, peep, config.plateau_window_seconds
         )
-        peep, plateau = peep[:-1], plateau[:-1]
         log.info(f"Airway pressure read from {channel}.")
-        if np.isnan(plateau).mean() > 0.5:
-            log.warning(
-                "No end-inspiratory plateau in most breaths: plateau and driving "
-                "pressure are missing (the peak pressure is not used instead)."
-            )
-        return channel, peep, plateau
+        return channel, peep[:-1], plateau[:-1]
 
     if _has_data(aux, config.peep_value_channel):
-        peep = _median_over_breaths(
-            aux[config.peep_value_channel].to_numpy(dtype=float), starts, ends
-        )
-        plateau = nothing.copy()
+        values = aux[config.peep_value_channel].to_numpy(dtype=float)
+        peep = _median_over_breaths(values, starts, ends)
+        plateau = np.full(len(breaths), np.nan)
         if _has_data(aux, config.plateau_value_channel):
-            plateau = _median_over_breaths(
-                aux[config.plateau_value_channel].to_numpy(dtype=float), starts, ends
-            )
+            values = aux[config.plateau_value_channel].to_numpy(dtype=float)
+            plateau = _median_over_breaths(values, starts, ends)
         log.info(
-            f"No airway pressure waveform: PEEP and plateau computed by the ventilator "
-            f"({config.peep_value_channel}, {config.plateau_value_channel})."
+            "No airway pressure waveform: PEEP (and plateau, if there) computed by the "
+            f"ventilator, median over each breath ({config.peep_value_channel})."
         )
         return config.peep_value_channel, peep, plateau
 
     log.warning(
         "No airway pressure in the recording: no PEEP, plateau or driving pressure."
     )
+    nothing = np.full(len(breaths), np.nan)
     return None, nothing, nothing.copy()
 
 
 def _breaths_in_phase(
-    times: np.ndarray, ends: np.ndarray, phase: Segment | None, log: _Log
+    starts: np.ndarray, ends: np.ndarray, phase: Segment | None, log: RunLog
 ) -> np.ndarray:
-    """Breaths inside the PEEP trial phase (all breaths if there is no phase)."""
+    """Breaths inside the PEEP trial phase (all breaths if there is no phase).
+
+    A breath cut by the edge of the phase is left out.
+    """
     if phase is None:
-        return np.ones(len(times), dtype=bool)
+        return np.ones(len(starts), dtype=bool)
     if phase.category != PHASE or phase.label != PEEP_TRIAL:
         raise ValueError(
             f'The phase must be a Segment with category="{PHASE}" and '
             f'label="{PEEP_TRIAL}", got category="{phase.category}", label="{phase.label}".'
         )
-    inside = (times >= phase.start) & (ends <= phase.end)
+    inside = (starts >= phase.start) & (ends <= phase.end)
     if not inside.any():
         raise ValueError(f"No breath inside the phase {phase.start:g}-{phase.end:g} s.")
     log.info(
         f"PEEP trial phase {phase.start:g}-{phase.end:g} s: {inside.sum()} breaths."
     )
     return inside
+
+
+def _check_readings(
+    peep: np.ndarray, plateau: np.ndarray, in_phase: np.ndarray, log: RunLog
+) -> None:
+    """Warn when few breaths of the phase have a PEEP or a plateau."""
+    with_peep, with_plateau = (
+        np.isfinite(peep[in_phase]),
+        np.isfinite(plateau[in_phase]),
+    )
+    log.info(f"PEEP read for {with_peep.sum()} of {in_phase.sum()} breaths.")
+    if with_peep.mean() < MIN_FRACTION_READ:
+        log.warning("PEEP missing in most breaths: is the pressure signal complete?")
+    if with_peep.any() and with_plateau.mean() < MIN_FRACTION_READ:
+        log.warning(
+            "No end-inspiratory plateau in most breaths: plateau and driving pressure "
+            "are missing (the peak pressure is not used instead)."
+        )
+
+
+def _automatic_steps(
+    peep: np.ndarray,
+    in_phase: np.ndarray,
+    excluded: np.ndarray,
+    valid: np.ndarray,
+    starts: np.ndarray,
+    config: SegmentationConfig,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Steps from the PEEP of each breath; excluded breaths (maneuvers) do not count."""
+    usable_peep = np.where(excluded, np.nan, peep)
+    inside = np.flatnonzero(in_phase)
+    try:
+        step_starts = find_steps(
+            usable_peep[inside],
+            config.step_threshold,
+            config.step_min_breaths,
+            config.step_agreement,
+        )
+    except ValueError as error:
+        raise ValueError(f"{error} Place the PEEP steps by hand.") from error
+    step = np.full(len(peep), -1, dtype=int)
+    step[inside] = step_of_each_breath(step_starts, len(inside))
+    levels = np.array(
+        [np.nanmedian(usable_peep[step == k]) for k in range(step.max() + 1)]
+    )
+    # A breath at an intermediate PEEP (e.g. just before a change) is not analysed.
+    at_level = np.zeros(len(peep), dtype=bool)
+    in_step = step >= 0
+    at_level[in_step] = (
+        np.abs(peep[in_step] - levels[step[in_step]]) <= config.analysis_peep_tolerance
+    )
+    analysed = analysed_breaths(
+        starts,
+        step,
+        valid & at_level,
+        config.analysis_skip_seconds,
+        config.analysis_max_breaths,
+    )
+    return step, levels, analysed
+
+
+def _check_manual_levels(
+    peep: np.ndarray,
+    step: np.ndarray,
+    levels: np.ndarray,
+    config: SegmentationConfig,
+    log: RunLog,
+) -> None:
+    """Warn when the PEEP typed for a step differs from the PEEP measured in it."""
+    for k, level in enumerate(levels):
+        measured = peep[step == k]
+        if np.isfinite(measured).any() and (
+            abs(np.nanmedian(measured) - level) > config.step_threshold
+        ):
+            log.warning(
+                f"Step {k}: PEEP typed {level:g}, measured {np.nanmedian(measured):.1f}."
+            )
+
+
+def _steps_table(
+    breaths: pd.DataFrame,
+    levels: np.ndarray,
+    typed_plateaus: np.ndarray,
+    config: SegmentationConfig,
+    log: RunLog,
+) -> pd.DataFrame:
+    """One row per step; plateau and driving pressure = medians of the analysed breaths."""
+    rows = []
+    for k, level in enumerate(levels):
+        in_step = breaths[breaths.peep_step == k]
+        analysed = in_step[in_step.analysed]
+        with_driving = analysed[analysed.driving_pressure.notna()]
+        plateau, driving = np.nan, np.nan
+        n_driving = len(with_driving)
+        if n_driving:
+            plateau = float(with_driving.plateau.median())
+            driving = float(with_driving.driving_pressure.median())
+        elif np.isfinite(typed_plateaus[k]):
+            plateau, driving = typed_plateaus[k], typed_plateaus[k] - level
+            n_driving = len(analysed)
+        rows.append([
+            k, float(level),
+            float(in_step.start_time.min()) if len(in_step) else np.nan,
+            float(in_step.end_time.max()) if len(in_step) else np.nan,
+            len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
+            plateau, driving, n_driving, n_driving >= config.analysis_min_breaths,
+        ])  # fmt: skip
+        if len(analysed) < config.analysis_min_breaths:
+            log.warning(
+                f"Step {k} (PEEP {level:.1f}): only {len(analysed)} breaths analysed, "
+                f"fewer than {config.analysis_min_breaths}."
+            )
+    steps = pd.DataFrame(rows, columns=STEP_COLUMNS)
+    if not steps.enough_driving_pressure.any():
+        log.warning("No step has a driving pressure: compliance cannot be computed.")
+    else:
+        for k in steps.step[~steps.enough_driving_pressure]:
+            log.warning(
+                f"Step {k}: driving pressure in fewer than "
+                f"{config.analysis_min_breaths} breaths."
+            )
+    return steps
 
 
 def segment_peep_trial(
@@ -146,72 +255,56 @@ def segment_peep_trial(
 
     A recording can contain more than one protocol, e.g. a tidal baseline and then a PEEP
     trial: ``phase`` limits the segmentation to the PEEP trial. A part that is not
-    analysed at all (e.g. a maneuver) is an exclusion of ``preprocess()`` instead.
+    analysed at all (e.g. a maneuver) is an exclusion of ``preprocess()`` instead: its
+    breaths are never analysed and do not count when the steps are found.
 
     Args:
         recording:  Output of ``preprocess()``.
         config:     Parameters; defaults of ``SegmentationConfig`` if None.
-        peep_steps: Steps placed by hand: segments with ``category="peep_step"`` and the
-                    PEEP level in ``parameters["peep"]``. If given, they replace the
-                    steps found from the pressure, and the breaths analysed are the valid
-                    breaths inside them.
+        peep_steps: Steps placed by hand: segments with ``category="peep_step"``, the
+                    PEEP level in ``parameters["peep"]`` and optionally the plateau in
+                    ``parameters["plateau"]``. If given, they replace the steps found
+                    from the pressure, and the breaths analysed are the valid breaths
+                    inside them.
         phase:      The PEEP trial part of the recording: a segment with
                     ``category="phase"`` and ``label="peep_trial"``. If None, the whole
                     recording.
 
     Returns:
-        The PEEP trial. Breaths outside the phase have ``peep_step`` -1.
+        The PEEP trial. Breaths outside the phase or the steps have ``peep_step`` -1.
 
     Raises:
         ValueError: if there are no steps placed by hand and no pressure to find them,
             a step placed by hand or the phase is not usable, or no breath is inside the
-            phase.
+            phase or the steps placed by hand.
     """
     config = config if config is not None else SegmentationConfig()
-    log = _Log()
+    log = RunLog(logger)
     b = recording.breaths
-    times, ends = b.start_time.to_numpy(), b.end_time.to_numpy()
-    valid = b.is_valid.to_numpy()
-    in_phase = _breaths_in_phase(times, ends, phase, log)
+    starts, ends = b.start_time.to_numpy(), b.end_time.to_numpy()
+    valid, excluded = b.is_valid.to_numpy(), b.excluded.to_numpy()
+    in_phase = _breaths_in_phase(starts, ends, phase, log)
 
     channel, peep, plateau = _breath_pressures(recording, config, log)
+    if channel is not None:
+        _check_readings(peep, plateau, in_phase, log)
 
     if peep_steps:
-        step, levels, typed_plateaus = steps_from_segments(times, ends, peep_steps)
+        step, levels, typed_plateaus = steps_from_segments(starts, ends, peep_steps)
         step[~in_phase] = -1
         analysed = (step >= 0) & valid
         source = "manual"
         log.info(f"{len(levels)} PEEP steps placed by hand.")
+        _check_manual_levels(peep, step, levels, config, log)
     elif channel is not None:
-        inside = np.flatnonzero(in_phase)
-        step_starts = find_steps(
-            peep[inside],
-            config.step_threshold,
-            config.step_min_breaths,
-            config.step_agreement,
+        step, levels, analysed = _automatic_steps(
+            peep, in_phase, excluded, valid, starts, config
         )
-        step = np.full(len(b), -1, dtype=int)
-        step[inside] = step_of_each_breath(step_starts, len(inside))
-        levels = np.array(
-            [np.nanmedian(peep[step == k]) for k in range(step.max() + 1)]
-        )
-        # A breath at an intermediate PEEP (e.g. just before a change) is not analysed.
-        at_level = np.zeros(len(b), dtype=bool)
-        in_step = step >= 0
-        at_level[in_step] = (
-            np.abs(peep[in_step] - levels[step[in_step]])
-            <= config.analysis_peep_tolerance
-        )
-        analysed = analysed_breaths(
-            times,
-            step,
-            valid & at_level,
-            config.analysis_skip_seconds,
-            config.analysis_max_breaths,
-        )
+        typed_plateaus = np.full(len(levels), np.nan)
         source = "pressure"
         log.info(
-            f"{len(levels)} PEEP steps found from the pressure: {np.round(levels, 1).tolist()}."
+            f"{len(levels)} PEEP steps found from the pressure: "
+            f"{np.round(levels, 1).tolist()}."
         )
     else:
         raise ValueError(
@@ -226,47 +319,13 @@ def segment_peep_trial(
     breaths["peep_step"] = step
     breaths["analysed"] = analysed
 
-    rows = []
-    for k, level in enumerate(levels):
-        in_step = breaths[breaths.peep_step == k]
-        n_analysed = int(in_step.analysed.sum())
-        rows.append(
-            {
-                "step": k,
-                "peep": float(level),
-                "start_time": float(in_step.start_time.min())
-                if len(in_step)
-                else np.nan,
-                "end_time": float(in_step.end_time.max()) if len(in_step) else np.nan,
-                "breaths": len(in_step),
-                "analysed": n_analysed,
-                "enough": n_analysed >= config.analysis_min_breaths,
-            }
-        )
-        if n_analysed < config.analysis_min_breaths:
-            log.warning(
-                f"Step {k} (PEEP {level:.1f}): only {n_analysed} breaths analysed, fewer "
-                f"than {config.analysis_min_breaths}."
-            )
-    steps = pd.DataFrame(
-        rows,
-        columns=[
-            "step",
-            "peep",
-            "start_time",
-            "end_time",
-            "breaths",
-            "analysed",
-            "enough",
-        ],
-    )
-
     return PeepTrial(
         recording=recording,
         config=config,
         pressure_channel=channel,
+        pressure_unit=PRESSURE_UNITS.get(recording.raw.vendor),
         source=source,
-        steps=steps,
+        steps=_steps_table(breaths, levels, typed_plateaus, config, log),
         breaths=breaths,
         log=tuple(log.messages),
     )

@@ -41,6 +41,14 @@ def test_steps_and_pressures_found_from_the_pressure(recording):
     np.testing.assert_allclose(driving, 12, atol=0.2)
 
 
+def test_step_table_has_the_driving_pressure_and_the_unit(recording):
+    trial = segment_peep_trial(recording)
+    np.testing.assert_allclose(trial.steps.driving_pressure, 12, atol=0.2)
+    assert trial.steps.enough_driving_pressure.all()
+    assert trial.pressure_unit == "cmH2O"  # the synthetic recording is a Timpel one
+    assert np.isfinite(trial.breaths.driving_pressure.iloc[-1])  # last breath too
+
+
 def test_breaths_analysed_follow_the_rule(recording):
     config = SegmentationConfig()
     trial = segment_peep_trial(recording, config)
@@ -52,7 +60,7 @@ def test_breaths_analysed_follow_the_rule(recording):
             analysed.start_time >= step.start_time + config.analysis_skip_seconds
         ).all()
         assert analysed.is_valid.all()
-    assert trial.steps.analysed.tolist() == [
+    assert trial.steps.n_analysed.tolist() == [
         len(trial.analysed_breaths[trial.analysed_breaths.peep_step == k])
         for k in range(4)
     ]
@@ -144,9 +152,9 @@ def test_real_peep_trials_give_the_steps_and_breaths_of_notebook_06():
         np.testing.assert_allclose(
             trial.steps.peep, np.arange(16, -1, -2), atol=1.1, err_msg=name
         )
-        assert trial.steps.analysed.iloc[1:].tolist() == [min(n, 10) for n in usable], (
-            name
-        )
+        assert trial.steps.n_analysed.iloc[1:].tolist() == [
+            min(n, 10) for n in usable
+        ], name
         assert trial.analysed_breaths.plateau.notna().mean() > 0.95, (
             name
         )  # 99-100 % in notebook 06
@@ -201,3 +209,44 @@ def test_a_maneuver_excluded_in_preprocess_is_never_analysed():
 def test_unusable_phases_are_rejected(phase, message):
     with pytest.raises(ValueError, match=message):
         segment_peep_trial(baseline_then_trial(), phase=phase)
+
+
+def test_an_excluded_maneuver_at_another_peep_does_not_open_a_step():
+    peeps = [12] * 12 + [10] * 6 + [16] * 4 + [10] * 2 + [8] * 12 + [6] * 14
+    paw, _ = vcv_pressure(peeps, fs=FS, period=4.0)
+    raw, _ = synthetic_raw(seconds=200)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    maneuver = Segment(72, 88, label="aop")  # the 4 breaths at 16
+    trial = segment_peep_trial(preprocess(raw, exclusions=[maneuver]))
+    assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
+
+
+def test_a_pressure_missing_in_most_breaths_gives_a_warning():
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    paw = paw.astype(np.float32)
+    paw[: int(0.7 * len(paw))] = np.nan  # e.g. the PressurePod connected late
+    trial = segment_peep_trial(synthetic_trial(aux={"airway_pressure_pod": paw}))
+    assert any("PEEP missing in most breaths" in line for line in trial.log)
+
+
+def test_a_typed_peep_far_from_the_measured_one_gives_a_warning(recording):
+    steps = [
+        Segment(20, 44, category="peep_step", parameters={"peep": 16})
+    ]  # 12 measured
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert any("PEEP typed 16, measured 12.0" in line for line in trial.log)
+
+
+def test_a_typed_plateau_gives_the_driving_pressure_without_pressure():
+    steps = [
+        Segment(20, 60, category="peep_step", parameters={"peep": 10, "plateau": 25})
+    ]
+    trial = segment_peep_trial(synthetic_trial(aux={}), peep_steps=steps)
+    assert trial.steps.driving_pressure.tolist() == [15.0]
+    assert trial.steps.enough_driving_pressure.all()
+
+
+def test_without_any_plateau_the_log_says_compliance_is_not_available():
+    steps = [Segment(20, 60, category="peep_step", parameters={"peep": 10})]
+    trial = segment_peep_trial(synthetic_trial(aux={}), peep_steps=steps)
+    assert any("compliance cannot be computed" in line for line in trial.log)
