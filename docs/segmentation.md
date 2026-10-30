@@ -6,8 +6,10 @@ pressures of each breath and chooses the breaths analysed in each step. It is st
 preparation of the data: the clinical indices (EELI, TIV, compliance, Costa) come in
 layer 3.
 
-The evidence for every choice is in `notebooks/06_peep_trial_segmentation.ipynb`
-(four decremental PEEP trials from two patients).
+The evidence for the pressure readings and the step detection is in
+`notebooks/06_peep_trial_segmentation.ipynb` (four decremental PEEP trials from two
+patients). The 15 s left out after each change, the 10 (at least 5) breaths analysed and
+the 0.5 mbar tolerance are protocol choices.
 
 1. [Entry point](#1-entry-point)
 2. [Steps](#2-steps)
@@ -45,15 +47,19 @@ trial = segment_peep_trial(recording, peep_steps=steps)
 ```
 
 Steps placed by hand replace the automatic ones; the breaths analysed are then the
-valid breaths inside each segment. Parameters are in `SegmentationConfig`.
+valid breaths inside each segment (a breath cut by the edge of a segment is left out).
+Without a pressure signal the plateau read on the ventilator can be typed with the step,
+`parameters={"peep": 16, "plateau": 28}`, to have a driving pressure. When there is a
+pressure signal, a typed PEEP more than 1 mbar from the measured one gives a warning.
+Parameters are in `SegmentationConfig`.
 
 ## 2. Steps
 
 | # | Step | Module |
 |---|------|--------|
 | 1 | Airway pressure: the first available of PressurePod, Medibus or Timpel `airway_pressure`; without a waveform, the PEEP and plateau computed by the ventilator (Medibus) | `pipeline` |
-| 2 | Pressures of each breath, all from the same channel: start of inspiration on the pressure curve, PEEP = median pressure in the 0.2 s before it, plateau = median pressure at the end of the end-inspiratory pause, driving pressure = plateau - PEEP | `breath_pressures` |
-| 3 | Steps: a new step when 3 breaths in a row are more than 1 mbar (half of the step of the protocol) from the current level and within 1 mbar of each other; level = median PEEP | `peep_steps` |
+| 2 | Pressures of each breath, all from the same channel: start of inspiration on the pressure curve, PEEP = median pressure in the 0.2 s before it, plateau = median pressure at the end of an end-inspiratory hold of at least 0.5 s, driving pressure = plateau - PEEP | `breath_pressures` |
+| 3 | Steps: a new step when 3 breaths in a row are more than 1 mbar (half of the step of the protocol) from the current level and within 1 mbar of each other; level = median PEEP. Excluded breaths (maneuvers) do not count | `peep_steps` |
 | 4 | Breaths analysed: the first 15 s after each change are left out; then the last valid breaths whose PEEP is within 0.5 mbar of the step level, up to 10; fewer than 5 give a warning | `peep_steps` |
 
 The event texts typed on the device are not used to cut the steps: in the trials of the
@@ -70,10 +76,10 @@ phase = Segment(150, 600, category="phase", label="peep_trial")
 trial = segment_peep_trial(recording, phase=phase)
 ```
 
-Breaths outside the phase have `peep_step = -1` and are never analysed. A part with no
-planned analysis (for example an airway opening pressure maneuver) is simply an
-exclusion of `preprocess()`. Without phases the whole recording follows
-`RecordingContext.protocol`.
+Breaths outside the phase (or cut by its edges) have `peep_step = -1` and are never
+analysed. A part with no planned analysis (for example an airway opening pressure
+maneuver) is simply an exclusion of `preprocess()`: its breaths are never analysed and do
+not count when the steps are found. Without a phase the whole recording is segmented.
 
 ## 4. Output
 
@@ -82,9 +88,9 @@ exclusion of `preprocess()`. Without phases the whole recording follows
 | Field | Content |
 |-------|---------|
 | `recording`, `config` | the preprocessed recording and the parameters used |
-| `pressure_channel` | column of `recording.aux` the pressures were read from (None if none) |
+| `pressure_channel`, `pressure_unit` | column of `recording.aux` the pressures were read from (None if none), and its unit |
 | `source` | `"pressure"` or `"manual"` |
-| `steps` | `step`, `peep` (level), `start_time`, `end_time`, `breaths`, `analysed`, `enough` |
+| `steps` | `step`, `peep` (level), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau` and `driving_pressure` (medians of the analysed breaths), `n_driving_pressure`, `enough_driving_pressure` |
 | `breaths` | the breath table of the recording plus `peep`, `plateau`, `driving_pressure`, `peep_step`, `analysed` |
 | `log` | what the segmentation did, with warnings |
 
@@ -95,11 +101,20 @@ cmH2O for Timpel.
 
 - Tested on four decremental trials from two patients, in volume control with an
   end-inspiratory pause, with the Dräger PressurePod; Timpel and Medibus pressures are
-  tested on synthetic data only.
-- The PEEP is read at the airway opening: it does not include intrinsic PEEP.
-- Without an end-inspiratory pause there is no plateau, and the peak pressure is not used
-  instead.
-- Compliance from the airway pressure is valid only in passive patients.
+  tested on synthetic data only. Medibus values are updated once per ventilator breath:
+  at a change of step they can lag by one breath.
+- The PEEP is the end-expiratory pressure at the airway opening: it does not include
+  intrinsic PEEP, so it is a lower bound of the total PEEP (in one trial it read 0.2-0.5
+  mbar above the set value, 1 mbar at PEEP 0, at 19 breaths/min).
+- The plateau needs an end-inspiratory hold of at least 0.5 s with zero flow; with a
+  shorter hold it is missing, and the peak pressure is never used instead. In pressure
+  control the flat inspiratory pressure is read, valid only if the flow is zero at the
+  end of inspiration. The plateau and its detection were not validated against the
+  ventilator plateau or a manual hold.
+- The driving pressure is that of the respiratory system: the oesophageal and
+  transpulmonary pressures of the PressurePod are not used. Compliance from the airway
+  pressure is valid only in passive patients, and without a tidal volume it is in EIT
+  units per mbar.
 - Short steps at a low rate leave few breaths after the first 15 s (4-9 in the trials at
   11-13 breaths/min with 40 s steps): the warning reports it.
 
