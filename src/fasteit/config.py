@@ -236,6 +236,17 @@ class SegmentationConfig:
             raise ValueError(
                 "plateau_window_seconds must be (start, end) with start > end >= 0."
             )
+        if not self.peep_seconds > 0:
+            raise ValueError("peep_seconds must be positive.")
+        if self.step_agreement < 0 or self.analysis_skip_seconds < 0:
+            raise ValueError(
+                "step_agreement and analysis_skip_seconds must not be negative."
+            )
+        if not 0 <= self.analysis_peep_tolerance <= self.step_threshold / 2:
+            raise ValueError(
+                "analysis_peep_tolerance must be between 0 and half of step_threshold, so "
+                "that a breath halfway between two steps is never analysed."
+            )
 
 
 @dataclass

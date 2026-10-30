@@ -59,6 +59,9 @@ def test_segmentation_config_rejects_impossible_values():
         {"step_min_breaths": 0},
         {"analysis_min_breaths": 12},
         {"plateau_window_seconds": (0.05, 0.25)},
+        {"peep_seconds": 0},
+        {"analysis_skip_seconds": -1},
+        {"step_threshold": 0.5},  # tolerance 0.5 would then be above half of it
     ]:
         with pytest.raises(ValueError):
             SegmentationConfig(**wrong)
