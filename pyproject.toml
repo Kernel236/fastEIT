@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fasteit"
-version = "0.3.0a1"
+version = "0.4.0a1"
 description = "EIT data parsing, preprocessing, and clinical feature extraction for Dräger PulmoVista"
 readme = "README.md"
 license = { file = "LICENSE" }
