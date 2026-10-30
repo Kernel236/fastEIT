@@ -5,7 +5,8 @@ values from here - change once, propagates everywhere.
 
 Structure:
     PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions
-    AnalysisConfig      - layer 3: PEEP steps (to be filled)
+    SegmentationConfig  - layer 2b: PEEP steps of a PEEP trial and the breaths analysed
+    AnalysisConfig      - layer 3: clinical indices (to be filled)
     Config              - top-level container for pipeline sections
 
 Rates and frequencies are given per minute here, as read on a monitor; the
@@ -170,9 +171,66 @@ class PreprocessingConfig:
             raise ValueError("ti_ratio_low must be below ti_ratio_high.")
 
 
+@dataclass(frozen=True)
+class SegmentationConfig:
+    """Parameters of the PEEP trial segmentation (layer 2b).
+
+    Evidence and decisions: ``notebooks/06_peep_trial_segmentation.ipynb`` (section in
+    brackets). These are fastEIT choices tested on four decremental trials, not values
+    from a paper. Pressures are in the units of the recording (mbar for Draeger, cmH2O
+    for Timpel; 1 mbar = 1.02 cmH2O).
+
+    Attributes:
+        pressure_channels: Airway pressure waveforms searched in ``EITRecording.aux``,
+            in order of preference: Draeger PressurePod, then the Medibus or Timpel
+            ``airway_pressure`` (section 2).
+        peep_seconds: The PEEP of a breath is the median airway pressure in this time
+            before the start of inspiration found on the pressure curve (section 2).
+        plateau_window_seconds: The plateau is the median airway pressure from the first
+            to the second value before the start of expiration; it needs an
+            end-inspiratory pause (section 4).
+        step_threshold: A new PEEP step starts when ``step_min_breaths`` breaths in a
+            row are further than this from the current level: half of the step of the
+            protocol, 1 for steps of 2 (section 3).
+        step_min_breaths: Breaths in a row needed to open a step, so that a single odd
+            breath (a maneuver) cannot (section 3).
+        step_agreement: Those breaths must also be within this of each other (section 3).
+        analysis_skip_seconds: In each step the breaths in this time after the change of
+            PEEP are not analysed, as EELI is still moving (section 5).
+        analysis_max_breaths, analysis_min_breaths: Then the last valid breaths of the
+            step are analysed, up to ``analysis_max_breaths``; fewer than
+            ``analysis_min_breaths`` give a warning (section 5).
+    """
+
+    pressure_channels: tuple[str, ...] = ("airway_pressure_pod", "airway_pressure")
+    peep_seconds: float = 0.2
+    plateau_window_seconds: tuple[float, float] = (0.25, 0.05)
+    step_threshold: float = 1.0
+    step_min_breaths: int = 3
+    step_agreement: float = 1.0
+    analysis_skip_seconds: float = 15.0
+    analysis_max_breaths: int = 10
+    analysis_min_breaths: int = 5
+
+    def __post_init__(self) -> None:
+        if not self.step_threshold > 0:
+            raise ValueError("step_threshold must be positive.")
+        if self.step_min_breaths < 1:
+            raise ValueError("step_min_breaths must be at least 1.")
+        if not 1 <= self.analysis_min_breaths <= self.analysis_max_breaths:
+            raise ValueError(
+                "analysis_min_breaths must be between 1 and analysis_max_breaths."
+            )
+        first, second = self.plateau_window_seconds
+        if not first > second >= 0:
+            raise ValueError(
+                "plateau_window_seconds must be (start, end) with start > end >= 0."
+            )
+
+
 @dataclass
 class AnalysisConfig:
-    """Parameters of layer 3 (PEEP step detection). To be filled.
+    """Parameters of layer 3 (clinical indices). To be filled.
 
     All defaults must cite supporting literature.
     """
@@ -184,13 +242,15 @@ class AnalysisConfig:
 class Config:
     """Top-level configuration container for the fasteit pipeline.
 
-    Aggregates PreprocessingConfig and AnalysisConfig.
+    Aggregates PreprocessingConfig, SegmentationConfig and AnalysisConfig.
 
     Example:
         cfg = Config()
         cfg.preprocessing
+        cfg.segmentation
         cfg.analysis
     """
 
     preprocessing: PreprocessingConfig = field(default_factory=PreprocessingConfig)
+    segmentation: SegmentationConfig = field(default_factory=SegmentationConfig)
     analysis: AnalysisConfig = field(default_factory=AnalysisConfig)

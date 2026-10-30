@@ -8,6 +8,7 @@ from fasteit.config import (
     AnalysisConfig,
     Config,
     PreprocessingConfig,
+    SegmentationConfig,
 )
 
 
@@ -15,6 +16,7 @@ def test_config_instantiates_all_sections():
     cfg = Config()
     assert isinstance(cfg.preprocessing, PreprocessingConfig)
     assert isinstance(cfg.analysis, AnalysisConfig)
+    assert isinstance(cfg.segmentation, SegmentationConfig)
 
 
 def test_config_section_isolation():
@@ -42,3 +44,21 @@ def test_preprocessing_config_rejects_impossible_values():
     ]:
         with pytest.raises(ValueError):
             PreprocessingConfig(**wrong)
+
+
+def test_segmentation_config_defaults_follow_notebook_06():
+    cfg = SegmentationConfig()
+    assert cfg.pressure_channels[0] == "airway_pressure_pod"
+    assert (cfg.step_threshold, cfg.analysis_skip_seconds) == (1.0, 15.0)
+    assert (cfg.analysis_min_breaths, cfg.analysis_max_breaths) == (5, 10)
+
+
+def test_segmentation_config_rejects_impossible_values():
+    for wrong in [
+        {"step_threshold": 0},
+        {"step_min_breaths": 0},
+        {"analysis_min_breaths": 12},
+        {"plateau_window_seconds": (0.05, 0.25)},
+    ]:
+        with pytest.raises(ValueError):
+            SegmentationConfig(**wrong)
