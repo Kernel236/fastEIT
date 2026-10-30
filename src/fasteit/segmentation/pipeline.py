@@ -161,10 +161,12 @@ def segment_peep_trial(
         levels = np.array(
             [np.nanmedian(peep[step == k]) for k in range(step.max() + 1)]
         )
+        # A breath at an intermediate PEEP (e.g. just before a change) is not analysed.
+        at_level = np.abs(peep - levels[step]) <= config.analysis_peep_tolerance
         analysed = analysed_breaths(
             times,
             step,
-            valid,
+            valid & at_level,
             config.analysis_skip_seconds,
             config.analysis_max_breaths,
         )

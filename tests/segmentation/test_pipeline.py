@@ -58,6 +58,17 @@ def test_breaths_analysed_follow_the_rule(recording):
     ]
 
 
+def test_a_breath_at_an_intermediate_peep_is_not_analysed():
+    peeps = [12] * 11 + [11.2] + [10] * 12 + [8] * 12 + [6] * 14  # breath 11 halfway
+    paw, _ = vcv_pressure(peeps, fs=FS, period=4.0)
+    trial = segment_peep_trial(
+        synthetic_trial(aux={"airway_pressure_pod": paw.astype(np.float32)})
+    )
+    halfway = trial.breaths[(trial.breaths.peep - 11.2).abs() < 0.1]
+    assert len(halfway) == 1 and halfway.peep_step.iloc[0] == 0
+    assert not halfway.analysed.iloc[0]
+
+
 def test_too_few_breaths_give_a_warning(recording):
     trial = segment_peep_trial(recording, SegmentationConfig(analysis_min_breaths=9))
     assert not trial.steps.enough.all()
@@ -114,8 +125,8 @@ def test_without_end_inspiratory_pause_the_driving_pressure_is_missing():
 NOTEBOOK_USABLE = {
     "A_park_bench": [5, 4, 6, 6, 6, 5, 5, 19],
     "A_supine": [5, 7, 8, 7, 6, 9, 6, 16],
-    "B_park_bench": [20, 19, 13, 12, 16, 10, 8, 20],
-    "B_supine": [14, 8, 11, 9, 9, 15, 12, 35],
+    "B_park_bench": [20, 18, 13, 12, 16, 10, 8, 18],
+    "B_supine": [13, 8, 9, 8, 9, 15, 12, 32],
 }
 
 

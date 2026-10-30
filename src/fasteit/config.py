@@ -203,6 +203,10 @@ class SegmentationConfig:
         analysis_max_breaths, analysis_min_breaths: Then the last valid breaths of the
             step are analysed, up to ``analysis_max_breaths``; fewer than
             ``analysis_min_breaths`` give a warning (section 5).
+        analysis_peep_tolerance: With steps found from the pressure, a breath is
+            analysed only if its PEEP is within this of the level of the step: the
+            last breath before a change can already be at an intermediate PEEP
+            (section 5).
     """
 
     pressure_channels: tuple[str, ...] = ("airway_pressure_pod", "airway_pressure")
@@ -216,6 +220,7 @@ class SegmentationConfig:
     analysis_skip_seconds: float = 15.0
     analysis_max_breaths: int = 10
     analysis_min_breaths: int = 5
+    analysis_peep_tolerance: float = 0.5
 
     def __post_init__(self) -> None:
         if not self.step_threshold > 0:
