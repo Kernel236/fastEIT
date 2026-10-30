@@ -4,9 +4,11 @@ import numpy as np
 import pytest
 
 from fasteit.config import SegmentationConfig
+from fasteit.models.eit_recording import Segment
 from fasteit.segmentation.peep_steps import (
     find_steps,
     step_of_each_breath,
+    steps_from_segments,
 )
 
 CFG = SegmentationConfig()
@@ -65,3 +67,34 @@ def test_no_peep_at_all_is_an_error():
 
 def test_step_of_each_breath():
     assert step_of_each_breath(np.array([0, 3, 5]), 7).tolist() == [0, 0, 0, 1, 1, 2, 2]
+
+
+# --- steps placed by hand ---
+
+
+def peep_step(start, end, peep):
+    return Segment(start, end, category="peep_step", parameters={"peep": peep})
+
+
+def test_steps_placed_by_hand_take_the_breaths_inside_them():
+    starts = np.arange(0, 60, 4.0)
+    step, levels = steps_from_segments(
+        starts, starts + 4, [peep_step(30, 50, 8), peep_step(4, 21, 10)]
+    )
+    assert levels.tolist() == [10.0, 8.0]  # numbered in time order
+    assert np.flatnonzero(step == 0).tolist() == [1, 2, 3, 4]  # breaths 4-8 ... 16-20
+    assert np.flatnonzero(step == 1).tolist() == [8, 9, 10, 11]
+    assert (step[[0, 5, 6, 7, 12, 13, 14]] == -1).all()
+
+
+@pytest.mark.parametrize(
+    "segments, message",
+    [
+        ([Segment(0, 10, label="cough")], "not a PEEP step"),
+        ([Segment(0, 10, category="peep_step")], "not a PEEP step"),
+        ([peep_step(0, 20, 10), peep_step(15, 30, 8)], "overlap"),
+    ],
+)
+def test_unusable_steps_placed_by_hand_are_rejected(segments, message):
+    with pytest.raises(ValueError, match=message):
+        steps_from_segments(np.arange(10.0), np.arange(1.0, 11.0), segments)
