@@ -27,6 +27,7 @@ dependencies = [
     "pyarrow>=12.0",
     "matplotlib>=3.7",
     "h5py>=3.8",
+    "scikit-image>=0.22",  # watershed lung mask (preprocessing/lung_mask.py)
 ]
 
 [project.optional-dependencies]
@@ -38,6 +39,7 @@ dev = [
     "pytest-cov>=4.1",
     "ruff>=0.4",
     "coverage[toml]>=7.3",
+    "eitprocessing==1.8.8",  # reference for the equivalence tests (tests/preprocessing)
 ]
 
 [project.urls]

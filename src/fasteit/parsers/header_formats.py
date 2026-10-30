@@ -80,7 +80,7 @@ HEADER_FORMAT_SPECS: tuple[HeaderFormatSpec, ...] = (
 def get_eit_specs(vendor: str) -> list[HeaderFormatSpec]:
     """Return all ``HeaderFormatSpec`` entries registered for *vendor*.
 
-    Multiple specs for the same vendor are valid — e.g. two Dräger firmware
+    Multiple specs for the same vendor are valid - e.g. two Dräger firmware
     versions with the same magic string but different frame sizes. The caller
     is responsible for disambiguating by ``frame_size_bytes``.
 

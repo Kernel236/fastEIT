@@ -2,22 +2,22 @@
 Parsers for EIT file formats (Dräger and Timpel).
 
 Implemented:
-- BaseParser             — abstract base class (ABC) for all parsers
-- DragerBinParser   (.bin) — reconstructed 32×32 images; BASE and EXT frame formats
-- DragerAscParser   (.asc) — tabular PulmoVista signal export
-- TimpelTabularParser (.csv/.txt/.asc) — Timpel tabular recordings
+- BaseParser             - abstract base class (ABC) for all parsers
+- DragerBinParser   (.bin) - reconstructed 32×32 images; BASE and EXT frame formats
+- DragerAscParser   (.asc) - tabular PulmoVista signal export
+- TimpelTabularParser (.csv/.txt/.asc) - Timpel tabular recordings
 
-- DragerEitParser   (.eit) — raw transimpedances (208/frame); calibration pipeline EIDORS/Adler 2016
+- DragerEitParser   (.eit) - raw transimpedances (208/frame); calibration pipeline EIDORS/Adler 2016
 
-Reconstruction utilities (optional — requires pyeit):
-- reconstruct_greit / build_greit — GREIT image reconstruction from RawImpedanceData
+Reconstruction utilities (optional - requires pyeit):
+- reconstruct_greit / build_greit - GREIT image reconstruction from RawImpedanceData
   Import: from fasteit.parsers.draeger.eit.eit_pyeit_bridge import reconstruct_greit
 
 Utilities:
-- detect_vendor_and_format — extension/vendor/format auto-detection
-- load_data                — high-level entry point; returns a BaseData subclass
-- load_many                — parse multiple files at once
-- load_folder              — parse all matching files in a folder
+- detect_vendor_and_format - extension/vendor/format auto-detection
+- load_data                - high-level entry point; returns a BaseData subclass
+- load_many                - parse multiple files at once
+- load_folder              - parse all matching files in a folder
 """
 
 from .base import BaseParser

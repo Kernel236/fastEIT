@@ -80,11 +80,11 @@ def test_frequency_key_in_field_map():
 
 
 def test_no_calibration_factor_key():
-    """Calibration Factor is not in the header — hardcoded from EIDORS."""
+    """Calibration Factor is not in the header - hardcoded from EIDORS."""
     assert "Calibration Factor" not in HEADER_FIELD_MAP
 
 
-# ── parse_eit_header() — valid input ─────────────────────────────────────────
+# ── parse_eit_header() - valid input ─────────────────────────────────────────
 
 
 def test_parse_returns_dict_and_int():
@@ -120,7 +120,7 @@ def test_parse_date_and_time():
 
 
 def test_parse_time_with_colon_in_value():
-    """Time field contains colons — partition(':') must use first colon only."""
+    """Time field contains colons - partition(':') must use first colon only."""
     raw = _make_raw_header({"Time": "14:30:00.123"})
     meta, _ = parse_eit_header(raw)
     assert meta["time"] == "14:30:00.123"
@@ -173,7 +173,7 @@ def test_parse_conversion_failure_keeps_string():
     assert meta["gain"] == "not_a_number"
 
 
-# ── parse_eit_header() — error cases ─────────────────────────────────────────
+# ── parse_eit_header() - error cases ─────────────────────────────────────────
 
 
 def test_parse_raises_if_buffer_too_small():

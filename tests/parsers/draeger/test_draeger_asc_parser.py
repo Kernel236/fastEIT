@@ -124,7 +124,7 @@ def test_asc_parser_raises_if_no_waveform_header(tmp_path):
 _ASC_FILE = Path("src/fasteit/test_files/patient01.asc")
 _real_file_available = pytest.mark.skipif(
     not _ASC_FILE.exists(),
-    reason="Real patient file not available (gitignored — run locally only)",
+    reason="Real patient file not available (gitignored - run locally only)",
 )
 
 

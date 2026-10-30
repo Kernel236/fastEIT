@@ -52,7 +52,7 @@ def test_validate_false_for_wrong_size(tmp_path):
     assert not DragerBinParser().validate(p)
 
 
-# ── parse() — BASE format ─────────────────────────────────────────────────────
+# ── parse() - BASE format ─────────────────────────────────────────────────────
 
 
 def test_parse_base_returns_reconstructed_frame_data(tmp_path):
@@ -90,7 +90,7 @@ def test_parse_base_has_aux_signals(tmp_path):
     assert len(data.aux_signals) == len(MEDIBUS_BASE_FIELDS)
 
 
-# ── parse() — EXT format ─────────────────────────────────────────────────────
+# ── parse() - EXT format ─────────────────────────────────────────────────────
 
 
 def test_parse_ext_has_aux_signals(tmp_path):
@@ -126,7 +126,7 @@ def test_parse_slice_max_frames(tmp_path):
 
 
 def test_parse_float_sentinel_preserved_in_raw_data(tmp_path):
-    """Parser returns raw memmap — sentinel values are NOT replaced.
+    """Parser returns raw memmap - sentinel values are NOT replaced.
 
     Sentinel replacement is deferred to the preprocessing layer so that
     the memmap is never copied to RAM during parsing (lazy loading).
@@ -148,27 +148,27 @@ _DT_DAY = 1.0 / (50.0 * 86400.0)
 
 
 def test_n_frames_from_fixture(bin_3frames):
-    """Task 1.5.3 — frame count matches what was written."""
+    """Task 1.5.3 - frame count matches what was written."""
     data = DragerBinParser().parse(bin_3frames)
     assert data.n_frames == 3
 
 
 def test_pixel_values_per_frame(bin_3frames):
-    """Task 1.5.4 — every pixel in frame i equals float(i+1)."""
+    """Task 1.5.4 - every pixel in frame i equals float(i+1)."""
     data = DragerBinParser().parse(bin_3frames)
     for i in range(3):
         assert data.pixels[i].mean() == pytest.approx(float(i + 1))
 
 
 def test_pixel_specific_position(bin_3frames):
-    """Task 1.5.4 — spot-check two specific pixel positions."""
+    """Task 1.5.4 - spot-check two specific pixel positions."""
     data = DragerBinParser().parse(bin_3frames)
     assert data.pixels[0, 0, 0] == pytest.approx(1.0)
     assert data.pixels[2, 15, 15] == pytest.approx(3.0)
 
 
 def test_timestamps_match_fixture(bin_3frames):
-    """Task 1.5.5 — timestamps match 50 Hz fraction-of-day spacing."""
+    """Task 1.5.5 - timestamps match 50 Hz fraction-of-day spacing."""
     data = DragerBinParser().parse(bin_3frames)
     assert data.timestamps[0] == pytest.approx(0.0)
     assert data.timestamps[1] == pytest.approx(_DT_DAY)
@@ -176,13 +176,13 @@ def test_timestamps_match_fixture(bin_3frames):
 
 
 def test_timestamps_monotonically_increasing(bin_3frames):
-    """Task 1.5.5 — timestamps are strictly increasing."""
+    """Task 1.5.5 - timestamps are strictly increasing."""
     data = DragerBinParser().parse(bin_3frames)
     assert all(data.timestamps[i] < data.timestamps[i + 1] for i in range(2))
 
 
 def test_roundtrip_via_load_data(bin_3frames):
-    """Task 1.5.10 — full pipeline through load_data() orchestrator."""
+    """Task 1.5.10 - full pipeline through load_data() orchestrator."""
     from fasteit.parsers.loader import load_data
 
     data = load_data(bin_3frames)

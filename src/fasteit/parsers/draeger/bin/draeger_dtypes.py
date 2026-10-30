@@ -7,7 +7,7 @@ Each .bin file is a flat sequence of frames. Two frame sizes exist:
 
 Layout confirmed from three independent sources:
 1. EIDORS read_draeger_bin (MATLAB, GPL - format study only, no code copied)
-2. eitprocessing draeger.py v0.3 (Apache-2.0)
+2. eitprocessing draeger.py v1.8.7 (Apache-2.0; unchanged in v1.8.8)
 3. Shared professional MATLAB analysis scripts
 """
 
@@ -52,8 +52,8 @@ FRAME_EXT_DTYPE = np.dtype(
 # Index in this list == index in medibus_data array.
 #
 # Architecture (confirmed vs. eitprocessing draeger.py, Apache-2.0):
-#   BASE (4358 bytes, "original"):      52 fields — idx 51 = time_at_low_pressure (Tlow)
-#   EXT  (4382 bytes, "pressure_pod"):  58 fields — idx 51 = high_pressure (PHigh),
+#   BASE (4358 bytes, "original"):      52 fields - idx 51 = time_at_low_pressure (Tlow)
+#   EXT  (4382 bytes, "pressure_pod"):  58 fields - idx 51 = high_pressure (PHigh),
 #                                                    idx 52 = low_pressure (Plow),
 #                                                    idx 53 = time_at_low_pressure (Tlow, shifted!),
 #                                                    idx 54-57 = PressurePod continuous channels
@@ -113,7 +113,7 @@ _MEDIBUS_COMMON: list[tuple[str, str, bool]] = [
     ("time_constant", "s", False),
     ("upper_20pct_compliance_ratio", "", False),
     ("end_inspiratory_pressure", "mbar", False),
-    ("expiratory_tidal_volume", "mL", False),  # idx 50 — last common field
+    ("expiratory_tidal_volume", "mL", False),  # idx 50 - last common field
 ]  # 51 fields
 
 # ── BASE tail: idx 51 ──────────────────────────────────────────────────────────

@@ -92,7 +92,7 @@ class DragerBinParser(BaseParser):
         n_frames_to_load = stop - start
 
         # ── 4. Memory-map only the requested slice ────────────────────────────
-        # offset jumps directly to byte position of frame `start` — frames
+        # offset jumps directly to byte position of frame `start` - frames
         mapped_frames = np.memmap(
             path,
             dtype=spec.dtype,

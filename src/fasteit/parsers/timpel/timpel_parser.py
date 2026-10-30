@@ -4,7 +4,7 @@ Parses Timpel comma-separated export files (.csv / .txt) into
 ``ReconstructedFrameData``.
 
 File format (1030 columns per row, no header, comma-delimited):
-  cols  0–1023  32×32 reconstructed pixel impedance (row-major, arbitrary units)
+  cols  0-1023  32×32 reconstructed pixel impedance (row-major, arbitrary units)
   col  1024     airway pressure  (cmH₂O)
   col  1025     flow             (L/s)
   col  1026     volume           (L)
@@ -82,7 +82,7 @@ class TimpelTabularParser(BaseParser):
             ReconstructedFrameData with:
             - frames: structured array with "ts" (seconds) and "pixels" (32×32)
             - aux_signals: dict with airway_pressure, flow, volume,
-                           min_flag, max_flag, qrs_flag — each shape (N,)
+                           min_flag, max_flag, qrs_flag - each shape (N,)
             - fs: TIMPEL_DEFAULT_SAMPLE_FREQUENCY (50 Hz)
 
         Raises:
@@ -115,11 +115,11 @@ class TimpelTabularParser(BaseParser):
         # ── 2. Validate schema ─────────────────────────────────────────────
         if raw.ndim == 1:
             if raw.size == 0:
-                # Empty — skiprows exhausted all rows in the file
+                # Empty - skiprows exhausted all rows in the file
                 raise InvalidSliceError(
                     f"first_frame={first_frame} is beyond the end of the file."
                 )
-            # Single row — np.loadtxt returns 1-D array; promote to 2-D
+            # Single row - np.loadtxt returns 1-D array; promote to 2-D
             raw = raw[np.newaxis, :]
 
         if raw.shape[0] == 0:

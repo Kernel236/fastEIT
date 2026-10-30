@@ -3,7 +3,7 @@
 Format summary (reverse-engineered from PulmoVista 500 output,
 cross-referenced with EIDORS read_draeger_header/read_draeger_file):
 
-    Byte 0..11            : preamble — 3 × int32 LE
+    Byte 0..11            : preamble - 3 × int32 LE
                             [0:4]  format_version (always 51)
                             [4:8]  sep_offset      (variable, file-specific)
                             [8:12] unknown_int
@@ -38,7 +38,7 @@ class DragerEitParser(BaseParser):
     Format sources:
     - Reverse-engineered from PulmoVista 500 `.eit` output
     - Cross-referenced with EIDORS ``read_draeger_header`` /
-      ``read_draeger_file`` (GPL, understanding only — no code copied)
+      ``read_draeger_file`` (GPL, understanding only - no code copied)
     """
 
     def validate(self, path: Path) -> bool:
@@ -113,7 +113,7 @@ class DragerEitParser(BaseParser):
         )
 
         # ── 5. Extract fields and compute calibrated transimpedance ──────────
-        # Calibration pipeline — EIDORS read_draeger_file.m (GPL, understanding
+        # Calibration pipeline - EIDORS read_draeger_file.m (GPL, understanding
         # only, no code copied). Empirical constants hardcoded in EIDORS by
         # A. Adler, estimated 2016-04-07. Not present in the .eit header.
         trans_A = np.array(frames["trans_A"])  # (n_frames, 208) ADC counts

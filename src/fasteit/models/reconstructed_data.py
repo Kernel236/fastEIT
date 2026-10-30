@@ -55,7 +55,7 @@ class ReconstructedFrameData(BaseData):
         """Timestamp per frame. Shape (N,).
 
         Convention depends on vendor:
-        - Dräger `.bin`: wall-clock time as fraction of day (0.0–1.0, float64)
+        - Dräger `.bin`: wall-clock time as fraction of day (0.0-1.0, float64)
         - Timpel `.csv`: seconds from start of recording (e.g. 2.0 s at frame
           100 with 50 Hz), generated as ``(first_frame + i) / fs``
         """
@@ -114,22 +114,22 @@ class ReconstructedFrameData(BaseData):
         """4 ventro-dorsal strip signals (equal horizontal strips). Shape (N, 4).
 
         Each strip sums 8 rows of the 32×32 image:
-          strip 0 = rows  0– 7 (ventral)
-          strip 1 = rows  8–15 (mid-ventral)
-          strip 2 = rows 16–23 (mid-dorsal)
-          strip 3 = rows 24–31 (dorsal)
+          strip 0 = rows  0- 7 (ventral)
+          strip 1 = rows  8-15 (mid-ventral)
+          strip 2 = rows 16-23 (mid-dorsal)
+          strip 3 = rows 24-31 (dorsal)
 
         Note: these are horizontal *strips*, not the 2×2 TREND quadrants
-        (ROI1–ROI4 in Frerichs et al., Thorax 2017; doi:10.1136/thoraxjnl-2016-208357).
+        (ROI1-ROI4 in Frerichs et al., Thorax 2017; doi:10.1136/thoraxjnl-2016-208357).
         TREND quadrant decomposition is a separate future feature.
         """
         p = self._require_frames()["pixels"]
         return np.column_stack(
             [
-                p[:, 0:8, :].sum(axis=(1, 2)),  # ROI 0 — ventral
-                p[:, 8:16, :].sum(axis=(1, 2)),  # ROI 1 — mid-ventral
-                p[:, 16:24, :].sum(axis=(1, 2)),  # ROI 2 — mid-dorsal
-                p[:, 24:32, :].sum(axis=(1, 2)),  # ROI 3 — dorsal
+                p[:, 0:8, :].sum(axis=(1, 2)),  # ROI 0 - ventral
+                p[:, 8:16, :].sum(axis=(1, 2)),  # ROI 1 - mid-ventral
+                p[:, 16:24, :].sum(axis=(1, 2)),  # ROI 2 - mid-dorsal
+                p[:, 24:32, :].sum(axis=(1, 2)),  # ROI 3 - dorsal
             ]
         )
 
@@ -137,10 +137,10 @@ class ReconstructedFrameData(BaseData):
         """Signal for a single ROI (0 = ventral … 3 = dorsal). Shape (N,).
 
         Args:
-            roi: ROI index in range 0–3.
+            roi: ROI index in range 0-3.
         """
         if roi < 0 or roi > 3:
-            raise ValueError(f"roi must be 0–3, got {roi}")
+            raise ValueError(f"roi must be 0-3, got {roi}")
         start = roi * 8
         return self._require_frames()["pixels"][:, start : start + 8, :].sum(
             axis=(1, 2)

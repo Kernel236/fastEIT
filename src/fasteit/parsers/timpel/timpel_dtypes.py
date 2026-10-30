@@ -2,7 +2,7 @@
 
 Column layout (1030 columns per frame, comma-separated CSV, no header):
 
-  cols  0–1023  pixel impedance — 32×32 reconstructed image (row-major)
+  cols  0-1023  pixel impedance - 32×32 reconstructed image (row-major)
   col  1024     airway_pressure  (cmH₂O)
   col  1025     flow             (L/s)
   col  1026     volume           (L)
@@ -42,7 +42,7 @@ TIMPEL_MAX_FLAG_COL: int = 1028
 TIMPEL_QRS_FLAG_COL: int = 1029
 
 TIMPEL_NAN_SENTINEL: float = -1000.0
-TIMPEL_DEFAULT_SAMPLE_FREQUENCY: float = 50.0  # Hz — fixed by device firmware
+TIMPEL_DEFAULT_SAMPLE_FREQUENCY: float = 50.0  # Hz - fixed by device firmware
 
 # ---------------------------------------------------------------------------
 # Ordered auxiliary signal field names (maps col offset → dict key)

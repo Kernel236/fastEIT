@@ -58,11 +58,11 @@ class DragerAscParser(BaseParser):
     """Parser for Dräger PulmoVista 500 `.asc` tabular exports.
 
     The `.asc` file contains several sections:
-    - ASCII header       — recording metadata (file, length, filter settings)
-    - Dynamic Image      — 32×32 pixel table, one row per frame (skipped)
-    - Tidal Image        — 32×32 pixel table, breath-averaged (skipped)
-    - Tidal Variations   — breath-averaged summary (~11 columns, skipped)
-    - Continuous waveforms — frame-by-frame signal table (~68 columns, parsed)
+    - ASCII header       - recording metadata (file, length, filter settings)
+    - Dynamic Image      - 32×32 pixel table, one row per frame (skipped)
+    - Tidal Image        - 32×32 pixel table, breath-averaged (skipped)
+    - Tidal Variations   - breath-averaged summary (~11 columns, skipped)
+    - Continuous waveforms - frame-by-frame signal table (~68 columns, parsed)
 
     This parser targets the continuous waveforms section, identified by its
     header row starting with ``Image`` and containing more than 20 tab-separated

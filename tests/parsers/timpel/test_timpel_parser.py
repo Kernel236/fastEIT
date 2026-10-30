@@ -1,4 +1,4 @@
-"""Tests for TimpelTabularParser — validate() and parse()."""
+"""Tests for TimpelTabularParser - validate() and parse()."""
 
 from pathlib import Path
 
@@ -80,12 +80,12 @@ def test_validate_true_for_txt_extension(tmp_path):
 def test_validate_false_for_short_csv(tmp_path):
     """A CSV with fewer than 1030 columns should not be detected as Timpel."""
     p = tmp_path / "short.csv"
-    # Write 10 columns — not a Timpel file
+    # Write 10 columns - not a Timpel file
     np.savetxt(str(p), np.zeros((5, 10)), delimiter=",")
     assert TimpelTabularParser().validate(p) is False
 
 
-# ── parse() — basic contract ─────────────────────────────────────────────────
+# ── parse() - basic contract ─────────────────────────────────────────────────
 
 
 def test_parse_returns_reconstructed_frame_data(tmp_path):
@@ -120,7 +120,7 @@ def test_parse_fs_is_50hz(tmp_path):
     assert data.fs == TIMPEL_DEFAULT_SAMPLE_FREQUENCY
 
 
-# ── parse() — frames array ───────────────────────────────────────────────────
+# ── parse() - frames array ───────────────────────────────────────────────────
 
 
 def test_parse_pixels_shape(tmp_path):
@@ -148,7 +148,7 @@ def test_parse_timestamps_spacing_matches_fs(tmp_path):
     assert np.allclose(dt, 1.0 / TIMPEL_DEFAULT_SAMPLE_FREQUENCY)
 
 
-# ── parse() — aux_signals ─────────────────────────────────────────────────────
+# ── parse() - aux_signals ─────────────────────────────────────────────────────
 
 
 def test_parse_aux_signals_present(tmp_path):
@@ -185,7 +185,7 @@ def test_parse_min_flag_marker(tmp_path):
     assert data.aux_signals["min_flag"][1] == pytest.approx(0.0)
 
 
-# ── parse() — NaN sentinel replacement ───────────────────────────────────────
+# ── parse() - NaN sentinel replacement ───────────────────────────────────────
 
 
 def test_parse_pixel_sentinel_replaced_with_nan(tmp_path):
@@ -202,7 +202,7 @@ def test_parse_pressure_sentinel_replaced_with_nan(tmp_path):
     assert not np.isnan(data.aux_signals["airway_pressure"][0])
 
 
-# ── parse() — slicing ─────────────────────────────────────────────────────────
+# ── parse() - slicing ─────────────────────────────────────────────────────────
 
 
 def test_parse_first_frame_offset(tmp_path):
@@ -244,7 +244,7 @@ def test_parse_zero_max_frames_raises(tmp_path):
         TimpelTabularParser().parse(p, max_frames=0)
 
 
-# ── parse() — schema errors ───────────────────────────────────────────────────
+# ── parse() - schema errors ───────────────────────────────────────────────────
 
 
 def test_parse_wrong_column_count_raises(tmp_path):
@@ -254,7 +254,7 @@ def test_parse_wrong_column_count_raises(tmp_path):
         TimpelTabularParser().parse(p)
 
 
-# ── parse() — pixel round-trip precision ─────────────────────────────────────
+# ── parse() - pixel round-trip precision ─────────────────────────────────────
 
 
 def test_parse_pixel_value_survives_roundtrip(tmp_path):

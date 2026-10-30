@@ -7,12 +7,12 @@ import numpy as np
 from fasteit.parsers.errors import InvalidSliceError
 
 # ---------------------------------------------------------------------------
-# Dräger PulmoVista 500 — sentinel constants
+# Dräger PulmoVista 500 - sentinel constants
 # ---------------------------------------------------------------------------
 # Two distinct sentinel encodings in Dräger .bin files:
-#   _BIT_SENTINELS  : uint32 bit-pattern 0xFF7FC99E — electrode not connected
+#   _BIT_SENTINELS  : uint32 bit-pattern 0xFF7FC99E - electrode not connected
 #                     (hardware level; manifests as ~-3.4e38 when cast to float32)
-#   _FLOAT_SENTINELS: float value -1000.0 — channel mode N/A or no breath
+#   _FLOAT_SENTINELS: float value -1000.0 - channel mode N/A or no breath
 #                     calculated (software level)
 _FLOAT_SENTINELS: tuple[float, ...] = (-1000.0,)
 _BIT_SENTINELS: tuple[int, ...] = (0xFF7FC99E,)
@@ -68,6 +68,11 @@ def replace_no_data_sentinels(
     return out
 
 
+def replace_draeger_sentinels(values: np.ndarray) -> np.ndarray:
+    """Return a float32 copy with both Draeger "no data" encodings replaced by NaN."""
+    return replace_no_data_sentinels(values, _FLOAT_SENTINELS, _BIT_SENTINELS)
+
+
 def estimate_sampling_frequency_hz(timestamps_day_fraction: np.ndarray) -> float:
     """Derive fs from the validated frame timestamps.
 
@@ -88,5 +93,5 @@ def estimate_sampling_frequency_hz(timestamps_day_fraction: np.ndarray) -> float
     seconds = np.unwrap(ts * 86400.0, period=86400.0)
     interval = seconds[-1] - seconds[0]
     if interval <= 0:
-        raise ValueError("Non-positive timestamp interval — timestamps may be corrupt")
+        raise ValueError("Non-positive timestamp interval - timestamps may be corrupt")
     return float(round((ts.size - 1) / interval))

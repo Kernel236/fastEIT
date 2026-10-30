@@ -1,4 +1,4 @@
-# fastEIT — Parser Reference
+# fastEIT - Parser Reference
 
 Specifications for all parsers: input formats, output containers, calibration
 details, and the pyEIT reconstruction bridge.
@@ -21,7 +21,7 @@ All parsers inherit from `BaseParser` and are accessible via `load_data(path)`.
 
 ---
 
-## 2. `DragerBinParser` — `.bin`
+## 2. `DragerBinParser` - `.bin`
 
 **File:** `parsers/draeger/bin/bin_parser.py`
 
@@ -40,7 +40,7 @@ Two frame formats are registered; detection is size-based (no header).
 | Field | Type | Size | Content |
 |-------|------|------|---------|
 | `ts` | float64 | 8 B | Wall-clock timestamp as fraction of day (kept as-is; × 86400 gives seconds) |
-| `dummy` | float32 | 4 B | Unknown — ignored |
+| `dummy` | float32 | 4 B | Unknown - ignored |
 | `pixels` | float32 × 1024 | 4096 B | Reconstructed 32×32 image (C-order) |
 | `min_max_flag` | int32 | 4 B | +1 = inspiratory peak, −1 = expiratory trough, 0 = none |
 | `event_marker` | int32 | 4 B | Event counter |
@@ -48,21 +48,21 @@ Two frame formats are registered; detection is size-based (no header).
 | `timing_error` | int32 | 4 B | 0 = frame timing OK |
 | `medibus_data` | float32 × 52 | 208 B | Ventilator Medibus channels; sentinel −3.4×10³⁸ = disconnected |
 
-The two formats share Medibus indices 0–50 and differ from index 51 onward:
+The two formats share Medibus indices 0-50 and differ from index 51 onward:
 
 | Index | Base (52 channels) | PressurePod (58 channels) |
 |-------|--------------------|---------------------------|
 | 51 | `time_at_low_pressure` | `high_pressure` (BiLevel PHigh) |
-| 52 | — | `low_pressure` (BiLevel Plow) |
-| 53 | — | `time_at_low_pressure` (BiLevel Tlow) |
-| 54–57 | — | Pod waveforms: `airway_pressure_pod`, `esophageal_pressure_pod`, `transpulmonary_pressure_pod`, `gastric_pressure_pod` |
+| 52 | - | `low_pressure` (BiLevel Plow) |
+| 53 | - | `time_at_low_pressure` (BiLevel Tlow) |
+| 54-57 | - | Pod waveforms: `airway_pressure_pod`, `esophageal_pressure_pod`, `transpulmonary_pressure_pod`, `gastric_pressure_pod` |
 
 Full field list with units: `parsers/draeger/bin/draeger_dtypes.py`.
 
 ### Sentinel values
 
 Disconnected Medibus channels carry the sentinel `−3.4×10³⁸` (IEEE 754 bit
-pattern `0xFF7FC99E`); BiLevel fields (51–53 in the PressurePod format) read
+pattern `0xFF7FC99E`); BiLevel fields (51-53 in the PressurePod format) read
 `−1000.0` when the ventilator is not in BiLevel mode. The parser returns these
 values unchanged. Replacing them with `NaN` is a preprocessing step;
 `bin_utils.replace_no_data_sentinels()` is available for it.
@@ -76,7 +76,7 @@ unwrapped across midnight, rounded to the nearest integer Hz. Falls back to
 
 ---
 
-## 3. `DragerEitParser` — `.eit`
+## 3. `DragerEitParser` - `.eit`
 
 **File:** `parsers/draeger/eit/eit_parser.py`
 
@@ -86,12 +86,12 @@ binary format. We are not aware of another open-source Python parser for it.
 ### File structure
 
 ```
-Bytes 0–11          : preamble — 3 × int32 LE
+Bytes 0-11          : preamble - 3 × int32 LE
                         [0:4]  format_version (always 51)
                         [4:8]  sep_offset      (file-specific, variable)
                         [8:12] unknown_int
-Bytes 12–sep_offset : ASCII header ("key: value\r\n" lines, latin-1)
-Bytes sep_offset–+7 : separator b'**\r\n\r\n\r\n' (8 bytes)
+Bytes 12-sep_offset : ASCII header ("key: value\r\n" lines, latin-1)
+Bytes sep_offset-+7 : separator b'**\r\n\r\n\r\n' (8 bytes)
 Bytes sep_offset+8… : binary frames, 5495 bytes each
 ```
 
@@ -135,12 +135,12 @@ Bytes sep_offset+8… : binary frames, 5495 bytes each
 ### Calibration pipeline
 
 Empirical constants from EIDORS `read_draeger_file.m` (A. Adler, estimated 2016-04-07).
-These are not present in the `.eit` header — they are hardware-specific and hardcoded.
+These are not present in the `.eit` header - they are hardware-specific and hardcoded.
 
 | Constant | Value | Role |
 |----------|-------|------|
-| `FT_A` | 0.00098242 | Transimpedance scaling — primary channel |
-| `FT_B` | 0.00019607 | Transimpedance scaling — reference channel |
+| `FT_A` | 0.00098242 | Transimpedance scaling - primary channel |
+| `FT_B` | 0.00019607 | Transimpedance scaling - reference channel |
 | `FC_CURRENT` | 194326.3536 | ADC counts → Ampere |
 | `FV_VOLTAGE` | 0.11771 | ADC counts → Volt |
 
@@ -158,7 +158,7 @@ measurement (step = 1 electrode).
 
 ---
 
-## 4. `DragerAscParser` — `.asc`
+## 4. `DragerAscParser` - `.asc`
 
 **File:** `parsers/draeger/asc/asc_parser.py`
 
@@ -175,12 +175,12 @@ the ventilator is connected via Medibus.
 
 ---
 
-## 5. `TimpelTabularParser` — `.csv` / `.txt` / `.asc`
+## 5. `TimpelTabularParser` - `.csv` / `.txt` / `.asc`
 
 **File:** `parsers/timpel/timpel_parser.py`
 
 Reads Timpel EIT device tabular exports. Each row is one EIT frame;
-columns 0–1023 are the 32×32 pixel values (C-order); columns 1024–1029
+columns 0-1023 are the 32×32 pixel values (C-order); columns 1024-1029
 are auxiliary signals (airway_pressure, flow, volume, min_flag, max_flag, qrs_flag).
 
 Returns `ReconstructedFrameData`. The export has no timestamp column, so `fs`
@@ -204,7 +204,7 @@ Converts `RawImpedanceData.measurements` (N_frames, 208) to reconstructed
 32×32 images (N_frames, 32, 32) using the GREIT algorithm.
 
 Reference: Adler A et al., "GREIT: a unified approach to 2D linear EIT
-reconstruction of lung images." *Physiol. Meas.* 30 (2009) S35–S55.
+reconstruction of lung images." *Physiol. Meas.* 30 (2009) S35-S55.
 DOI: [10.1088/0967-3334/30/6/S03](https://doi.org/10.1088/0967-3334/30/6/S03)
 
 ### `build_greit(n_el, h0, p, lamb, n) → (solver, protocol)`
@@ -226,14 +226,14 @@ Builds a pyEIT GREIT solver on a circular unit-disk mesh.
 | `None` | Mean of all frames in this recording (default) |
 | `int` | Single frame index |
 | `(start, end)` | Mean of `measurements[start:end]` |
-| `np.ndarray (208,)` | External reference — for cross-recording EELI comparison |
+| `np.ndarray (208,)` | External reference - for cross-recording EELI comparison |
 
 **Sign convention**: GREIT outputs conductivity change (Δσ); the function negates
 it to match the Dräger impedance convention (air → impedance rises → positive peak).
 
-**Image orientation** — three steps applied inside `reconstruct_greit()`, all
+**Image orientation** - three steps applied inside `reconstruct_greit()`, all
 sourced from PulmoVista 500 IFU SW 1.3n:
-1. **Negate** (sign flip): impedance convention — see above.
+1. **Negate** (sign flip): impedance convention - see above.
 2. **`rot90(k=1)`** (90° CCW): electrode 1 sits at 12 o'clock on the PulmoVista
    belt (anterior/ventral wall); pyEIT places electrode 0 at 3 o'clock. Rotation
    moves the anterior region to the top of the image. Source: IFU p. 144.

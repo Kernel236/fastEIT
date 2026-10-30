@@ -88,7 +88,7 @@ def test_validate_false_for_too_small_file(tmp_path):
     assert not DragerEitParser().validate(p)
 
 
-# ── parse() — return type and structure ──────────────────────────────────────
+# ── parse() - return type and structure ──────────────────────────────────────
 
 
 def test_parse_returns_raw_impedance_data(tmp_path):
@@ -121,7 +121,7 @@ def test_parse_file_format_is_eit(tmp_path):
     assert data.file_format == "eit"
 
 
-# ── parse() — metadata ────────────────────────────────────────────────────────
+# ── parse() - metadata ────────────────────────────────────────────────────────
 
 
 def test_parse_metadata_n_frames(tmp_path):
@@ -148,7 +148,7 @@ def test_parse_metadata_date(tmp_path):
     assert data.metadata["date"] == "01.01.2024"
 
 
-# ── parse() — calibration vv = FT_A*trans_A - FT_B*trans_B ──────────────────
+# ── parse() - calibration vv = FT_A*trans_A - FT_B*trans_B ──────────────────
 
 
 def test_parse_measurements_calibration(tmp_path):
@@ -170,7 +170,7 @@ def test_parse_measurements_not_all_zero(tmp_path):
     assert not np.all(data.measurements == 0)
 
 
-# ── parse() — aux_signals ─────────────────────────────────────────────────────
+# ── parse() - aux_signals ─────────────────────────────────────────────────────
 
 
 def test_parse_aux_signals_keys(tmp_path):
@@ -225,7 +225,7 @@ def test_parse_aux_signals_medibus_shape(tmp_path):
     assert data.aux_signals["medibus"].shape == (5, 67)
 
 
-# ── parse() — fs fallback warning ─────────────────────────────────────────────
+# ── parse() - fs fallback warning ─────────────────────────────────────────────
 
 
 def test_parse_warns_if_framerate_missing(tmp_path):
@@ -254,7 +254,7 @@ def test_parse_warns_if_framerate_missing(tmp_path):
     assert data.fs == pytest.approx(50.0)
 
 
-# ── parse() — error cases ─────────────────────────────────────────────────────
+# ── parse() - error cases ─────────────────────────────────────────────────────
 
 
 def test_parse_raises_for_too_small_file(tmp_path):

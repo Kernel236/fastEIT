@@ -11,12 +11,12 @@ class BaseData:
 
     Attributes:
         filename:    Path of the source file.
-        file_format: Format identifier — "bin", "eit", "asc", "csv", or "txt".
-        vendor:      Detected device vendor — "draeger" or "timpel".
+        file_format: Format identifier - "bin", "eit", "asc", "csv", or "txt".
+        vendor:      Detected device vendor - "draeger" or "timpel".
         fs:          Sampling rate in Hz, estimated by parser from timestamps.
         metadata:    Parsed header information (framerate, date, firmware, etc.).
-        n_frames:    Number of frames — set by subclass __post_init__.
-        duration:    Recording duration in seconds — set by subclass __post_init__.
+        n_frames:    Number of frames - set by subclass __post_init__.
+        duration:    Recording duration in seconds - set by subclass __post_init__.
     """
 
     filename: str = ""

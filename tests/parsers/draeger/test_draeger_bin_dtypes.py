@@ -88,10 +88,10 @@ def test_medibus_index_lookup():
     assert MEDIBUS_BASE_INDEX["peep"] == 14
     assert (
         MEDIBUS_BASE_INDEX["time_at_low_pressure"] == 51
-    )  # Tlow — last field in BASE format
+    )  # Tlow - last field in BASE format
     assert (
         MEDIBUS_EXT_INDEX["high_pressure"] == 51
-    )  # PHigh BiLevel — first EXT-specific field
+    )  # PHigh BiLevel - first EXT-specific field
     assert MEDIBUS_EXT_INDEX["low_pressure"] == 52  # Plow BiLevel
     assert MEDIBUS_EXT_INDEX["time_at_low_pressure"] == 53  # Tlow shifts 51→53 in EXT
 

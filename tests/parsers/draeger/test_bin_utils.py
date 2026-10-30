@@ -9,6 +9,7 @@ from fasteit.parsers.draeger.bin.bin_utils import (
     estimate_sampling_frequency_hz,
     is_not_connected_sentinel,
     normalize_frame_slice,
+    replace_draeger_sentinels,
     replace_no_data_sentinels,
 )
 from fasteit.parsers.errors import InvalidSliceError
@@ -120,3 +121,11 @@ def test_fs_estimation_requires_at_least_2_timestamps():
 def test_fs_estimation_raises_on_identical_timestamps():
     with pytest.raises(ValueError, match="Non-positive"):
         estimate_sampling_frequency_hz(np.array([0.5, 0.5, 0.5]))
+
+
+def test_replace_draeger_sentinels_uses_both_encodings():
+    values = np.array([1.0, -1000.0, 2.0], dtype=np.float32)
+    values[2] = np.array([0xFF7FC99E], dtype=np.uint32).view(np.float32)[0]
+    out = replace_draeger_sentinels(values)
+    assert out[0] == 1.0 and np.isnan(out[1:]).all()
+    assert values[1] == -1000.0  # the input is not modified
