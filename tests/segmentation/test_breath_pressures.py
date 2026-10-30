@@ -14,7 +14,7 @@ CFG = SegmentationConfig()
 
 
 def vcv_pressure(
-    peeps, fs=50, period=4.0, inspiration=1.0, pause=0.4, peak=20.0, plateau=12.0
+    peeps, fs=50, period=4.0, inspiration=1.0, pause=0.8, peak=20.0, plateau=12.0
 ):
     """Volume-control airway pressure: ramp, end-inspiratory pause, passive expiration.
 
@@ -84,3 +84,35 @@ def test_both_draeger_sampling_rates(fs):
     onsets = inspiration_onsets(paw, fs, starts)
     peep = pressure_before(paw, fs, onsets, CFG.peep_seconds)
     np.testing.assert_allclose(peep[1:], 8, atol=0.05)
+
+
+def test_a_short_hold_gives_no_plateau():
+    # A 0.3 s hold is too short: the reading would fall on the relaxation after the peak.
+    paw, starts = vcv_pressure([10] * 5, pause=0.3)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    assert np.isnan(
+        plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    ).all()
+
+
+def test_missing_pressure_in_the_breath_gives_no_plateau():
+    paw, starts = vcv_pressure([10] * 5)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    paw[starts[2] + 60] = np.nan  # during the hold of breath 2
+    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    assert np.isnan(plateau[2]) and np.isfinite(plateau[[1, 3]]).all()
+
+
+def test_missing_pressure_before_the_rise_gives_no_onset():
+    paw, starts = vcv_pressure([10] * 5)
+    paw[starts[3] - 20] = np.nan  # in the 0.5 s lookback, not in the slope window
+    onsets = inspiration_onsets(paw, 50, starts + 25)
+    assert onsets[3] == -1
+
+
+def test_the_first_breath_at_the_start_of_the_recording():
+    paw, starts = vcv_pressure([10] * 4)
+    onsets = inspiration_onsets(paw, 50, starts)
+    assert onsets[0] == 0  # no fake rise from padding at the edge
