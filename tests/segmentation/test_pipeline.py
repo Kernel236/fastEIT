@@ -150,3 +150,54 @@ def test_real_peep_trials_give_the_steps_and_breaths_of_notebook_06():
         assert trial.analysed_breaths.plateau.notna().mean() > 0.95, (
             name
         )  # 99-100 % in notebook 06
+
+
+# --- a recording with more than one protocol ---
+
+BASELINE_THEN_TRIAL = [12] * 10 + [16] * 10 + [14] * 10 + [12] * 10 + [10] * 10
+
+
+def baseline_then_trial(exclusions=()):
+    raw, _ = synthetic_raw(seconds=200)
+    paw, _ = vcv_pressure(BASELINE_THEN_TRIAL, fs=FS, period=4.0)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    return preprocess(raw, exclusions=exclusions)
+
+
+TRIAL_PHASE = Segment(40, 200, category="phase", label="peep_trial")
+
+
+def test_the_phase_limits_the_steps_to_the_peep_trial():
+    recording = baseline_then_trial()
+    whole = segment_peep_trial(recording)
+    assert whole.steps.peep.round().tolist() == [
+        12,
+        16,
+        14,
+        12,
+        10,
+    ]  # baseline as a step
+    trial = segment_peep_trial(recording, phase=TRIAL_PHASE)
+    assert trial.steps.peep.round().tolist() == [16, 14, 12, 10]
+    before = trial.breaths[trial.breaths.end_time <= 40]
+    assert (before.peep_step == -1).all() and not before.analysed.any()
+
+
+def test_a_maneuver_excluded_in_preprocess_is_never_analysed():
+    recording = baseline_then_trial(exclusions=[Segment(170, 200, label="aop")])
+    trial = segment_peep_trial(recording, phase=TRIAL_PHASE)
+    excluded = trial.breaths[trial.breaths.excluded]
+    assert len(excluded) > 0 and not excluded.analysed.any()
+
+
+@pytest.mark.parametrize(
+    "phase, message",
+    [
+        (Segment(40, 200, label="cough"), "category"),
+        (Segment(40, 200, category="phase", label="tidal"), "peep_trial"),
+        (Segment(500, 600, category="phase", label="peep_trial"), "No breath inside"),
+    ],
+)
+def test_unusable_phases_are_rejected(phase, message):
+    with pytest.raises(ValueError, match=message):
+        segment_peep_trial(baseline_then_trial(), phase=phase)

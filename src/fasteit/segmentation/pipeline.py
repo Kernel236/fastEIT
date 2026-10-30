@@ -33,6 +33,9 @@ from fasteit.segmentation.peep_steps import (
 
 logger = logging.getLogger(__name__)
 
+PHASE = "phase"  # Segment.category of a part of the recording with its own protocol
+PEEP_TRIAL = "peep_trial"  # Segment.label of the PEEP trial phase
+
 
 class _Log:
     """Collects the messages of one call and sends them to the logger."""
@@ -113,12 +116,37 @@ def _breath_pressures(
     return None, nothing, nothing.copy()
 
 
+def _breaths_in_phase(
+    times: np.ndarray, ends: np.ndarray, phase: Segment | None, log: _Log
+) -> np.ndarray:
+    """Breaths inside the PEEP trial phase (all breaths if there is no phase)."""
+    if phase is None:
+        return np.ones(len(times), dtype=bool)
+    if phase.category != PHASE or phase.label != PEEP_TRIAL:
+        raise ValueError(
+            f'The phase must be a Segment with category="{PHASE}" and '
+            f'label="{PEEP_TRIAL}", got category="{phase.category}", label="{phase.label}".'
+        )
+    inside = (times >= phase.start) & (ends <= phase.end)
+    if not inside.any():
+        raise ValueError(f"No breath inside the phase {phase.start:g}-{phase.end:g} s.")
+    log.info(
+        f"PEEP trial phase {phase.start:g}-{phase.end:g} s: {inside.sum()} breaths."
+    )
+    return inside
+
+
 def segment_peep_trial(
     recording: EITRecording,
     config: SegmentationConfig | None = None,
     peep_steps: Sequence[Segment] = (),
+    phase: Segment | None = None,
 ) -> PeepTrial:
     """Split a preprocessed PEEP trial into PEEP steps and choose the breaths analysed.
+
+    A recording can contain more than one protocol, e.g. a tidal baseline and then a PEEP
+    trial: ``phase`` limits the segmentation to the PEEP trial. A part that is not
+    analysed at all (e.g. a maneuver) is an exclusion of ``preprocess()`` instead.
 
     Args:
         recording:  Output of ``preprocess()``.
@@ -127,42 +155,53 @@ def segment_peep_trial(
                     PEEP level in ``parameters["peep"]``. If given, they replace the
                     steps found from the pressure, and the breaths analysed are the valid
                     breaths inside them.
+        phase:      The PEEP trial part of the recording: a segment with
+                    ``category="phase"`` and ``label="peep_trial"``. If None, the whole
+                    recording.
 
     Returns:
-        The PEEP trial.
+        The PEEP trial. Breaths outside the phase have ``peep_step`` -1.
 
     Raises:
         ValueError: if there are no steps placed by hand and no pressure to find them,
-            or a step placed by hand is not usable.
+            a step placed by hand or the phase is not usable, or no breath is inside the
+            phase.
     """
     config = config if config is not None else SegmentationConfig()
     log = _Log()
     b = recording.breaths
     times, ends = b.start_time.to_numpy(), b.end_time.to_numpy()
     valid = b.is_valid.to_numpy()
+    in_phase = _breaths_in_phase(times, ends, phase, log)
 
     channel, peep, plateau = _breath_pressures(recording, config, log)
 
     if peep_steps:
         step, levels = steps_from_segments(times, ends, peep_steps)
+        step[~in_phase] = -1
         analysed = (step >= 0) & valid
         source = "manual"
         log.info(f"{len(levels)} PEEP steps placed by hand.")
     elif channel is not None:
-        step = step_of_each_breath(
-            find_steps(
-                peep,
-                config.step_threshold,
-                config.step_min_breaths,
-                config.step_agreement,
-            ),
-            len(b),
+        inside = np.flatnonzero(in_phase)
+        step_starts = find_steps(
+            peep[inside],
+            config.step_threshold,
+            config.step_min_breaths,
+            config.step_agreement,
         )
+        step = np.full(len(b), -1, dtype=int)
+        step[inside] = step_of_each_breath(step_starts, len(inside))
         levels = np.array(
             [np.nanmedian(peep[step == k]) for k in range(step.max() + 1)]
         )
         # A breath at an intermediate PEEP (e.g. just before a change) is not analysed.
-        at_level = np.abs(peep - levels[step]) <= config.analysis_peep_tolerance
+        at_level = np.zeros(len(b), dtype=bool)
+        in_step = step >= 0
+        at_level[in_step] = (
+            np.abs(peep[in_step] - levels[step[in_step]])
+            <= config.analysis_peep_tolerance
+        )
         analysed = analysed_breaths(
             times,
             step,
