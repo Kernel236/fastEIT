@@ -26,6 +26,9 @@ ONSET_LOOKBACK_SECONDS = 0.5
 EXPIRATION_SEARCH_SECONDS = 0.3
 # The pressure is back near PEEP when it is within 2 (mbar or cmH2O) of it.
 BACK_TO_PEEP_MARGIN = 2.0
+# The highest part of a breath starts at the first frame within 1 (mbar or cmH2O) of its
+# maximum: the peak in volume control, the start of the flat pressure in pressure control.
+TOP_MARGIN = 1.0
 # A plateau needs an end-inspiratory hold of at least 0.5 s (0.9-1.3 s in the trials of
 # notebook 06; 5 of 606 breaths were shorter).
 MIN_PAUSE_SECONDS = 0.5
@@ -113,17 +116,19 @@ def plateau_pressures(
 ) -> np.ndarray:
     """Plateau pressure of each breath, read at the end of the end-inspiratory hold.
 
-    Between the start of inspiration of a breath and the next one: after the peak, the
-    start of expiration is the steepest fall of the pressure in the 0.3 s before it comes
-    back within 2 of the next PEEP; the plateau is the median pressure from ``window[0]``
-    to ``window[1]`` seconds before it (notebook 06, section 4).
+    Between the start of inspiration of a breath and the next one: after the highest
+    part of the breath (the peak in volume control, the flat pressure in pressure
+    control), the start of expiration is the steepest fall of the pressure in the 0.3 s
+    before it comes back within 2 of the next PEEP; the plateau is the median pressure
+    from ``window[0]`` to ``window[1]`` seconds before it (notebook 06, section 4).
 
-    A valid plateau needs an end-inspiratory hold of at least 0.5 s with zero flow, as
-    in volume control with a pause. With a shorter hold the plateau is NaN: the reading
-    would fall on the relaxation after the peak, and the peak pressure is never used
-    instead because it includes the resistive pressure. In pressure control the flat
-    inspiratory pressure is read, which is a plateau only if the flow is zero at the end
-    of inspiration.
+    A valid plateau needs at least 0.5 s between the highest part and the expiration:
+    an end-inspiratory hold with zero flow in volume control (continuous pause, or an
+    inspiratory hold done by hand), or the flat inspiratory pressure in pressure
+    control, which is a plateau only if the flow is zero at the end of inspiration.
+    Otherwise the plateau is NaN: the reading would fall on the relaxation after the
+    peak, and the peak pressure is never used instead because it includes the resistive
+    pressure.
 
     Args:
         paw:    Airway pressure, one value per frame.
@@ -150,7 +155,8 @@ def plateau_pressures(
             continue
         if np.isnan(paw[onset:next_onset]).any():
             continue
-        peak = onset + int(np.argmax(paw[onset:next_onset]))
+        breath = paw[onset:next_onset]
+        peak = onset + int(np.flatnonzero(breath >= breath.max() - TOP_MARGIN)[0])
         back_to_peep = np.flatnonzero(
             smoothed[peak:next_onset] < peeps[i + 1] + BACK_TO_PEEP_MARGIN
         )

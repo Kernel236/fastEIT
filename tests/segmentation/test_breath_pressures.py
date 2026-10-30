@@ -22,9 +22,11 @@ def vcv_pressure(
     does. Returns the pressure and the frame where each breath starts.
     """
     t = np.arange(0, period, 1 / fs)
+    pauses = np.broadcast_to(pause, len(peeps))  # one pause, or one per breath
     breaths, starts = [], []
     for k, peep in enumerate(peeps):
         next_peep = peeps[k + 1] if k + 1 < len(peeps) else peep
+        pause = pauses[k]
         p = np.full(len(t), float(peep))
         ramp = t < inspiration
         p[ramp] = peep + peak * t[ramp] / inspiration
@@ -116,3 +118,40 @@ def test_the_first_breath_at_the_start_of_the_recording():
     paw, starts = vcv_pressure([10] * 4)
     onsets = inspiration_onsets(paw, 50, starts)
     assert onsets[0] == 0  # no fake rise from padding at the edge
+
+
+def pcv_pressure(peeps, fs=50, period=4.0, inspiration=1.2, above_peep=15.0):
+    """Pressure-control airway pressure: fast rise, flat inspiratory pressure, expiration."""
+    t = np.arange(0, period, 1 / fs)
+    noise = np.random.default_rng(1).normal(0, 0.1, (len(peeps), len(t)))
+    breaths, starts = [], []
+    for k, peep in enumerate(peeps):
+        next_peep = peeps[k + 1] if k + 1 < len(peeps) else peep
+        p = np.full(len(t), float(peep))
+        rise = t < 0.1
+        p[rise] = peep + above_peep * t[rise] / 0.1
+        flat = (t >= 0.1) & (t < inspiration)
+        p[flat] = peep + above_peep
+        out = t >= inspiration
+        top = peep + above_peep
+        p[out] = next_peep + (top - next_peep) * np.exp(-(t[out] - inspiration) / 0.05)
+        starts.append(len(t) * k)
+        breaths.append(p + noise[k])
+    return np.concatenate(breaths), np.array(starts)
+
+
+def test_pressure_control_reads_the_flat_inspiratory_pressure():
+    paw, starts = pcv_pressure([10, 10, 10, 8, 8, 8])
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    np.testing.assert_allclose(plateau[1:-1] - peep[1:-1], 15, atol=0.2)
+
+
+def test_one_inspiratory_hold_among_breaths_without_pause():
+    paw, starts = vcv_pressure([10] * 6, pause=[0, 0, 1.5, 0, 0, 0])
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    assert np.flatnonzero(np.isfinite(plateau)).tolist() == [2]
+    assert plateau[2] == pytest.approx(22, abs=0.05)
