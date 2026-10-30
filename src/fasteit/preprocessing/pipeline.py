@@ -49,6 +49,7 @@ from fasteit.preprocessing.exclusions import (
 )
 from fasteit.preprocessing.lung_mask import remove_small_regions, watershed_mask
 from fasteit.preprocessing.regions import lung_regions
+from fasteit.run_log import RunLog
 
 logger = logging.getLogger(__name__)
 
@@ -57,21 +58,6 @@ NOT_REMOVED = (
     "cardiac component NOT removed (moving average of {seconds} s only); "
     "pixel-level results and small tidal volumes may be affected."
 )
-
-
-class _Log:
-    """Collects the messages of one ``preprocess()`` call and sends them to the logger."""
-
-    def __init__(self) -> None:
-        self.messages: list[str] = []
-
-    def info(self, message: str) -> None:
-        self.messages.append(message)
-        logger.info(message)
-
-    def warning(self, message: str) -> None:
-        self.messages.append(f"WARNING: {message}")
-        logger.warning(message)
 
 
 def recording_time(raw: ReconstructedFrameData) -> np.ndarray:
@@ -112,7 +98,7 @@ def _check_input(raw: ReconstructedFrameData) -> None:
 
 
 def _device_exclusions(
-    raw: ReconstructedFrameData, time: np.ndarray, missing: np.ndarray, log: _Log
+    raw: ReconstructedFrameData, time: np.ndarray, missing: np.ndarray, log: RunLog
 ) -> list[Segment]:
     """Exclusions from the device: missing pixel data, timing errors, time gaps.
 
@@ -151,7 +137,7 @@ def _device_exclusions(
 
 
 def _respiratory_rate(
-    pixels: np.ndarray, fs: float, config: PreprocessingConfig, log: _Log
+    pixels: np.ndarray, fs: float, config: PreprocessingConfig, log: RunLog
 ) -> float | None:
     """Respiratory rate (Hz) from the spectrum of all pixels, or None."""
     try:
@@ -180,7 +166,7 @@ def _cardiac_step(
     fs: float,
     rr_hz: float | None,
     config: PreprocessingConfig,
-    log: _Log,
+    log: RunLog,
 ) -> tuple[np.ndarray, str]:
     """Cardiac filter policy of section 5c.
 
@@ -224,7 +210,7 @@ def _cardiac_step(
 
 
 def _regional_signals(
-    pixels: np.ndarray, roi_masks: dict[str, np.ndarray], log: _Log
+    pixels: np.ndarray, roi_masks: dict[str, np.ndarray], log: RunLog
 ) -> pd.DataFrame:
     """Sum of the pixels of each region; NaN for an empty region, with a warning."""
     signals = {}
@@ -283,7 +269,7 @@ def preprocess(
     """
     config = config if config is not None else PreprocessingConfig()
     context = context if context is not None else RecordingContext()
-    log = _Log()
+    log = RunLog(logger)
     _check_input(raw)
     fs = raw.fs
     name = Path(raw.filename).name if raw.filename else "recording"

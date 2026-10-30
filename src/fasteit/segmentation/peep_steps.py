@@ -11,9 +11,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from fasteit.models.eit_recording import Segment
-
-PEEP_STEP = "peep_step"  # Segment.category of a step placed by hand
+from fasteit.models.eit_recording import PEEP_STEP, Segment
 
 
 def find_steps(

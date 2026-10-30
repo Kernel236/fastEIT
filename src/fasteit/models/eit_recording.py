@@ -16,6 +16,11 @@ import pandas as pd
 from fasteit.config import PreprocessingConfig
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 
+# Segment categories.
+EXCLUSION = "exclusion"  # a part not analysed (artifact, maneuver); layer 2
+PEEP_STEP = "peep_step"  # a PEEP step placed by hand, with parameters["peep"]; layer 2b
+PHASE = "phase"  # a part with its own protocol, label "tidal" or "peep_trial"; layer 2b
+
 
 @dataclass(frozen=True)
 class Segment:
@@ -24,8 +29,8 @@ class Segment:
     Attributes:
         start:      Start time in seconds.
         end:        End time in seconds (must be greater than ``start``).
-        category:   What the interval is. Layer 2 uses ``"exclusion"``; layer 3 will
-                    add ``"peep_step"`` and ``"transition"``.
+        category:   What the interval is: ``"exclusion"`` (layer 2), ``"peep_step"``
+                    or ``"phase"`` (layer 2b).
         label:      Why, e.g. ``"artifact"``, ``"movement"``, ``"timing_error"``.
         source:     Who created it: ``"manual"``, ``"device"`` or ``"auto"``.
         parameters: For automatic segments, how they were found. Not used for
@@ -37,7 +42,7 @@ class Segment:
 
     start: float
     end: float
-    category: str = "exclusion"
+    category: str = EXCLUSION
     label: str = ""
     source: str = "manual"
     parameters: dict = field(default_factory=dict, hash=False)
