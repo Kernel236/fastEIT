@@ -40,7 +40,8 @@ MIN_FRACTION_READ = 0.5
 PRESSURE_UNITS = {"draeger": "mbar", "timpel": "cmH2O"}
 STEP_COLUMNS = [
     "step", "peep", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
-    "plateau", "driving_pressure", "n_driving_pressure", "enough_driving_pressure",
+    "plateau", "driving_pressure", "driving_pressure_source", "n_driving_pressure",
+    "enough_driving_pressure",
 ]  # fmt: skip
 
 
@@ -136,8 +137,9 @@ def _check_readings(
         log.warning("PEEP missing in most breaths: is the pressure signal complete?")
     if with_peep.any() and with_plateau.mean() < MIN_FRACTION_READ:
         log.warning(
-            "No end-inspiratory plateau in most breaths: plateau and driving pressure "
-            "are missing (the peak pressure is not used instead)."
+            "No end-inspiratory plateau in most breaths: the driving pressure of a step "
+            "comes from its breaths with an inspiratory hold, if any (the peak pressure "
+            "is not used instead)."
         )
 
 
@@ -200,6 +202,35 @@ def _check_manual_levels(
             )
 
 
+def _step_driving_pressure(
+    in_step: pd.DataFrame,
+    analysed: pd.DataFrame,
+    level: float,
+    typed_plateau: float,
+    config: SegmentationConfig,
+) -> tuple[float, float, str | None, int, bool]:
+    """Plateau, driving pressure, where they come from, how many breaths, and enough.
+
+    In order: the analysed breaths if enough of them have a plateau (continuous
+    end-inspiratory pause); otherwise the breaths of the step with an inspiratory hold
+    (one is enough; a maneuver excluded by hand is not used); otherwise the value typed
+    with a step placed by hand.
+    """
+    with_driving = analysed[analysed.driving_pressure.notna()]
+    if len(with_driving) >= config.analysis_min_breaths:
+        source, used = "breaths", with_driving
+    else:
+        holds = in_step[in_step.driving_pressure.notna() & ~in_step.excluded]
+        source, used = "hold", holds
+    if len(used):
+        enough = source == "hold" or len(used) >= config.analysis_min_breaths
+        return (float(used.plateau.median()), float(used.driving_pressure.median()),
+                source, len(used), enough)  # fmt: skip
+    if np.isfinite(typed_plateau):
+        return typed_plateau, typed_plateau - level, "typed", 0, True
+    return np.nan, np.nan, None, 0, False
+
+
 def _steps_table(
     breaths: pd.DataFrame,
     levels: np.ndarray,
@@ -207,26 +238,20 @@ def _steps_table(
     config: SegmentationConfig,
     log: RunLog,
 ) -> pd.DataFrame:
-    """One row per step; plateau and driving pressure = medians of the analysed breaths."""
+    """One row per step, with its plateau and driving pressure."""
     rows = []
     for k, level in enumerate(levels):
         in_step = breaths[breaths.peep_step == k]
         analysed = in_step[in_step.analysed]
-        with_driving = analysed[analysed.driving_pressure.notna()]
-        plateau, driving = np.nan, np.nan
-        n_driving = len(with_driving)
-        if n_driving:
-            plateau = float(with_driving.plateau.median())
-            driving = float(with_driving.driving_pressure.median())
-        elif np.isfinite(typed_plateaus[k]):
-            plateau, driving = typed_plateaus[k], typed_plateaus[k] - level
-            n_driving = len(analysed)
+        driving = _step_driving_pressure(
+            in_step, analysed, level, typed_plateaus[k], config
+        )
         rows.append([
             k, float(level),
             float(in_step.start_time.min()) if len(in_step) else np.nan,
             float(in_step.end_time.max()) if len(in_step) else np.nan,
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
-            plateau, driving, n_driving, n_driving >= config.analysis_min_breaths,
+            *driving,
         ])  # fmt: skip
         if len(analysed) < config.analysis_min_breaths:
             log.warning(
@@ -239,8 +264,9 @@ def _steps_table(
     else:
         for k in steps.step[~steps.enough_driving_pressure]:
             log.warning(
-                f"Step {k}: driving pressure in fewer than "
-                f"{config.analysis_min_breaths} breaths."
+                f"Step {k}: no driving pressure (plateau in fewer than "
+                f"{config.analysis_min_breaths} analysed breaths, no inspiratory hold, "
+                "none typed)."
             )
     return steps
 
@@ -262,8 +288,9 @@ def segment_peep_trial(
         recording:  Output of ``preprocess()``.
         config:     Parameters; defaults of ``SegmentationConfig`` if None.
         peep_steps: Steps placed by hand: segments with ``category="peep_step"``, the
-                    PEEP level in ``parameters["peep"]`` and optionally the plateau in
-                    ``parameters["plateau"]``. If given, they replace the steps found
+                    PEEP level in ``parameters["peep"]`` and optionally the plateau
+                    (``parameters["plateau"]``) or the driving pressure
+                    (``parameters["driving_pressure"]``) read on the ventilator. If given, they replace the steps found
                     from the pressure, and the breaths analysed are the valid breaths
                     inside them.
         phase:      The PEEP trial part of the recording: a segment with

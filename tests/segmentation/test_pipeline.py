@@ -11,7 +11,7 @@ from fasteit.segmentation.pipeline import segment_peep_trial
 
 from ..preprocessing.test_breath_quality import TEST_FILES
 from ..preprocessing.test_pipeline import FS, synthetic_raw
-from .test_breath_pressures import vcv_pressure
+from .test_breath_pressures import pcv_pressure, vcv_pressure
 
 PEEPS = [12] * 12 + [10] * 12 + [8] * 12 + [6] * 14  # 50 breaths of 4 s
 
@@ -45,6 +45,7 @@ def test_step_table_has_the_driving_pressure_and_the_unit(recording):
     trial = segment_peep_trial(recording)
     np.testing.assert_allclose(trial.steps.driving_pressure, 12, atol=0.2)
     assert trial.steps.enough_driving_pressure.all()
+    assert (trial.steps.driving_pressure_source == "breaths").all()
     assert trial.pressure_unit == "cmH2O"  # the synthetic recording is a Timpel one
     assert np.isfinite(trial.breaths.driving_pressure.iloc[-1])  # last breath too
 
@@ -250,3 +251,41 @@ def test_without_any_plateau_the_log_says_compliance_is_not_available():
     steps = [Segment(20, 60, category="peep_step", parameters={"peep": 10})]
     trial = segment_peep_trial(synthetic_trial(aux={}), peep_steps=steps)
     assert any("compliance cannot be computed" in line for line in trial.log)
+
+
+def test_one_inspiratory_hold_per_step_gives_the_driving_pressure():
+    # Volume control without pause; in each step one breath with a 1.5 s hold.
+    pauses = [1.5 if k % 12 == 6 else 0.0 for k in range(len(PEEPS))]
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0, pause=pauses)
+    trial = segment_peep_trial(
+        synthetic_trial(aux={"airway_pressure_pod": paw.astype(np.float32)})
+    )
+    assert (trial.steps.driving_pressure_source == "hold").all()
+    assert (
+        trial.steps.n_driving_pressure == 1
+    ).all() and trial.steps.enough_driving_pressure.all()
+    np.testing.assert_allclose(trial.steps.driving_pressure, 12, atol=0.2)
+
+
+def test_pressure_control_gives_the_driving_pressure():
+    paw, _ = pcv_pressure(PEEPS, fs=FS, period=4.0)
+    trial = segment_peep_trial(
+        synthetic_trial(aux={"airway_pressure_pod": paw.astype(np.float32)})
+    )
+    np.testing.assert_allclose(trial.steps.peep, [12, 10, 8, 6], atol=0.1)
+    np.testing.assert_allclose(trial.steps.driving_pressure, 15, atol=0.2)
+
+
+def test_a_driving_pressure_can_be_typed_instead_of_the_plateau():
+    steps = [
+        Segment(
+            20,
+            60,
+            category="peep_step",
+            parameters={"peep": 10, "driving_pressure": 14},
+        )
+    ]
+    trial = segment_peep_trial(synthetic_trial(aux={}), peep_steps=steps)
+    assert trial.steps.driving_pressure.tolist() == [14.0]
+    assert trial.steps.plateau.tolist() == [24.0]
+    assert trial.steps.driving_pressure_source.tolist() == ["typed"]

@@ -80,19 +80,20 @@ def steps_from_segments(
     """Steps placed by hand: the breaths inside each segment, its PEEP and plateau.
 
     A breath belongs to a segment when it starts and ends inside it: a breath cut by
-    the edge of a segment is left out. Segments are numbered in time order. The plateau
-    is optional (e.g. read on the ventilator), for recordings without a pressure signal.
+    the edge of a segment is left out. Segments are numbered in time order. The plateau,
+    or directly the driving pressure, is optional (e.g. read on the ventilator during an
+    inspiratory hold), for recordings without a pressure signal.
 
     Args:
         breath_starts, breath_ends: Start and end time of each breath, in seconds.
         segments: Segments with ``category="peep_step"``, the PEEP level in
-            ``parameters["peep"]`` and optionally the plateau in
-            ``parameters["plateau"]``.
+            ``parameters["peep"]`` and optionally ``parameters["plateau"]`` or
+            ``parameters["driving_pressure"]`` (the plateau wins if both are given).
 
     Returns:
         ``step``: step number of each breath (-1 outside every segment);
-        ``levels``: PEEP level of each step; ``plateaus``: plateau typed for each step
-        (NaN if not given).
+        ``levels``: PEEP level of each step; ``plateaus``: plateau typed for each step,
+        or PEEP + driving pressure typed (NaN if neither is given).
 
     Raises:
         ValueError: if a segment is not a PEEP step, has no PEEP level, overlaps
@@ -121,8 +122,16 @@ def steps_from_segments(
             "No breath is inside the PEEP steps placed by hand (times in s?)."
         )
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
-    plateaus = np.array([float(s.parameters.get("plateau", np.nan)) for s in ordered])
+    plateaus = np.array([_typed_plateau(s.parameters) for s in ordered])
     return step, levels, plateaus
+
+
+def _typed_plateau(parameters: dict) -> float:
+    if "plateau" in parameters:
+        return float(parameters["plateau"])
+    if "driving_pressure" in parameters:
+        return float(parameters["peep"]) + float(parameters["driving_pressure"])
+    return np.nan
 
 
 def analysed_breaths(

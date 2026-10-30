@@ -28,8 +28,10 @@ class PeepTrial:
         steps:            One row per step: ``step``, ``peep`` (level, as measured or as
                           typed), ``start_time``, ``end_time``, ``n_breaths``,
                           ``n_analysed``, ``enough`` (at least the minimum), ``plateau``
-                          and ``driving_pressure`` (medians of the analysed breaths, or
-                          the plateau typed with a step placed by hand),
+                          and ``driving_pressure`` with ``driving_pressure_source``:
+                          ``"breaths"`` (median of the analysed breaths, continuous
+                          pause), ``"hold"`` (median of the breaths of the step with an
+                          inspiratory hold) or ``"typed"`` (step placed by hand);
                           ``n_driving_pressure`` and ``enough_driving_pressure``.
         breaths:          The breath table of the recording plus ``peep``, ``plateau``,
                           ``driving_pressure`` (units of the recording), ``peep_step``
