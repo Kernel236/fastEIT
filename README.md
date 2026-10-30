@@ -88,9 +88,26 @@ against it; the evidence for every choice is in
 `notebooks/05_preprocessing_choices.ipynb`. See
 [`docs/preprocessing.md`](docs/preprocessing.md).
 
+## PEEP trial segmentation
+
+`segment_peep_trial()` splits a preprocessed PEEP trial into PEEP steps, from the airway
+pressure (PressurePod, Medibus, Timpel) or from steps placed by hand, and chooses the
+stable breaths to analyse in each step, with their PEEP, plateau and driving pressure.
+
+```python
+from fasteit.segmentation import segment_peep_trial
+
+trial = segment_peep_trial(recording)
+trial.steps              # PEEP level and breaths analysed in each step
+trial.analysed_breaths   # breaths to analyse, with PEEP, plateau, driving pressure
+```
+
+See [`docs/segmentation.md`](docs/segmentation.md); evidence in
+`notebooks/06_peep_trial_segmentation.ipynb`.
+
 ## Project status
 
-Pre-alpha. Data model, parsing layer and preprocessing layer implemented.
+Pre-alpha. Data model, parsing, preprocessing and PEEP trial segmentation implemented.
 
 **Data model** (`models/`):
 
@@ -100,6 +117,7 @@ Pre-alpha. Data model, parsing layer and preprocessing layer implemented.
 | `ContinuousSignalData` | Signal table, one row per frame | `.asc` |
 | `RawImpedanceData` | Calibrated transimpedances + aux signals for pyEIT | `.eit` |
 | `EITRecording` | Preprocessed recording: breaths, lung mask, regions, log | `preprocess()` |
+| `PeepTrial` | PEEP steps, breath pressures and breaths analysed | `segment_peep_trial()` |
 
 **Parsers** (`parsers/`):
 
@@ -133,6 +151,7 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 - [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
 - [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
 - [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, outputs, logs and limits
+- [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, phases
 
 ## Contributing
 
