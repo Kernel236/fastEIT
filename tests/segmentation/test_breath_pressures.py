@@ -1,0 +1,86 @@
+"""Tests for the pressures of each breath, on a synthetic volume-control curve."""
+
+import numpy as np
+import pytest
+
+from fasteit.config import SegmentationConfig
+from fasteit.segmentation.breath_pressures import (
+    inspiration_onsets,
+    plateau_pressures,
+    pressure_before,
+)
+
+CFG = SegmentationConfig()
+
+
+def vcv_pressure(
+    peeps, fs=50, period=4.0, inspiration=1.0, pause=0.4, peak=20.0, plateau=12.0
+):
+    """Volume-control airway pressure: ramp, end-inspiratory pause, passive expiration.
+
+    A new PEEP is applied from the expiration of the breath before, as a ventilator
+    does. Returns the pressure and the frame where each breath starts.
+    """
+    t = np.arange(0, period, 1 / fs)
+    breaths, starts = [], []
+    for k, peep in enumerate(peeps):
+        next_peep = peeps[k + 1] if k + 1 < len(peeps) else peep
+        p = np.full(len(t), float(peep))
+        ramp = t < inspiration
+        p[ramp] = peep + peak * t[ramp] / inspiration
+        held = (t >= inspiration) & (t < inspiration + pause)
+        p[held] = peep + plateau
+        # The expiratory valve opens: the airway pressure falls within about 0.1 s,
+        # from the plateau, or from the peak if there is no pause.
+        top = peep + (peak if pause == 0 else plateau)
+        out = t >= inspiration + pause
+        p[out] = next_peep + (top - next_peep) * np.exp(
+            -(t[out] - inspiration - pause) / 0.05
+        )
+        starts.append(len(t) * len(breaths))
+        breaths.append(p)
+    return np.concatenate(breaths), np.array(starts)
+
+
+def test_inspiration_onsets_are_the_start_of_the_pressure_rise():
+    paw, starts = vcv_pressure([10] * 6)
+    eit_starts = starts + 3  # the EIT valley a few frames later
+    onsets = inspiration_onsets(paw, 50, eit_starts)
+    assert np.all(np.abs(onsets[1:] - starts[1:]) <= 2)
+
+
+def test_peep_and_plateau_are_read_on_the_curve():
+    paw, starts = vcv_pressure([12, 12, 12, 10, 10, 10])
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    np.testing.assert_allclose(peep[1:], [12, 12, 10, 10, 10], atol=0.05)
+    # Plateau = PEEP of the breath + 12; the last breath has no next breath.
+    np.testing.assert_allclose(plateau[1:-1], [24, 24, 22, 22], atol=0.05)
+    assert np.isnan(plateau[-1])
+
+
+def test_without_an_end_inspiratory_pause_there_is_no_plateau():
+    paw, starts = vcv_pressure([10] * 5, pause=0.0)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    assert np.isnan(
+        plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    ).all()
+
+
+def test_missing_pressure_gives_nan_for_that_breath_only():
+    paw, starts = vcv_pressure([10] * 5)
+    paw[starts[2] - 10 : starts[2] + 10] = np.nan
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    assert onsets[2] == -1 and np.isnan(peep[2])
+    assert np.isfinite(peep[[1, 3, 4]]).all()
+
+
+@pytest.mark.parametrize("fs", [20, 50])
+def test_both_draeger_sampling_rates(fs):
+    paw, starts = vcv_pressure([8] * 5, fs=fs)
+    onsets = inspiration_onsets(paw, fs, starts)
+    peep = pressure_before(paw, fs, onsets, CFG.peep_seconds)
+    np.testing.assert_allclose(peep[1:], 8, atol=0.05)
