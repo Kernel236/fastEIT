@@ -23,7 +23,8 @@ def find_steps(
 
     A new step starts when ``min_breaths`` breaths in a row are further than
     ``threshold`` from the level of the current step and within ``agreement`` of each
-    other; the level of the current step is the median PEEP of its breaths so far. A
+    other; the level of the current step is the median PEEP of its breaths so far (of
+    the first ``min_breaths`` breaths at the start). With ``min_breaths`` of 2 or more a
     single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN) takes
     the PEEP of the next breath that has one.
 
@@ -40,7 +41,7 @@ def find_steps(
         ValueError: if no breath has a PEEP.
     """
     peep = _fill_backward(np.asarray(peep, dtype=float))
-    starts, level, i = [0], peep[0], 1
+    starts, level, i = [0], np.median(peep[:min_breaths]), 1
     while i < len(peep):
         window = peep[i : i + min_breaths]
         opens_step = (
@@ -53,7 +54,8 @@ def find_steps(
             level = np.median(window)
             i += min_breaths
         else:
-            level = np.median(peep[starts[-1] : i + 1])
+            # At least the first min_breaths breaths of the step, so one odd breath cannot move it.
+            level = np.median(peep[starts[-1] : max(i + 1, starts[-1] + min_breaths)])
             i += 1
     return np.array(starts, dtype=int)
 
@@ -76,24 +78,27 @@ def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
 
 def steps_from_segments(
     breath_starts: np.ndarray, breath_ends: np.ndarray, segments: Sequence[Segment]
-) -> tuple[np.ndarray, np.ndarray]:
-    """Steps placed by hand: the breaths inside each segment and its PEEP level.
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Steps placed by hand: the breaths inside each segment, its PEEP and plateau.
 
-    A breath belongs to a segment when it starts and ends inside it. Segments are
-    numbered in time order.
+    A breath belongs to a segment when it starts and ends inside it: a breath cut by
+    the edge of a segment is left out. Segments are numbered in time order. The plateau
+    is optional (e.g. read on the ventilator), for recordings without a pressure signal.
 
     Args:
         breath_starts, breath_ends: Start and end time of each breath, in seconds.
-        segments: Segments with ``category="peep_step"`` and the PEEP level in
-            ``parameters["peep"]``.
+        segments: Segments with ``category="peep_step"``, the PEEP level in
+            ``parameters["peep"]`` and optionally the plateau in
+            ``parameters["plateau"]``.
 
     Returns:
         ``step``: step number of each breath (-1 outside every segment);
-        ``levels``: PEEP level of each step.
+        ``levels``: PEEP level of each step; ``plateaus``: plateau typed for each step
+        (NaN if not given).
 
     Raises:
-        ValueError: if a segment is not a PEEP step, has no PEEP level, or overlaps
-            another one.
+        ValueError: if a segment is not a PEEP step, has no PEEP level, overlaps
+            another one, or no breath is inside any segment.
     """
     ordered = sorted(segments, key=lambda s: s.start)
     for segment in ordered:
@@ -113,8 +118,13 @@ def steps_from_segments(
     for k, segment in enumerate(ordered):
         inside = (breath_starts >= segment.start) & (breath_ends <= segment.end)
         step[inside] = k
+    if not (step >= 0).any():
+        raise ValueError(
+            "No breath is inside the PEEP steps placed by hand (times in s?)."
+        )
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
-    return step, levels
+    plateaus = np.array([float(s.parameters.get("plateau", np.nan)) for s in ordered])
+    return step, levels, plateaus
 
 
 def analysed_breaths(
@@ -139,7 +149,12 @@ def analysed_breaths(
 
     Returns:
         Boolean array, True for the analysed breaths.
+
+    Raises:
+        ValueError: if ``max_breaths`` is less than 1.
     """
+    if max_breaths < 1:
+        raise ValueError("max_breaths must be at least 1.")
     analysed = np.zeros(len(step), dtype=bool)
     for k in np.unique(step[step >= 0]):
         in_step = np.flatnonzero(step == k)

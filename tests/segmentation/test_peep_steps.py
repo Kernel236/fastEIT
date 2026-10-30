@@ -66,6 +66,14 @@ def test_no_peep_at_all_is_an_error():
         steps(np.full(5, np.nan))
 
 
+def test_an_odd_first_breath_does_not_open_a_step():
+    assert steps([8.0] + [12.0] * 10).tolist() == [0]
+
+
+def test_a_series_shorter_than_three_breaths_is_one_step():
+    assert steps([12.0, 10.0]).tolist() == [0]
+
+
 def test_step_of_each_breath():
     assert step_of_each_breath(np.array([0, 3, 5]), 7).tolist() == [0, 0, 0, 1, 1, 2, 2]
 
@@ -79,18 +87,30 @@ def peep_step(start, end, peep):
 
 def test_steps_placed_by_hand_take_the_breaths_inside_them():
     starts = np.arange(0, 60, 4.0)
-    step, levels = steps_from_segments(
+    step, levels, plateaus = steps_from_segments(
         starts, starts + 4, [peep_step(30, 50, 8), peep_step(4, 21, 10)]
     )
     assert levels.tolist() == [10.0, 8.0]  # numbered in time order
+    assert np.isnan(plateaus).all()  # no plateau typed
     assert np.flatnonzero(step == 0).tolist() == [1, 2, 3, 4]  # breaths 4-8 ... 16-20
     assert np.flatnonzero(step == 1).tolist() == [8, 9, 10, 11]
     assert (step[[0, 5, 6, 7, 12, 13, 14]] == -1).all()
 
 
+def test_a_plateau_can_be_typed_with_the_step():
+    segment = Segment(
+        0, 20, category="peep_step", parameters={"peep": 10, "plateau": 24}
+    )
+    _, _, plateaus = steps_from_segments(
+        np.arange(0, 20, 4.0), np.arange(4, 24, 4.0), [segment]
+    )
+    assert plateaus.tolist() == [24.0]
+
+
 @pytest.mark.parametrize(
     "segments, message",
     [
+        ([peep_step(600, 900, 10)], "No breath is inside"),
         ([Segment(0, 10, label="cough")], "not a PEEP step"),
         ([Segment(0, 10, category="peep_step")], "not a PEEP step"),
         ([peep_step(0, 20, 10), peep_step(15, 30, 8)], "overlap"),
@@ -118,6 +138,13 @@ def test_a_short_step_keeps_what_is_left_after_the_skip():
         starts, np.zeros(10, dtype=int), np.ones(10, dtype=bool), 15.0, 10
     )
     assert np.flatnonzero(analysed).tolist() == [4, 5, 6, 7, 8, 9]  # from 16 s on
+
+
+def test_at_least_one_breath_must_be_analysed():
+    with pytest.raises(ValueError, match="at least 1"):
+        analysed_breaths(
+            np.arange(5.0), np.zeros(5, dtype=int), np.ones(5, dtype=bool), 0, 0
+        )
 
 
 def test_each_step_is_handled_on_its_own_and_breaths_without_step_are_never_analysed():

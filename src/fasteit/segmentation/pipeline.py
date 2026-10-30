@@ -177,7 +177,7 @@ def segment_peep_trial(
     channel, peep, plateau = _breath_pressures(recording, config, log)
 
     if peep_steps:
-        step, levels = steps_from_segments(times, ends, peep_steps)
+        step, levels, typed_plateaus = steps_from_segments(times, ends, peep_steps)
         step[~in_phase] = -1
         analysed = (step >= 0) & valid
         source = "manual"
