@@ -184,6 +184,9 @@ class SegmentationConfig:
         pressure_channels: Airway pressure waveforms searched in ``EITRecording.aux``,
             in order of preference: Draeger PressurePod, then the Medibus or Timpel
             ``airway_pressure`` (section 2).
+        peep_value_channel, plateau_value_channel: Values computed by the ventilator
+            (Medibus), used only if there is no pressure waveform: the PEEP and plateau
+            of a breath are their median over the breath (section 7).
         peep_seconds: The PEEP of a breath is the median airway pressure in this time
             before the start of inspiration found on the pressure curve (section 2).
         plateau_window_seconds: The plateau is the median airway pressure from the first
@@ -203,6 +206,8 @@ class SegmentationConfig:
     """
 
     pressure_channels: tuple[str, ...] = ("airway_pressure_pod", "airway_pressure")
+    peep_value_channel: str = "peep"
+    plateau_value_channel: str = "plateau_pressure"
     peep_seconds: float = 0.2
     plateau_window_seconds: tuple[float, float] = (0.25, 0.05)
     step_threshold: float = 1.0
