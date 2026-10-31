@@ -96,7 +96,7 @@ Then each breath gets, in the breath table, the first source available:
 | Columns | Source, in order of preference | Channel used |
 |---------|-------------------------------|--------------|
 | `peep`, `plateau`, `driving_pressure` (cmH2O) | 1. airway pressure waveform: Dräger PressurePod, then Medibus or Timpel `airway_pressure`; 2. without a waveform, the PEEP and plateau computed by the ventilator (Medibus), median over the breath | `pressure_channel` |
-| `tidal_volume` (mL, inspiratory) | 1. volume curve: highest volume around the inspiration minus the lowest before it; 2. integral of the inspiratory flow; 3. the tidal volume computed by the ventilator (Medibus), median over the breath | `tidal_volume_channel` |
+| `tidal_volume` (mL, inspiratory) | 1. volume curve: highest volume around the inspiration minus the lowest before it; 2. integral of the inspiratory flow; 3. the tidal volume computed by the ventilator (Medibus: mandatory, then spontaneous inspiratory value, then the generic "tidal volume"), median over the breath | `tidal_volume_channel` |
 
 The pressures are all read on the same channel, so that a constant offset of the
 sensor cancels in the driving pressure:
@@ -110,14 +110,21 @@ sensor cancels in the driving pressure:
 - **driving pressure** = plateau - PEEP. The peak pressure is never used instead.
 
 The tidal volume is read in a window from half an expiration before the EIT breath
-to the middle of its expiration, so that it holds the whole inspiration even when the
-EIT valley falls a little after the start of the inspiratory flow. In volume control
-it is the volume delivered, the one set on the ventilator.
+(but not before the middle of the expiration before) to the middle of its own
+expiration, so that it holds the whole inspiration even when the EIT valley falls a
+little after the start of the inspiratory flow, and nothing of the inspirations around
+it. On the flow curve only the run of inspiratory flow around its peak is integrated,
+so that noise and cardiac oscillations around zero flow are not counted. In volume
+control it is the volume delivered, the one set on the ventilator. If the flow does
+not rise during the EIT inspiration of most breaths (inspiration recorded as
+negative), the log gives a warning.
 
 A tidal volume typed by the user for the whole recording goes in
-`RecordingContext.tidal_volume_ml` (e.g. the volume set in volume control, or the
-mean on the case report form). It is kept apart from the measured one: the next
-layers use the typed one first.
+`RecordingContext.tidal_volume_ml`: the volume set in volume control, or the mean on
+the case report form, only when it is the same for the whole recording (in pressure
+control it changes with PEEP: type it per step, [`segmentation.md`](segmentation.md)).
+It is kept apart from the measured one: the next layers use the typed one first. A
+typed volume outside 100-1500 mL gives a warning (litres typed instead of mL?).
 
 ## 4. Output
 
@@ -179,7 +186,9 @@ There are two kinds of record, kept apart on purpose:
 - Adults only (respiratory rate 6-60/min).
 - **PEEP** is the end-expiratory pressure at the airway opening: it does not include
   intrinsic PEEP, so it is a lower bound of the total PEEP (in one trial it read
-  0.2-0.5 cmH2O above the set value, 1 at PEEP 0, at 19 breaths/min). A single missing
+  0.2-0.5 cmH2O above the set value, 1 at PEEP 0, at 19 breaths/min). With intrinsic
+  PEEP the driving pressure is overestimated and compliance underestimated, more at
+  low PEEP in obstructive patients. A single missing
   frame of the pressure near the start of a breath loses the PEEP of that breath
   (85-100 % of the breaths read in the tidal recordings of notebook 05).
 - **Plateau** needs at least 0.5 s of hold (volume control) or of flat inspiratory
@@ -189,15 +198,24 @@ There are two kinds of record, kept apart on purpose:
   ventilator plateau or a manual hold. Medibus and Timpel pressures are tested on
   synthetic data only; Medibus values are updated once per ventilator breath and can
   lag by one breath.
-- The **driving pressure** is that of the respiratory system: the oesophageal and
-  transpulmonary pressures of the PressurePod are not used, and it is valid only in
-  passive patients.
+- The **driving pressure** is that of the respiratory system (lung and chest wall):
+  the oesophageal and transpulmonary pressures of the PressurePod are not used, and it
+  is valid only in passive patients.
 - **Tidal volume** from the curves is tested on synthetic curves only: the recordings
-  available have no volume or flow curve. Inspiratory flow is taken as positive. With
-  a leak (non-invasive ventilation, a leaking cuff) the inspiratory volume includes
-  the leak; a zero offset of the flow sensor adds offset × window length (e.g. 0.01
-  L/s over 4 s = 40 mL). Which phase the Medibus "tidal volume" measures depends on
-  the ventilator.
+  available have no volume or flow curve. Inspiratory flow is taken as positive. It is
+  the volume measured by the ventilator, not the volume that enters the lung:
+  - with a leak (non-invasive ventilation, a leaking cuff) it includes the leak;
+  - without compensation of the compressible volume of the circuit it includes that
+    volume, about 1-2.5 mL per cmH2O of inspiratory pressure (15-40 mL at 15 cmH2O,
+    5-15 % of compliance in mL/cmH2O); whether the ventilator compensates it, and
+    whether it measures at the ventilator or at the Y-piece, depends on the device;
+  - a zero offset of the flow sensor adds offset × duration of the inspiration (e.g.
+    0.01 L/s over 1 s = 10 mL);
+  - with a ventilator that sets the volume curve back to zero at each breath, the
+    first breaths after a decrease of PEEP read too much, by the volume the lung lost
+    (they are not analysed in a PEEP step: the first 15 s are left out);
+  - the generic Medibus "tidal volume" (the last fallback) may be expiratory, depending
+    on the ventilator.
 
 ## 7. File layout
 

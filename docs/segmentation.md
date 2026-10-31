@@ -89,10 +89,16 @@ mL. In order (`tidal_volume_source`):
 | Source | How | `tidal_volume_source` |
 |--------|-----|-----------------------|
 | Typed for each step | in the segment of a step placed by hand, or `segment_peep_trial(recording, tidal_volumes=[450, 460, None, ...])`, one per step in time order (e.g. the mean of each step on the case report form) | `"typed"` |
-| Typed for the recording | `RecordingContext(tidal_volume_ml=450)`, e.g. the volume set in volume control | `"typed_recording"` |
+| Typed for the recording | `RecordingContext(tidal_volume_ml=450)`: the volume set in volume control, only when it is the same in every step (in pressure control it changes with PEEP: type it per step) | `"typed_recording"` |
 | Measured | median of the analysed breaths, from the volume or flow curve of the ventilator (layer 2) | `"breaths"` |
 
-Without any of them the tidal volume is missing and compliance stays in EIT units.
+Without any of them the tidal volume is missing and compliance stays in EIT units. A
+typed volume outside 100-1500 mL, or more than 15 % from the one measured on the
+analysed breaths of the step (`tidal_volume_agreement`), gives a warning: a typing
+error, or one volume typed for a trial in pressure control. How the tidal volume is
+used in layer 3, and the assumptions of each use (compliance of the respiratory
+system, volume of a region, change of EELI in mL), are in
+`notebooks/07_clinical_indices.ipynb`, section 5.
 
 ## 4. Recordings with more than one protocol
 
@@ -135,8 +141,9 @@ Dräger mbar, 1 mbar = 1.02 cmH2O). The channels they come from are
   are in [`preprocessing.md`](preprocessing.md), section 6.
 - The thresholds were chosen in mbar in notebook 06 and are applied in cmH2O (2 %
   apart): in one trial the breath of a change opens its step one breath earlier.
-- Compliance from the airway pressure is valid only in passive patients; without a
-  tidal volume it is in EIT units per cmH2O.
+- Compliance from the airway pressure is that of the respiratory system (lung and
+  chest wall), valid only in passive patients; without a tidal volume it is in EIT
+  units per cmH2O.
 - Short steps at a low rate leave few breaths after the first 15 s (4-9 in the trials at
   11-13 breaths/min with 40 s steps): the warning reports it.
 

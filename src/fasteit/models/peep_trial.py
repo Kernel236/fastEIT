@@ -35,9 +35,9 @@ class PeepTrial:
                           (``RecordingContext.tidal_volume_ml``) or ``"breaths"``
                           (median of the analysed breaths, ventilator curves).
         breaths:          The breath table of the recording (with ``peep``,
-                          ``plateau`` and ``driving_pressure`` in cmH2O, read in layer 2
-                          from ``recording.pressure_channel``) plus ``peep_step`` (-1
-                          outside every step) and ``analysed``.
+                          ``plateau`` and ``driving_pressure`` in cmH2O and
+                          ``tidal_volume`` in mL, read in layer 2) plus ``peep_step``
+                          (-1 outside every step) and ``analysed``.
         log:              What the segmentation did, with warnings.
     """
 
