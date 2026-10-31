@@ -73,6 +73,10 @@ class RecordingContext:
         position:   Patient position during the recording, e.g. ``"supine"``, ``"prone"``.
         protocol:   ``"tidal"`` or ``"peep_trial"``; decides what layers 3-4 compute.
         interface:  Ventilation interface, e.g. ``"helmet"``, ``"face_mask"``.
+        tidal_volume_ml: Tidal volume of the whole recording typed by the user (mL),
+                    e.g. the one set in volume control or the mean on the case report
+                    form; None if not typed. It wins over the tidal volume measured
+                    on the ventilator curves of each breath.
         notes:      Free text.
     """
 
@@ -80,7 +84,14 @@ class RecordingContext:
     position: str | None = None
     protocol: str = "tidal"
     interface: str | None = None
+    tidal_volume_ml: float | None = None
     notes: str = ""
+
+    def __post_init__(self) -> None:
+        if self.tidal_volume_ml is not None and not self.tidal_volume_ml > 0:
+            raise ValueError(
+                f"tidal_volume_ml must be positive, got {self.tidal_volume_ml}."
+            )
 
 
 # eq=False: two recordings are compared by identity, not array by array.

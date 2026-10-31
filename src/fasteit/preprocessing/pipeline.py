@@ -506,6 +506,10 @@ def preprocess(
     # 9. Inspiratory tidal volume of each breath (mL).
     tidal_volume_channel, tidal_volume = _tidal_volumes(aux, fs, table, config, log)
     table["tidal_volume"] = tidal_volume
+    if context.tidal_volume_ml is not None:
+        log.info(
+            f"Tidal volume typed for the recording: {context.tidal_volume_ml:g} mL."
+        )
 
     return EITRecording(
         raw=raw,

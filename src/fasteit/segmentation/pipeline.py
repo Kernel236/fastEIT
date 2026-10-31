@@ -34,7 +34,7 @@ MIN_FRACTION_READ = 0.5
 STEP_COLUMNS = [
     "step", "peep", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
     "plateau", "driving_pressure", "driving_pressure_source", "n_driving_pressure",
-    "enough_driving_pressure",
+    "enough_driving_pressure", "tidal_volume", "tidal_volume_source",
 ]  # fmt: skip
 
 
@@ -168,14 +168,59 @@ def _step_driving_pressure(
     return np.nan, np.nan, None, 0, False
 
 
+def _typed_volumes(
+    tidal_volumes: Sequence[float | None] | None,
+    from_segments: np.ndarray,
+    n_steps: int,
+) -> np.ndarray:
+    """Tidal volume typed for each step, in the segments or as a list (NaN if not)."""
+    if tidal_volumes is None:
+        return from_segments
+    if np.isfinite(from_segments).any():
+        raise ValueError(
+            "Tidal volumes typed both in the PEEP step segments and in tidal_volumes: "
+            "give them in one place."
+        )
+    volumes = np.array([np.nan if v is None else float(v) for v in tidal_volumes])
+    if len(volumes) != n_steps:
+        raise ValueError(
+            f"tidal_volumes has {len(volumes)} values for {n_steps} PEEP steps: give "
+            "one per step in time order (None for a step without it)."
+        )
+    if (volumes <= 0).any():
+        raise ValueError("Tidal volumes must be positive (mL).")
+    return volumes
+
+
+def _step_tidal_volume(
+    analysed: pd.DataFrame, typed_step: float, typed_recording: float | None
+) -> tuple[float, str | None]:
+    """Tidal volume of a step (mL) and where it comes from.
+
+    In order: typed for the step; typed for the whole recording
+    (``RecordingContext.tidal_volume_ml``, e.g. the volume set in volume control); the
+    median of the analysed breaths, measured on the ventilator curves.
+    """
+    if np.isfinite(typed_step):
+        return float(typed_step), "typed"
+    if typed_recording is not None:
+        return float(typed_recording), "typed_recording"
+    measured = analysed.tidal_volume.dropna()
+    if len(measured):
+        return float(measured.median()), "breaths"
+    return np.nan, None
+
+
 def _steps_table(
     breaths: pd.DataFrame,
     levels: np.ndarray,
     typed_plateaus: np.ndarray,
+    typed_volumes: np.ndarray,
+    recording_volume: float | None,
     config: SegmentationConfig,
     log: RunLog,
 ) -> pd.DataFrame:
-    """One row per step, with its plateau and driving pressure."""
+    """One row per step, with its plateau, driving pressure and tidal volume."""
     rows = []
     for k, level in enumerate(levels):
         in_step = breaths[breaths.peep_step == k]
@@ -183,12 +228,13 @@ def _steps_table(
         driving = _step_driving_pressure(
             in_step, analysed, level, typed_plateaus[k], config
         )
+        volume = _step_tidal_volume(analysed, typed_volumes[k], recording_volume)
         rows.append([
             k, float(level),
             float(in_step.start_time.min()) if len(in_step) else np.nan,
             float(in_step.end_time.max()) if len(in_step) else np.nan,
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
-            *driving,
+            *driving, *volume,
         ])  # fmt: skip
         if len(analysed) < config.analysis_min_breaths:
             log.warning(
@@ -205,6 +251,11 @@ def _steps_table(
                 f"{config.analysis_min_breaths} analysed breaths, no inspiratory hold, "
                 "none typed)."
             )
+    if steps.tidal_volume.isna().all():
+        log.info(
+            "No tidal volume for the steps (none typed, no volume or flow curve): "
+            "compliance in EIT units only."
+        )
     return steps
 
 
@@ -213,6 +264,7 @@ def segment_peep_trial(
     config: SegmentationConfig | None = None,
     peep_steps: Sequence[Segment] = (),
     phase: Segment | None = None,
+    tidal_volumes: Sequence[float | None] | None = None,
 ) -> PeepTrial:
     """Split a preprocessed PEEP trial into PEEP steps and choose the breaths analysed.
 
@@ -225,22 +277,28 @@ def segment_peep_trial(
         recording:  Output of ``preprocess()``.
         config:     Parameters; defaults of ``SegmentationConfig`` if None.
         peep_steps: Steps placed by hand: segments with ``category="peep_step"``, the
-                    PEEP level in ``parameters["peep"]`` and optionally the plateau
-                    (``parameters["plateau"]``) or the driving pressure
-                    (``parameters["driving_pressure"]``) read on the ventilator. If given, they replace the steps found
-                    from the pressure, and the breaths analysed are the valid breaths
-                    inside them.
+                    PEEP level in ``parameters["peep"]`` (cmH2O) and optionally the
+                    plateau (``parameters["plateau"]``) or the driving pressure
+                    (``parameters["driving_pressure"]``) read on the ventilator, and
+                    the tidal volume (``parameters["tidal_volume"]``, mL). If given,
+                    they replace the steps found from the pressure, and the breaths
+                    analysed are the valid breaths inside them.
         phase:      The PEEP trial part of the recording: a segment with
                     ``category="phase"`` and ``label="peep_trial"``. If None, the whole
                     recording.
+        tidal_volumes: Tidal volume typed for each step (mL), in time order, e.g. the
+                    mean of each step on the case report form; None for a step
+                    without it. One volume for the whole recording goes in
+                    ``RecordingContext.tidal_volume_ml`` instead.
 
     Returns:
         The PEEP trial. Breaths outside the phase or the steps have ``peep_step`` -1.
 
     Raises:
         ValueError: if there are no steps placed by hand and no pressure to find them,
-            a step placed by hand or the phase is not usable, or no breath is inside the
-            phase or the steps placed by hand.
+            a step placed by hand or the phase is not usable, no breath is inside the
+            phase or the steps placed by hand, or ``tidal_volumes`` does not have one
+            positive value per step.
     """
     config = config if config is not None else SegmentationConfig()
     log = RunLog(logger)
@@ -260,7 +318,9 @@ def segment_peep_trial(
         )
 
     if peep_steps:
-        step, levels, typed_plateaus = steps_from_segments(starts, ends, peep_steps)
+        step, levels, typed_plateaus, segment_volumes = steps_from_segments(
+            starts, ends, peep_steps
+        )
         step[~in_phase] = -1
         analysed = (step >= 0) & valid
         source = "manual"
@@ -271,6 +331,7 @@ def segment_peep_trial(
             peep, in_phase, excluded, valid, starts, config
         )
         typed_plateaus = np.full(len(levels), np.nan)
+        segment_volumes = np.full(len(levels), np.nan)
         source = "pressure"
         log.info(
             f"{len(levels)} PEEP steps found from the pressure: "
@@ -290,7 +351,15 @@ def segment_peep_trial(
         recording=recording,
         config=config,
         source=source,
-        steps=_steps_table(breaths, levels, typed_plateaus, config, log),
+        steps=_steps_table(
+            breaths,
+            levels,
+            typed_plateaus,
+            _typed_volumes(tidal_volumes, segment_volumes, len(levels)),
+            recording.context.tidal_volume_ml,
+            config,
+            log,
+        ),
         breaths=breaths,
         log=tuple(log.messages),
     )

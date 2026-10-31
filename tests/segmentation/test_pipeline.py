@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from fasteit.config import SegmentationConfig
-from fasteit.models.eit_recording import Segment
+from fasteit.models.eit_recording import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 from fasteit.segmentation.pipeline import segment_peep_trial
@@ -12,18 +12,19 @@ from fasteit.segmentation.pipeline import segment_peep_trial
 from ..preprocessing.test_breath_pressures import pcv_pressure, vcv_pressure
 from ..preprocessing.test_breath_quality import TEST_FILES
 from ..preprocessing.test_pipeline import FS, synthetic_raw
+from ..preprocessing.test_tidal_volume import vcv_flow, volume_curve
 
 PEEPS = [12] * 12 + [10] * 12 + [8] * 12 + [6] * 14  # 50 breaths of 4 s
 
 
-def synthetic_trial(aux=None, seconds=200):
+def synthetic_trial(aux=None, seconds=200, context=None):
     """A preprocessed recording at 15 breaths/min with a PEEP trial in its pressure."""
     raw, _ = synthetic_raw(seconds=seconds)
     if aux is None:
         paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
         aux = {"airway_pressure_pod": paw.astype(np.float32)}
     raw.aux_signals = aux
-    return preprocess(raw)
+    return preprocess(raw, context=context)
 
 
 @pytest.fixture(scope="module")
@@ -292,3 +293,70 @@ def test_a_driving_pressure_can_be_typed_instead_of_the_plateau():
     assert trial.steps.driving_pressure.tolist() == [14.0]
     assert trial.steps.plateau.tolist() == [24.0]
     assert trial.steps.driving_pressure_source.tolist() == ["typed"]
+
+
+# --- tidal volume of each step ---
+
+FOUR_STEPS = [
+    Segment(20 + 40 * k, 56 + 40 * k, category="peep_step", parameters={"peep": p})
+    for k, p in enumerate([12, 10, 8, 6])
+]
+
+
+def test_without_tidal_volume_the_steps_have_none(recording):
+    trial = segment_peep_trial(recording)
+    assert trial.steps.tidal_volume.isna().all()
+    assert trial.steps.tidal_volume_source.isna().all()
+    assert any("No tidal volume for the steps" in line for line in trial.log)
+
+
+def test_a_tidal_volume_typed_for_the_recording_goes_to_every_step():
+    recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
+    trial = segment_peep_trial(recording)
+    assert trial.steps.tidal_volume.tolist() == [450.0] * 4
+    assert (trial.steps.tidal_volume_source == "typed_recording").all()
+
+
+def test_a_tidal_volume_typed_for_each_step_wins(recording):
+    trial = segment_peep_trial(recording, tidal_volumes=[400, 420, None, 460])
+    assert trial.steps.tidal_volume.iloc[[0, 1, 3]].tolist() == [400.0, 420.0, 460.0]
+    source = trial.steps.tidal_volume_source
+    assert (source.iloc[[0, 1, 3]] == "typed").all() and source.isna().iloc[2]
+
+
+def test_a_tidal_volume_typed_with_a_step_placed_by_hand(recording):
+    steps = [*FOUR_STEPS[:3], Segment(140, 176, category="peep_step",
+             parameters={"peep": 6, "tidal_volume": 380})]  # fmt: skip
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert trial.steps.tidal_volume.iloc[3] == 380.0
+    assert trial.steps.tidal_volume.iloc[:3].isna().all()
+
+
+def test_the_tidal_volume_of_the_breaths_when_none_is_typed():
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    flow, _, _, _ = vcv_flow([0.45] * len(PEEPS), fs=FS, period=4.0)
+    aux = {
+        "airway_pressure_pod": paw.astype(np.float32),
+        "volume": volume_curve(flow, FS).astype(np.float32),  # Timpel: L
+    }
+    trial = segment_peep_trial(synthetic_trial(aux=aux))
+    np.testing.assert_allclose(trial.steps.tidal_volume, 450, atol=2)
+    assert (trial.steps.tidal_volume_source == "breaths").all()
+
+
+@pytest.mark.parametrize(
+    "steps, volumes, message",
+    [
+        ((), [450, 450], "2 values for 4 PEEP steps"),
+        ((), [450, 450, -1, 450], "positive"),
+        (
+            [Segment(20, 56, category="peep_step",
+                     parameters={"peep": 12, "tidal_volume": 450})],
+            [450],
+            "one place",
+        ),
+    ],
+)  # fmt: skip
+def test_unusable_typed_tidal_volumes_are_rejected(recording, steps, volumes, message):
+    with pytest.raises(ValueError, match=message):
+        segment_peep_trial(recording, peep_steps=steps, tidal_volumes=volumes)

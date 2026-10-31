@@ -29,7 +29,11 @@ class PeepTrial:
                           ``"breaths"`` (median of the analysed breaths, continuous
                           pause), ``"hold"`` (median of the breaths of the step with an
                           inspiratory hold) or ``"typed"`` (step placed by hand);
-                          ``n_driving_pressure`` and ``enough_driving_pressure``.
+                          ``n_driving_pressure`` and ``enough_driving_pressure``;
+                          ``tidal_volume`` (mL) with ``tidal_volume_source``:
+                          ``"typed"`` (for the step), ``"typed_recording"``
+                          (``RecordingContext.tidal_volume_ml``) or ``"breaths"``
+                          (median of the analysed breaths, ventilator curves).
         breaths:          The breath table of the recording (with ``peep``,
                           ``plateau`` and ``driving_pressure`` in cmH2O, read in layer 2
                           from ``recording.pressure_channel``) plus ``peep_step`` (-1

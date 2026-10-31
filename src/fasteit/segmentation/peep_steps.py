@@ -76,24 +76,27 @@ def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
 
 def steps_from_segments(
     breath_starts: np.ndarray, breath_ends: np.ndarray, segments: Sequence[Segment]
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Steps placed by hand: the breaths inside each segment, its PEEP and plateau.
 
     A breath belongs to a segment when it starts and ends inside it: a breath cut by
     the edge of a segment is left out. Segments are numbered in time order. The plateau,
     or directly the driving pressure, is optional (e.g. read on the ventilator during an
-    inspiratory hold), for recordings without a pressure signal.
+    inspiratory hold), for recordings without a pressure signal; so is the tidal volume
+    of the step (e.g. its mean on the case report form).
 
     Args:
         breath_starts, breath_ends: Start and end time of each breath, in seconds.
         segments: Segments with ``category="peep_step"``, the PEEP level in
-            ``parameters["peep"]`` and optionally ``parameters["plateau"]`` or
-            ``parameters["driving_pressure"]`` (the plateau wins if both are given).
+            ``parameters["peep"]`` (cmH2O) and optionally ``parameters["plateau"]`` or
+            ``parameters["driving_pressure"]`` (the plateau wins if both are given) and
+            ``parameters["tidal_volume"]`` (mL).
 
     Returns:
         ``step``: step number of each breath (-1 outside every segment);
         ``levels``: PEEP level of each step; ``plateaus``: plateau typed for each step,
-        or PEEP + driving pressure typed (NaN if neither is given).
+        or PEEP + driving pressure typed (NaN if neither is given); ``volumes``: tidal
+        volume typed for each step (NaN if not given).
 
     Raises:
         ValueError: if a segment is not a PEEP step, has no PEEP level, overlaps
@@ -123,7 +126,10 @@ def steps_from_segments(
         )
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
     plateaus = np.array([_typed_plateau(s.parameters) for s in ordered])
-    return step, levels, plateaus
+    volumes = np.array(
+        [float(s.parameters.get("tidal_volume", np.nan)) for s in ordered]
+    )
+    return step, levels, plateaus, volumes
 
 
 def _typed_plateau(parameters: dict) -> float:
