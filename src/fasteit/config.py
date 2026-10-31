@@ -4,7 +4,8 @@ Single source of truth for tuneable parameters. Parsers and algorithms read
 values from here - change once, propagates everywhere.
 
 Structure:
-    PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions
+    PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions, pressures
+                          of each breath
     SegmentationConfig  - layer 2b: PEEP steps of a PEEP trial and the breaths analysed
     AnalysisConfig      - layer 3: clinical indices (to be filled)
     Config              - top-level container for pipeline sections
@@ -124,6 +125,19 @@ class PreprocessingConfig:
             narrow MDN notches can ring longer, at the heart rate and with a small
             amplitude; the first and last seconds of every recording also carry
             filter edge effects and are not excluded.
+        pressure_channels: Airway pressure waveforms searched in the auxiliary signals,
+            in order of preference: Draeger PressurePod, then the Medibus or Timpel
+            ``airway_pressure`` (``notebooks/06_peep_trial_segmentation.ipynb``,
+            section 2). All pressures are in cmH2O.
+        peep_value_channel, plateau_value_channel: Values computed by the ventilator
+            (Medibus), used only if there is no pressure waveform: the PEEP and plateau
+            of a breath are their median over the breath (notebook 06, section 7).
+        peep_seconds: The PEEP of a breath is the median airway pressure in this time
+            before the start of inspiration found on the pressure curve (notebook 06,
+            section 2).
+        plateau_window_seconds: The plateau is the median airway pressure from the first
+            to the second value before the start of expiration; it needs an
+            end-inspiratory hold (notebook 06, section 4).
     """
 
     moving_average_seconds: float = 0.1
@@ -155,6 +169,11 @@ class PreprocessingConfig:
     heart_rate_warning_high_bpm: float = 200.0
     heart_rate_warning_margin_bpm: float = 12.0
     exclusion_margin_seconds: float = 0.5
+    pressure_channels: tuple[str, ...] = ("airway_pressure_pod", "airway_pressure")
+    peep_value_channel: str = "peep"
+    plateau_value_channel: str = "plateau_pressure"
+    peep_seconds: float = 0.2
+    plateau_window_seconds: tuple[float, float] = (0.25, 0.05)
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
@@ -169,6 +188,13 @@ class PreprocessingConfig:
             raise ValueError("exclusion_margin_seconds must not be negative.")
         if not self.ti_ratio_low < self.ti_ratio_high:
             raise ValueError("ti_ratio_low must be below ti_ratio_high.")
+        first, second = self.plateau_window_seconds
+        if not first > second >= 0:
+            raise ValueError(
+                "plateau_window_seconds must be (start, end) with start > end >= 0."
+            )
+        if not self.peep_seconds > 0:
+            raise ValueError("peep_seconds must be positive.")
 
 
 @dataclass(frozen=True)
@@ -177,21 +203,11 @@ class SegmentationConfig:
 
     Evidence and decisions: ``notebooks/06_peep_trial_segmentation.ipynb`` (section in
     brackets). These are fastEIT choices tested on four decremental trials, not values
-    from a paper. Pressures are in the units of the recording (mbar for Draeger, cmH2O
-    for Timpel; 1 mbar = 1.02 cmH2O).
+    from a paper. Pressures are in cmH2O for every vendor (``preprocess()`` converts
+    the Draeger mbar; 1 mbar = 1.02 cmH2O). The pressures of each breath are read in
+    layer 2, with the parameters of ``PreprocessingConfig``.
 
     Attributes:
-        pressure_channels: Airway pressure waveforms searched in ``EITRecording.aux``,
-            in order of preference: Draeger PressurePod, then the Medibus or Timpel
-            ``airway_pressure`` (section 2).
-        peep_value_channel, plateau_value_channel: Values computed by the ventilator
-            (Medibus), used only if there is no pressure waveform: the PEEP and plateau
-            of a breath are their median over the breath (section 7).
-        peep_seconds: The PEEP of a breath is the median airway pressure in this time
-            before the start of inspiration found on the pressure curve (section 2).
-        plateau_window_seconds: The plateau is the median airway pressure from the first
-            to the second value before the start of expiration; it needs an
-            end-inspiratory pause (section 4).
         step_threshold: A new PEEP step starts when ``step_min_breaths`` breaths in a
             row are further than this from the current level: half of the step of the
             protocol, 1 for steps of 2 (section 3).
@@ -209,11 +225,6 @@ class SegmentationConfig:
             (section 5).
     """
 
-    pressure_channels: tuple[str, ...] = ("airway_pressure_pod", "airway_pressure")
-    peep_value_channel: str = "peep"
-    plateau_value_channel: str = "plateau_pressure"
-    peep_seconds: float = 0.2
-    plateau_window_seconds: tuple[float, float] = (0.25, 0.05)
     step_threshold: float = 1.0
     step_min_breaths: int = 3
     step_agreement: float = 1.0
@@ -231,13 +242,6 @@ class SegmentationConfig:
             raise ValueError(
                 "analysis_min_breaths must be between 1 and analysis_max_breaths."
             )
-        first, second = self.plateau_window_seconds
-        if not first > second >= 0:
-            raise ValueError(
-                "plateau_window_seconds must be (start, end) with start > end >= 0."
-            )
-        if not self.peep_seconds > 0:
-            raise ValueError("peep_seconds must be positive.")
         if self.step_agreement < 0 or self.analysis_skip_seconds < 0:
             raise ValueError(
                 "step_agreement and analysis_skip_seconds must not be negative."

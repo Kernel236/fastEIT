@@ -1,8 +1,8 @@
 """Airway pressures of each breath: PEEP, plateau and driving pressure.
 
-Read on the airway pressure curve, all from the same channel so that a constant offset
-of the sensor cancels in the driving pressure (notebooks/06_peep_trial_segmentation.ipynb,
-sections 2 and 4). The PEEP of a breath is the end-expiratory pressure at the airway
+Read on the airway pressure curve (cmH2O), all from the same channel so that a constant
+offset of the sensor cancels in the driving pressure
+(notebooks/06_peep_trial_segmentation.ipynb, sections 2 and 4). The PEEP of a breath is the end-expiratory pressure at the airway
 opening: the PEEP applied by the ventilator, without intrinsic PEEP (that would need an
 end-expiratory occlusion), so it is a lower bound of the total PEEP. A breath whose
 pressure is missing (NaN) near its start gets NaN.
@@ -24,9 +24,9 @@ ONSET_SEARCH_AFTER_SECONDS = 0.5
 ONSET_LOOKBACK_SECONDS = 0.5
 # Start of expiration = steepest fall in the 0.3 s before the pressure is back near PEEP.
 EXPIRATION_SEARCH_SECONDS = 0.3
-# The pressure is back near PEEP when it is within 2 (mbar or cmH2O) of it.
+# The pressure is back near PEEP when it is within 2 cmH2O of it.
 BACK_TO_PEEP_MARGIN = 2.0
-# The highest part of a breath starts at the first frame within 1 (mbar or cmH2O) of its
+# The highest part of a breath starts at the first frame within 1 cmH2O of its
 # maximum: the peak in volume control, the start of the flat pressure in pressure control.
 TOP_MARGIN = 1.0
 # A plateau needs an end-inspiratory hold of at least 0.5 s (0.9-1.3 s in the trials of

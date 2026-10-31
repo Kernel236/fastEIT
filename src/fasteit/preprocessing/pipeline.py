@@ -9,7 +9,9 @@ Fixed order of the steps (notebooks/05_preprocessing_choices.ipynb):
 5. quality flags and exclusions of each breath;
 6. lung mask from the valid breaths, regions of interest, regional signals;
 7. auxiliary signals (pressures, flow, volume, device markers) with "no data" as NaN,
-   in the same units for every vendor (cmH2O, L/s, mL).
+   in the same units for every vendor (cmH2O, L/s, mL);
+8. airway pressures of each breath: PEEP, plateau, driving pressure
+   (notebooks/06_peep_trial_segmentation.ipynb).
 
 Every step writes what it did in ``EITRecording.log`` (saved with the results) and
 in the Python logger ``fasteit.preprocessing.pipeline`` (technical log, configured by
@@ -31,6 +33,11 @@ from fasteit.models.eit_recording import EITRecording, RecordingContext, Segment
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.draeger.bin.bin_utils import replace_draeger_sentinels
 from fasteit.preprocessing.auxiliary import auxiliary_signals
+from fasteit.preprocessing.breath_pressures import (
+    inspiration_onsets,
+    plateau_pressures,
+    pressure_before,
+)
 from fasteit.preprocessing.breath_quality import quality_flags
 from fasteit.preprocessing.breaths import detect_breaths
 from fasteit.preprocessing.cardiac_filter import (
@@ -224,6 +231,74 @@ def _regional_signals(
     return pd.DataFrame(signals)
 
 
+def _has_data(aux: pd.DataFrame, column: str) -> bool:
+    return column in aux and aux[column].notna().any()
+
+
+def _median_over_breaths(
+    values: np.ndarray, starts: np.ndarray, ends: np.ndarray
+) -> np.ndarray:
+    """Median of a per-frame value over each breath (NaN if it is missing there)."""
+    out = np.full(len(starts), np.nan)
+    for i, (start, end) in enumerate(zip(starts, ends, strict=True)):
+        part = values[start:end]
+        if len(part) and not np.isnan(part).all():
+            out[i] = np.nanmedian(part)
+    return out
+
+
+def _breath_pressures(
+    aux: pd.DataFrame,
+    fs: float,
+    starts: np.ndarray,
+    ends: np.ndarray,
+    config: PreprocessingConfig,
+    log: RunLog,
+) -> tuple[str | None, np.ndarray, np.ndarray]:
+    """PEEP and plateau of each breath, and the channel they come from.
+
+    From the first airway pressure waveform of ``config.pressure_channels``; without
+    one, the PEEP and plateau computed by the ventilator (Medibus), median over each
+    breath; otherwise NaN.
+
+    Args:
+        aux:    Auxiliary signals (cmH2O).
+        fs:     Sampling frequency in Hz.
+        starts, ends: First and last frame of each breath.
+        config: Parameters.
+        log:    Run log.
+    """
+    channel = next((c for c in config.pressure_channels if _has_data(aux, c)), None)
+    if channel is not None:
+        paw = aux[channel].to_numpy(dtype=float)
+        # The valley that closes the last breath is one more start of inspiration, so
+        # that the last breath also has a plateau.
+        onsets = inspiration_onsets(paw, fs, np.r_[starts, ends[-1]])
+        peep = pressure_before(paw, fs, onsets, config.peep_seconds)
+        plateau = plateau_pressures(
+            paw, fs, onsets, peep, config.plateau_window_seconds
+        )
+        log.info(f"PEEP and plateau of each breath read on {channel}.")
+        return channel, peep[:-1], plateau[:-1]
+
+    if _has_data(aux, config.peep_value_channel):
+        values = aux[config.peep_value_channel].to_numpy(dtype=float)
+        peep = _median_over_breaths(values, starts, ends)
+        plateau = np.full(len(starts), np.nan)
+        if _has_data(aux, config.plateau_value_channel):
+            values = aux[config.plateau_value_channel].to_numpy(dtype=float)
+            plateau = _median_over_breaths(values, starts, ends)
+        log.info(
+            "No airway pressure waveform: PEEP (and plateau, if there) computed by the "
+            f"ventilator, median over each breath ({config.peep_value_channel})."
+        )
+        return config.peep_value_channel, peep, plateau
+
+    log.info("No airway pressure: no PEEP, plateau or driving pressure of the breaths.")
+    nothing = np.full(len(starts), np.nan)
+    return None, nothing, nothing.copy()
+
+
 def _breath_table(
     time: np.ndarray, breaths: np.ndarray, flags: pd.DataFrame
 ) -> pd.DataFrame:
@@ -368,6 +443,14 @@ def preprocess(
     else:
         log.info("No auxiliary signals with data.")
 
+    # 8. Airway pressures of each breath (cmH2O).
+    pressure_channel, peep, plateau = _breath_pressures(
+        aux, fs, table.start_idx.to_numpy(), table.end_idx.to_numpy(), config, log
+    )
+    table["peep"] = peep
+    table["plateau"] = plateau
+    table["driving_pressure"] = plateau - peep
+
     return EITRecording(
         raw=raw,
         config=config,
@@ -394,5 +477,6 @@ def preprocess(
         roi_signals=roi_signals,
         aux=aux,
         aux_units=aux_units,
+        pressure_channel=pressure_channel,
         log=tuple(log.messages),
     )

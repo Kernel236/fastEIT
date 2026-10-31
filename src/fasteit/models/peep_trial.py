@@ -21,28 +21,24 @@ class PeepTrial:
     Attributes:
         recording:        The preprocessed recording (layer 2).
         config:           Parameters used.
-        pressure_channel: Column of ``recording.aux`` the pressures were read from, or
-                          None if there was no pressure signal.
-        pressure_unit:    ``"mbar"`` (Draeger) or ``"cmH2O"`` (Timpel); None if unknown.
         source:           Where the steps come from: ``"pressure"`` or ``"manual"``.
         steps:            One row per step: ``step``, ``peep`` (level, as measured or as
-                          typed), ``start_time``, ``end_time``, ``n_breaths``,
+                          typed, cmH2O), ``start_time``, ``end_time``, ``n_breaths``,
                           ``n_analysed``, ``enough`` (at least the minimum), ``plateau``
                           and ``driving_pressure`` with ``driving_pressure_source``:
                           ``"breaths"`` (median of the analysed breaths, continuous
                           pause), ``"hold"`` (median of the breaths of the step with an
                           inspiratory hold) or ``"typed"`` (step placed by hand);
                           ``n_driving_pressure`` and ``enough_driving_pressure``.
-        breaths:          The breath table of the recording plus ``peep``, ``plateau``,
-                          ``driving_pressure`` (units of the recording), ``peep_step``
-                          (-1 outside every step) and ``analysed``.
+        breaths:          The breath table of the recording (with ``peep``,
+                          ``plateau`` and ``driving_pressure`` in cmH2O, read in layer 2
+                          from ``recording.pressure_channel``) plus ``peep_step`` (-1
+                          outside every step) and ``analysed``.
         log:              What the segmentation did, with warnings.
     """
 
     recording: EITRecording
     config: SegmentationConfig
-    pressure_channel: str | None
-    pressure_unit: str | None
     source: str
     steps: pd.DataFrame
     breaths: pd.DataFrame

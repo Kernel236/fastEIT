@@ -118,7 +118,8 @@ class EITRecording:
         global_signal: (N,) sum of the pixels inside the lung mask.
         breaths:       One row per breath: times and frames of start, peak and end,
                        quality flags, ``excluded``, ``exclusion_label``,
-                       ``is_valid``.
+                       ``is_valid``; ``peep``, ``plateau`` and ``driving_pressure``
+                       (cmH2O, NaN where not available).
         lung_mask:     (rows, cols) bool, ventilated lung (not the anatomical lung).
         tiv_map:       (rows, cols) mean TIV of the valid breaths (first and last
                        breath excluded), used for the mask.
@@ -131,6 +132,8 @@ class EITRecording:
                        volumes in mL.
         aux_units:     Unit of each column of ``aux`` ("" for markers and flags, None
                        if unknown).
+        pressure_channel: Column of ``aux`` the pressures of the breaths were read
+                       from, or None if there was no pressure.
         log:           What each step did, with fallbacks and warnings.
     """
 
@@ -152,6 +155,7 @@ class EITRecording:
     roi_signals: pd.DataFrame
     aux: pd.DataFrame
     aux_units: dict[str, str | None]
+    pressure_channel: str | None
     log: tuple[str, ...]
 
     def __post_init__(self) -> None:

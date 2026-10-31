@@ -1,11 +1,10 @@
 """segment_peep_trial(): split a preprocessed PEEP trial into PEEP steps (layer 2b).
 
 Steps (notebooks/06_peep_trial_segmentation.ipynb, section 7):
-1. airway pressure: the first channel of ``config.pressure_channels`` in the auxiliary
-   signals; otherwise the PEEP and plateau computed by the ventilator (Medibus);
-2. pressures of each breath: PEEP, plateau, driving pressure;
-3. PEEP steps: placed by hand if given, otherwise found from the PEEP of each breath;
-4. breaths analysed in each step, and the step table.
+1. breaths of the PEEP trial phase, with the PEEP and plateau read in layer 2
+   (``EITRecording.breaths``);
+2. PEEP steps: placed by hand if given, otherwise found from the PEEP of each breath;
+3. breaths analysed in each step, and the step table.
 """
 
 from __future__ import annotations
@@ -20,11 +19,6 @@ from fasteit.config import SegmentationConfig
 from fasteit.models.eit_recording import PHASE, EITRecording, Segment
 from fasteit.models.peep_trial import PeepTrial
 from fasteit.run_log import RunLog
-from fasteit.segmentation.breath_pressures import (
-    inspiration_onsets,
-    plateau_pressures,
-    pressure_before,
-)
 from fasteit.segmentation.peep_steps import (
     analysed_breaths,
     find_steps,
@@ -37,68 +31,11 @@ logger = logging.getLogger(__name__)
 PEEP_TRIAL = "peep_trial"  # label of the PEEP trial phase
 # Below this fraction of breaths with a reading, a warning is given.
 MIN_FRACTION_READ = 0.5
-PRESSURE_UNITS = {"draeger": "mbar", "timpel": "cmH2O"}
 STEP_COLUMNS = [
     "step", "peep", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
     "plateau", "driving_pressure", "driving_pressure_source", "n_driving_pressure",
     "enough_driving_pressure",
 ]  # fmt: skip
-
-
-def _has_data(aux: pd.DataFrame, column: str) -> bool:
-    return column in aux and aux[column].notna().any()
-
-
-def _median_over_breaths(
-    values: np.ndarray, starts: np.ndarray, ends: np.ndarray
-) -> np.ndarray:
-    """Median of a per-frame value over each breath (NaN if it is missing there)."""
-    out = np.full(len(starts), np.nan)
-    for i, (start, end) in enumerate(zip(starts, ends, strict=True)):
-        part = values[start:end]
-        if len(part) and not np.isnan(part).all():
-            out[i] = np.nanmedian(part)
-    return out
-
-
-def _breath_pressures(
-    recording: EITRecording, config: SegmentationConfig, log: RunLog
-) -> tuple[str | None, np.ndarray, np.ndarray]:
-    """PEEP and plateau of each breath, and the channel they come from."""
-    aux, fs, breaths = recording.aux, recording.fs, recording.breaths
-    starts, ends = breaths.start_idx.to_numpy(), breaths.end_idx.to_numpy()
-
-    channel = next((c for c in config.pressure_channels if _has_data(aux, c)), None)
-    if channel is not None:
-        paw = aux[channel].to_numpy(dtype=float)
-        # The valley that closes the last breath is one more start of inspiration, so
-        # that the last breath also has a plateau.
-        onsets = inspiration_onsets(paw, fs, np.r_[starts, ends[-1]])
-        peep = pressure_before(paw, fs, onsets, config.peep_seconds)
-        plateau = plateau_pressures(
-            paw, fs, onsets, peep, config.plateau_window_seconds
-        )
-        log.info(f"Airway pressure read from {channel}.")
-        return channel, peep[:-1], plateau[:-1]
-
-    if _has_data(aux, config.peep_value_channel):
-        values = aux[config.peep_value_channel].to_numpy(dtype=float)
-        peep = _median_over_breaths(values, starts, ends)
-        plateau = np.full(len(breaths), np.nan)
-        if _has_data(aux, config.plateau_value_channel):
-            values = aux[config.plateau_value_channel].to_numpy(dtype=float)
-            plateau = _median_over_breaths(values, starts, ends)
-        log.info(
-            "No airway pressure waveform: PEEP (and plateau, if there) computed by the "
-            f"ventilator, median over each breath ({config.peep_value_channel})."
-        )
-        return config.peep_value_channel, peep, plateau
-
-    log.warning(
-        "No airway pressure in the recording: no PEEP, plateau or driving pressure."
-    )
-    nothing = np.full(len(breaths), np.nan)
-    return None, nothing, nothing.copy()
 
 
 def _breaths_in_phase(
@@ -312,9 +249,15 @@ def segment_peep_trial(
     valid, excluded = b.is_valid.to_numpy(), b.excluded.to_numpy()
     in_phase = _breaths_in_phase(starts, ends, phase, log)
 
-    channel, peep, plateau = _breath_pressures(recording, config, log)
+    channel = recording.pressure_channel
+    peep, plateau = b.peep.to_numpy(), b.plateau.to_numpy()
     if channel is not None:
+        log.info(f"PEEP and plateau of each breath from {channel}.")
         _check_readings(peep, plateau, in_phase, log)
+    else:
+        log.warning(
+            "No airway pressure in the recording: no PEEP, plateau or driving pressure."
+        )
 
     if peep_steps:
         step, levels, typed_plateaus = steps_from_segments(starts, ends, peep_steps)
@@ -340,17 +283,12 @@ def segment_peep_trial(
         )
 
     breaths = b.copy()
-    breaths["peep"] = peep
-    breaths["plateau"] = plateau
-    breaths["driving_pressure"] = plateau - peep
     breaths["peep_step"] = step
     breaths["analysed"] = analysed
 
     return PeepTrial(
         recording=recording,
         config=config,
-        pressure_channel=channel,
-        pressure_unit=PRESSURE_UNITS.get(recording.raw.vendor),
         source=source,
         steps=_steps_table(breaths, levels, typed_plateaus, config, log),
         breaths=breaths,

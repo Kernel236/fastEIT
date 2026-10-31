@@ -9,9 +9,9 @@ from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 from fasteit.segmentation.pipeline import segment_peep_trial
 
+from ..preprocessing.test_breath_pressures import pcv_pressure, vcv_pressure
 from ..preprocessing.test_breath_quality import TEST_FILES
 from ..preprocessing.test_pipeline import FS, synthetic_raw
-from .test_breath_pressures import pcv_pressure, vcv_pressure
 
 PEEPS = [12] * 12 + [10] * 12 + [8] * 12 + [6] * 14  # 50 breaths of 4 s
 
@@ -33,20 +33,18 @@ def recording():
 
 def test_steps_and_pressures_found_from_the_pressure(recording):
     trial = segment_peep_trial(recording)
-    assert (
-        trial.source == "pressure" and trial.pressure_channel == "airway_pressure_pod"
-    )
+    assert trial.source == "pressure"
+    assert trial.recording.pressure_channel == "airway_pressure_pod"
     np.testing.assert_allclose(trial.steps.peep, [12, 10, 8, 6], atol=0.1)
     driving = trial.analysed_breaths.driving_pressure
     np.testing.assert_allclose(driving, 12, atol=0.2)
 
 
-def test_step_table_has_the_driving_pressure_and_the_unit(recording):
+def test_step_table_has_the_driving_pressure(recording):
     trial = segment_peep_trial(recording)
     np.testing.assert_allclose(trial.steps.driving_pressure, 12, atol=0.2)
     assert trial.steps.enough_driving_pressure.all()
     assert (trial.steps.driving_pressure_source == "breaths").all()
-    assert trial.pressure_unit == "cmH2O"  # the synthetic recording is a Timpel one
     assert np.isfinite(trial.breaths.driving_pressure.iloc[-1])  # last breath too
 
 
@@ -105,7 +103,8 @@ def test_without_pressure_the_steps_must_be_placed_by_hand():
         recording,
         peep_steps=[Segment(20, 60, category="peep_step", parameters={"peep": 10})],
     )
-    assert trial.pressure_channel is None and trial.breaths.peep.isna().all()
+    assert trial.recording.pressure_channel is None
+    assert trial.breaths.peep.isna().all()
     assert any("No airway pressure" in line for line in trial.log)
 
 
@@ -114,7 +113,7 @@ def test_ventilator_values_are_used_without_a_waveform():
     peep = np.repeat([12.0, 10.0], [n // 2, n - n // 2]).astype(np.float32)
     recording = synthetic_trial(aux={"peep": peep, "plateau_pressure": peep + 15})
     trial = segment_peep_trial(recording)
-    assert trial.pressure_channel == "peep"
+    assert trial.recording.pressure_channel == "peep"
     np.testing.assert_allclose(trial.steps.peep, [12, 10], atol=0.01)
     np.testing.assert_allclose(trial.analysed_breaths.driving_pressure, 15, atol=0.01)
 
@@ -130,13 +129,16 @@ def test_without_end_inspiratory_pause_the_driving_pressure_is_missing():
 
 # --- real PEEP trials (notebook 06) ---
 
-# Valid breaths after the first 15 s of steps 1-8 (notebook 06, section 5).
+# Valid breaths after the first 15 s of steps 1-8 (notebook 06, section 5, in mbar).
 NOTEBOOK_USABLE = {
     "A_park_bench": [5, 4, 6, 6, 6, 5, 5, 19],
     "A_supine": [5, 7, 8, 7, 6, 9, 6, 16],
     "B_park_bench": [20, 18, 13, 12, 16, 10, 8, 18],
     "B_supine": [13, 8, 9, 8, 9, 15, 12, 32],
 }
+# In cmH2O (x 1.02) the breath of the change to step 1 of A supine is 1.02 from the
+# level instead of 0.99 mbar, so it opens the step: 4 s earlier, one more breath.
+CMH2O_EXTRA = {"A_supine": [1, 0, 0, 0, 0, 0, 0, 0]}
 
 
 @pytest.mark.slow  # about 25 s
@@ -153,6 +155,7 @@ def test_real_peep_trials_give_the_steps_and_breaths_of_notebook_06():
         np.testing.assert_allclose(
             trial.steps.peep, np.arange(16, -1, -2), atol=1.1, err_msg=name
         )
+        usable = np.add(usable, CMH2O_EXTRA.get(name, 0))
         assert trial.steps.n_analysed.iloc[1:].tolist() == [
             min(n, 10) for n in usable
         ], name

@@ -41,14 +41,21 @@ def test_preprocessing_config_rejects_impossible_values():
         {"lung_mask_min_region_pixels": 0},
         {"exclusion_margin_seconds": -1},
         {"ti_ratio_low": 0.7},
+        {"plateau_window_seconds": (0.05, 0.25)},
+        {"peep_seconds": 0},
     ]:
         with pytest.raises(ValueError):
             PreprocessingConfig(**wrong)
 
 
+def test_preprocessing_config_pressure_defaults_follow_notebook_06():
+    cfg = PreprocessingConfig()
+    assert cfg.pressure_channels[0] == "airway_pressure_pod"
+    assert (cfg.peep_seconds, cfg.plateau_window_seconds) == (0.2, (0.25, 0.05))
+
+
 def test_segmentation_config_defaults_follow_notebook_06():
     cfg = SegmentationConfig()
-    assert cfg.pressure_channels[0] == "airway_pressure_pod"
     assert (cfg.step_threshold, cfg.analysis_skip_seconds) == (1.0, 15.0)
     assert (cfg.analysis_min_breaths, cfg.analysis_max_breaths) == (5, 10)
 
@@ -58,8 +65,6 @@ def test_segmentation_config_rejects_impossible_values():
         {"step_threshold": 0},
         {"step_min_breaths": 0},
         {"analysis_min_breaths": 12},
-        {"plateau_window_seconds": (0.05, 0.25)},
-        {"peep_seconds": 0},
         {"analysis_skip_seconds": -1},
         {"step_threshold": 0.5},  # tolerance 0.5 would then be above half of it
     ]:

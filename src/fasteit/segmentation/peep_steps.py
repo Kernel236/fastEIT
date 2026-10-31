@@ -1,8 +1,8 @@
 """PEEP steps of a PEEP trial and the breaths analysed in each step.
 
-Steps come from the PEEP of each breath (``breath_pressures``) or are placed by hand as
-segments with their PEEP level; steps placed by hand win over the automatic ones
-(notebooks/06_peep_trial_segmentation.ipynb, sections 3, 5 and 7).
+Steps come from the PEEP of each breath (``EITRecording.breaths``) or are placed by
+hand as segments with their PEEP level; steps placed by hand win over the automatic
+ones (notebooks/06_peep_trial_segmentation.ipynb, sections 3, 5 and 7).
 """
 
 from __future__ import annotations

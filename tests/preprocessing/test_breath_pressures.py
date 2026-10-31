@@ -3,14 +3,14 @@
 import numpy as np
 import pytest
 
-from fasteit.config import SegmentationConfig
-from fasteit.segmentation.breath_pressures import (
+from fasteit.config import PreprocessingConfig
+from fasteit.preprocessing.breath_pressures import (
     inspiration_onsets,
     plateau_pressures,
     pressure_before,
 )
 
-CFG = SegmentationConfig()
+CFG = PreprocessingConfig()
 
 
 def vcv_pressure(

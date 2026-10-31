@@ -12,6 +12,7 @@ from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing.pipeline import preprocess, recording_time
 
+from .test_breath_pressures import vcv_pressure
 from .test_breath_quality import NOTEBOOK_COUNTS, TEST_FILES
 
 FS = 20.0
@@ -218,6 +219,34 @@ def test_auxiliary_signals_are_cleaned_and_aligned_with_the_frames():
     )
 
 
+def test_the_pressures_of_each_breath_are_read_on_the_airway_pressure():
+    raw, _ = synthetic_raw()
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)  # 15 breaths/min
+    raw.aux_signals = {"airway_pressure": paw[: len(raw.frames)].astype(np.float32)}
+    recording = preprocess(raw)
+    breaths = recording.breaths
+    assert recording.pressure_channel == "airway_pressure"
+    np.testing.assert_allclose(breaths.peep, 10, atol=0.1)
+    np.testing.assert_allclose(breaths.driving_pressure.iloc[1:-1], 12, atol=0.2)
+    assert any("PEEP and plateau of each breath read on" in m for m in recording.log)
+
+
+def test_draeger_pressures_of_each_breath_are_in_cmh2o():
+    raw, _ = synthetic_raw(vendor="draeger")
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)  # in mbar, as recorded
+    raw.aux_signals = {"airway_pressure_pod": paw[: len(raw.frames)].astype(np.float32)}
+    breaths = preprocess(raw).breaths
+    np.testing.assert_allclose(breaths.peep, 10.2, atol=0.1)
+    np.testing.assert_allclose(breaths.driving_pressure.iloc[1:-1], 12.24, atol=0.2)
+
+
+def test_without_pressure_the_pressures_of_the_breaths_are_missing():
+    recording = preprocess(synthetic_raw()[0])
+    assert recording.pressure_channel is None
+    assert recording.breaths[["peep", "plateau", "driving_pressure"]].isna().all().all()
+    assert not any(line.startswith("WARNING: No airway") for line in recording.log)
+
+
 def test_vendors_other_than_draeger_get_a_warning():
     recording = preprocess(synthetic_raw(vendor="timpel")[0])
     assert any("verified on Draeger" in line for line in recording.log)
@@ -243,4 +272,8 @@ def test_real_recordings_give_the_breaths_of_the_evidence_notebook():
         if name.startswith("patient01"):  # PressurePod connected, no ventilator
             assert "esophageal_pressure_pod" in recording.aux, name
             assert "peep" not in recording.aux, name
+            assert recording.pressure_channel == "airway_pressure_pod", name
+            # 85-100 %: a single missing frame of the PressurePod loses the PEEP of
+            # the breath around it (up to 12 such frames per recording).
+            assert recording.breaths.peep.notna().mean() > 0.8, name
             assert recording.aux.min_max_flag.isin([-1, 0, 1]).all(), name
