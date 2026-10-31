@@ -88,10 +88,9 @@ class RecordingContext:
     notes: str = ""
 
     def __post_init__(self) -> None:
-        if self.tidal_volume_ml is not None and not self.tidal_volume_ml > 0:
-            raise ValueError(
-                f"tidal_volume_ml must be positive, got {self.tidal_volume_ml}."
-            )
+        volume = self.tidal_volume_ml
+        if volume is not None and not (math.isfinite(volume) and volume > 0):
+            raise ValueError(f"tidal_volume_ml must be positive, got {volume}.")
 
 
 # eq=False: two recordings are compared by identity, not array by array.

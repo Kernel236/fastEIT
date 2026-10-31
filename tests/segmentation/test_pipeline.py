@@ -7,6 +7,7 @@ from fasteit.config import SegmentationConfig
 from fasteit.models.eit_recording import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
+from fasteit.preprocessing.auxiliary import CMH2O_PER_MBAR
 from fasteit.segmentation.pipeline import segment_peep_trial
 
 from ..preprocessing.test_breath_pressures import pcv_pressure, vcv_pressure
@@ -153,8 +154,12 @@ def test_real_peep_trials_give_the_steps_and_breaths_of_notebook_06():
             preprocess(load_data(TEST_FILES / f"PEEP_trial_{name}.bin"))
         )
         assert len(trial.steps) == 9, name
+        # Protocol in mbar, measured in cmH2O; PEEP 0 reads about 1 above (notebook 06).
         np.testing.assert_allclose(
-            trial.steps.peep, np.arange(16, -1, -2), atol=1.1, err_msg=name
+            trial.steps.peep,
+            np.arange(16, -1, -2) * CMH2O_PER_MBAR,
+            atol=1.2,
+            err_msg=name,
         )
         usable = np.add(usable, CMH2O_EXTRA.get(name, 0))
         assert trial.steps.n_analysed.iloc[1:].tolist() == [
@@ -360,3 +365,41 @@ def test_the_tidal_volume_of_the_breaths_when_none_is_typed():
 def test_unusable_typed_tidal_volumes_are_rejected(recording, steps, volumes, message):
     with pytest.raises(ValueError, match=message):
         segment_peep_trial(recording, peep_steps=steps, tidal_volumes=volumes)
+
+
+def test_a_negative_tidal_volume_typed_in_a_segment_is_rejected(recording):
+    steps = [Segment(20, 56, category="peep_step",
+                     parameters={"peep": 12, "tidal_volume": -450})]  # fmt: skip
+    with pytest.raises(ValueError, match="positive"):
+        segment_peep_trial(recording, peep_steps=steps)
+
+
+def test_a_tidal_volume_of_none_in_a_segment_is_not_typed(recording):
+    steps = [Segment(20, 56, category="peep_step",
+                     parameters={"peep": 12, "tidal_volume": None})]  # fmt: skip
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert trial.steps.tidal_volume.isna().all()
+
+
+def trial_with_volume(context=None, **kwargs):
+    """The synthetic trial with a measured tidal volume of 450 mL in every breath."""
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    flow, _, _, _ = vcv_flow([0.45] * len(PEEPS), fs=FS, period=4.0)
+    aux = {
+        "airway_pressure_pod": paw.astype(np.float32),
+        "volume": volume_curve(flow, FS).astype(np.float32),
+    }
+    return segment_peep_trial(synthetic_trial(aux=aux, context=context), **kwargs)
+
+
+def test_a_typed_tidal_volume_far_from_the_measured_one_gives_a_warning():
+    trial = trial_with_volume(context=RecordingContext(tidal_volume_ml=600))
+    assert (trial.steps.tidal_volume_source == "typed_recording").all()
+    assert any("tidal volume typed 600 mL, measured 450 mL" in m for m in trial.log)
+    close = trial_with_volume(context=RecordingContext(tidal_volume_ml=470))
+    assert not any("tidal volume typed" in m for m in close.log)
+
+
+def test_a_tidal_volume_typed_for_a_step_in_litres_gives_a_warning(recording):
+    trial = segment_peep_trial(recording, tidal_volumes=[0.45, None, None, None])
+    assert any("Step 0: typed tidal volume 0.45 mL" in m for m in trial.log)

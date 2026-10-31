@@ -126,10 +126,13 @@ def steps_from_segments(
         )
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
     plateaus = np.array([_typed_plateau(s.parameters) for s in ordered])
-    volumes = np.array(
-        [float(s.parameters.get("tidal_volume", np.nan)) for s in ordered]
-    )
+    volumes = np.array([_typed_value(s.parameters, "tidal_volume") for s in ordered])
     return step, levels, plateaus, volumes
+
+
+def _typed_value(parameters: dict, key: str) -> float:
+    value = parameters.get(key)
+    return np.nan if value is None else float(value)
 
 
 def _typed_plateau(parameters: dict) -> float:

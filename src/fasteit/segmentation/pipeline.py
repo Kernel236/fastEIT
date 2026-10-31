@@ -174,22 +174,51 @@ def _typed_volumes(
     n_steps: int,
 ) -> np.ndarray:
     """Tidal volume typed for each step, in the segments or as a list (NaN if not)."""
-    if tidal_volumes is None:
-        return from_segments
-    if np.isfinite(from_segments).any():
-        raise ValueError(
-            "Tidal volumes typed both in the PEEP step segments and in tidal_volumes: "
-            "give them in one place."
-        )
-    volumes = np.array([np.nan if v is None else float(v) for v in tidal_volumes])
-    if len(volumes) != n_steps:
-        raise ValueError(
-            f"tidal_volumes has {len(volumes)} values for {n_steps} PEEP steps: give "
-            "one per step in time order (None for a step without it)."
-        )
-    if (volumes <= 0).any():
-        raise ValueError("Tidal volumes must be positive (mL).")
+    volumes = from_segments
+    if tidal_volumes is not None:
+        if np.isfinite(from_segments).any():
+            raise ValueError(
+                "Tidal volumes typed both in the PEEP step segments and in "
+                "tidal_volumes: give them in one place."
+            )
+        volumes = np.array([np.nan if v is None else float(v) for v in tidal_volumes])
+        if len(volumes) != n_steps:
+            raise ValueError(
+                f"tidal_volumes has {len(volumes)} values for {n_steps} PEEP steps: "
+                "give one per step in time order (None for a step without it)."
+            )
+    if (volumes <= 0).any() or np.isinf(volumes).any():
+        raise ValueError("Typed tidal volumes must be positive and finite (mL).")
     return volumes
+
+
+def _check_typed_volumes(
+    steps: pd.DataFrame,
+    breaths: pd.DataFrame,
+    plausible: tuple[float, float],
+    config: SegmentationConfig,
+    log: RunLog,
+) -> None:
+    """Warn about typed tidal volumes outside the plausible range or far from the
+    tidal volume measured on the analysed breaths of the step."""
+    low, high = plausible
+    for _, step in steps[steps.tidal_volume_source == "typed"].iterrows():
+        if not low <= step.tidal_volume <= high:
+            log.warning(
+                f"Step {step.step}: typed tidal volume {step.tidal_volume:g} mL is "
+                f"outside {low:g}-{high:g} mL: is it in mL?"
+            )
+    typed = steps.tidal_volume_source.isin(["typed", "typed_recording"])
+    for _, step in steps[typed].iterrows():
+        in_step = breaths[(breaths.peep_step == step.step) & breaths.analysed]
+        measured = in_step.tidal_volume.dropna()
+        if len(measured) and abs(step.tidal_volume - measured.median()) > (
+            config.tidal_volume_agreement * measured.median()
+        ):
+            log.warning(
+                f"Step {step.step}: tidal volume typed {step.tidal_volume:g} mL, "
+                f"measured {measured.median():.0f} mL."
+            )
 
 
 def _step_tidal_volume(
@@ -346,20 +375,26 @@ def segment_peep_trial(
     breaths = b.copy()
     breaths["peep_step"] = step
     breaths["analysed"] = analysed
+    steps = _steps_table(
+        breaths,
+        levels,
+        typed_plateaus,
+        _typed_volumes(tidal_volumes, segment_volumes, len(levels)),
+        recording.context.tidal_volume_ml,
+        config,
+        log,
+    )
+    plausible = (
+        recording.config.tidal_volume_warning_low_ml,
+        recording.config.tidal_volume_warning_high_ml,
+    )
+    _check_typed_volumes(steps, breaths, plausible, config, log)
 
     return PeepTrial(
         recording=recording,
         config=config,
         source=source,
-        steps=_steps_table(
-            breaths,
-            levels,
-            typed_plateaus,
-            _typed_volumes(tidal_volumes, segment_volumes, len(levels)),
-            recording.context.tidal_volume_ml,
-            config,
-            log,
-        ),
+        steps=steps,
         breaths=breaths,
         log=tuple(log.messages),
     )

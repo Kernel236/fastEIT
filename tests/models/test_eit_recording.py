@@ -54,8 +54,9 @@ def test_recording_context_defaults():
 
 def test_recording_context_tidal_volume_must_be_positive():
     assert RecordingContext(tidal_volume_ml=450).tidal_volume_ml == 450
-    with pytest.raises(ValueError, match="positive"):
-        RecordingContext(tidal_volume_ml=0)
+    for wrong in (0, -450, float("inf"), float("nan")):
+        with pytest.raises(ValueError, match="positive"):
+            RecordingContext(tidal_volume_ml=wrong)
 
 
 def test_segments_are_hashable_and_parameters_not_shared():
