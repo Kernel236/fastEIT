@@ -142,10 +142,14 @@ class PreprocessingConfig:
             volume of each breath, in order of preference: the volume curve, then the
             integral of the inspiratory flow (Timpel, and Draeger with a ventilator on
             Medibus, use these names). Volumes in mL, flow in L/s.
-        tidal_volume_value_channel: Tidal volume computed by the ventilator for each
-            breath (Medibus "tidal volume"), used only without the curves: median over
-            the breath. Which phase of the breath it measures depends on the
-            ventilator.
+        tidal_volume_value_channels: Tidal volume computed by the ventilator for each
+            breath (Medibus), used only without the curves: the first channel with
+            data, median over the breath. The inspiratory values first, so that every
+            source gives the inspiratory volume; the generic Medibus "tidal volume"
+            last, as the phase it measures depends on the ventilator.
+        tidal_volume_warning_low_ml, tidal_volume_warning_high_ml: A tidal volume
+            typed by the user outside this range gives a warning: a plausibility check
+            for adults (e.g. litres typed instead of mL), not a clinical limit.
     """
 
     moving_average_seconds: float = 0.1
@@ -184,7 +188,13 @@ class PreprocessingConfig:
     plateau_window_seconds: tuple[float, float] = (0.25, 0.05)
     volume_channel: str = "volume"
     flow_channel: str = "flow"
-    tidal_volume_value_channel: str = "tidal_volume"
+    tidal_volume_value_channels: tuple[str, ...] = (
+        "mandatory_inspiratory_tidal_volume",
+        "spontaneous_inspiratory_tidal_volume",
+        "tidal_volume",
+    )
+    tidal_volume_warning_low_ml: float = 100.0
+    tidal_volume_warning_high_ml: float = 1500.0
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
@@ -234,6 +244,11 @@ class SegmentationConfig:
             analysed only if its PEEP is within this of the level of the step: the
             last breath before a change can already be at an intermediate PEEP
             (section 5).
+        tidal_volume_agreement: A tidal volume typed for a step or for the recording
+            that differs from the one measured on the analysed breaths of the step by
+            more than this fraction gives a warning: a typing error, or one volume
+            typed for a trial in pressure control, where it changes with PEEP. A
+            plausibility check, not a measured accuracy.
     """
 
     step_threshold: float = 1.0
@@ -243,6 +258,7 @@ class SegmentationConfig:
     analysis_max_breaths: int = 10
     analysis_min_breaths: int = 5
     analysis_peep_tolerance: float = 0.5
+    tidal_volume_agreement: float = 0.15
 
     def __post_init__(self) -> None:
         if not self.step_threshold > 0:

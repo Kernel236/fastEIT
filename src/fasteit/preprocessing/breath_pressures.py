@@ -2,10 +2,12 @@
 
 Read on the airway pressure curve (cmH2O), all from the same channel so that a constant
 offset of the sensor cancels in the driving pressure
-(notebooks/06_peep_trial_segmentation.ipynb, sections 2 and 4). The PEEP of a breath is the end-expiratory pressure at the airway
-opening: the PEEP applied by the ventilator, without intrinsic PEEP (that would need an
-end-expiratory occlusion), so it is a lower bound of the total PEEP. A breath whose
-pressure is missing (NaN) near its start gets NaN.
+(notebooks/06_peep_trial_segmentation.ipynb, sections 2 and 4). The PEEP of a breath is
+the end-expiratory pressure at the airway opening: the PEEP applied by the ventilator,
+without intrinsic PEEP (that would need an end-expiratory occlusion), so it is a lower
+bound of the total PEEP; with intrinsic PEEP the driving pressure is overestimated and
+compliance underestimated. A breath whose pressure is missing (NaN) near its start gets
+NaN.
 """
 
 from __future__ import annotations
@@ -165,6 +167,8 @@ def plateau_pressures(
         reached = peak + back_to_peep[0]
         lo = max(peak, reached - search)
         expiration = lo + int(np.argmin(slope[lo : reached + 1]))
-        if expiration - peak >= min_pause:
-            plateaus[i] = np.median(paw[expiration - first : expiration - last])
+        # The reading never starts before the highest part, whatever the window.
+        read_from, read_to = max(peak, expiration - first), expiration - last
+        if expiration - peak >= min_pause and read_to > read_from:
+            plateaus[i] = np.median(paw[read_from:read_to])
     return plateaus

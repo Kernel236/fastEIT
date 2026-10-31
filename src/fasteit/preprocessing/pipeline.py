@@ -305,6 +305,28 @@ def _breath_pressures(
     return None, nothing, nothing.copy()
 
 
+def _check_inspiration_is_positive(
+    values: np.ndarray,
+    starts: np.ndarray,
+    peaks: np.ndarray,
+    is_flow: bool,
+    channel: str,
+    log: RunLog,
+) -> None:
+    """Warn when the flow is not positive (the volume does not rise) during the EIT
+    inspiration of most breaths: inspiration may be negative on this device."""
+    rises = []
+    for start, peak in zip(starts, peaks, strict=True):
+        part = values[start : peak + 1]
+        if len(part) > 1 and not np.isnan(part).any():
+            rises.append(part.mean() if is_flow else part[-1] - part[0])
+    if rises and np.median(rises) <= 0:
+        log.warning(
+            f"{channel} does not rise during the EIT inspiration of most breaths: is "
+            "inspiration negative on this device? The tidal volumes may be wrong."
+        )
+
+
 def _tidal_volumes(
     aux: pd.DataFrame,
     fs: float,
@@ -315,35 +337,41 @@ def _tidal_volumes(
     """Inspiratory tidal volume of each breath (mL), and the channel it comes from.
 
     From the volume curve; without it, from the integral of the inspiratory flow;
-    without both, the tidal volume computed by the ventilator (Medibus), median over
-    each breath; otherwise NaN.
+    without both, the tidal volume computed by the ventilator (Medibus, the first of
+    ``config.tidal_volume_value_channels`` with data), median over each breath;
+    otherwise NaN.
     """
     starts, peaks, ends = (
         table[c].to_numpy() for c in ("start_idx", "peak_idx", "end_idx")
     )
     first, after_last = inspiration_windows(starts, peaks, ends, len(aux))
-    if _has_data(aux, config.volume_channel):
-        volume = aux[config.volume_channel].to_numpy(dtype=float)
-        log.info(f"Tidal volume of each breath read on {config.volume_channel}.")
-        return config.volume_channel, volumes_from_volume_curve(
-            volume, first, after_last
-        )
-    if _has_data(aux, config.flow_channel):
-        flow = aux[config.flow_channel].to_numpy(dtype=float)
-        log.info(
-            "Tidal volume of each breath from the integral of the inspiratory flow "
-            f"({config.flow_channel})."
-        )
-        return config.flow_channel, volumes_from_flow_curve(flow, fs, first, after_last)
-    if _has_data(aux, config.tidal_volume_value_channel):
-        values = aux[config.tidal_volume_value_channel].to_numpy(dtype=float)
+    for channel, is_flow in (
+        (config.volume_channel, False),
+        (config.flow_channel, True),
+    ):
+        if not _has_data(aux, channel):
+            continue
+        values = aux[channel].to_numpy(dtype=float)
+        _check_inspiration_is_positive(values, starts, peaks, is_flow, channel, log)
+        if is_flow:
+            log.info(
+                "Tidal volume of each breath from the integral of the inspiratory flow "
+                f"({channel})."
+            )
+            return channel, volumes_from_flow_curve(values, fs, first, after_last)
+        log.info(f"Tidal volume of each breath read on {channel}.")
+        return channel, volumes_from_volume_curve(values, first, after_last)
+
+    channel = next(
+        (c for c in config.tidal_volume_value_channels if _has_data(aux, c)), None
+    )
+    if channel is not None:
+        values = aux[channel].to_numpy(dtype=float)
         log.info(
             "No volume or flow curve: tidal volume computed by the ventilator, median "
-            f"over each breath ({config.tidal_volume_value_channel})."
+            f"over each breath ({channel})."
         )
-        return config.tidal_volume_value_channel, _median_over_breaths(
-            values, starts, ends
-        )
+        return channel, _median_over_breaths(values, starts, ends)
     log.info(
         "No volume or flow: no tidal volume of the breaths (it can be typed, "
         "RecordingContext.tidal_volume_ml)."
@@ -510,6 +538,16 @@ def preprocess(
         log.info(
             f"Tidal volume typed for the recording: {context.tidal_volume_ml:g} mL."
         )
+        if not (
+            config.tidal_volume_warning_low_ml
+            <= context.tidal_volume_ml
+            <= config.tidal_volume_warning_high_ml
+        ):
+            log.warning(
+                f"Typed tidal volume {context.tidal_volume_ml:g} mL is outside "
+                f"{config.tidal_volume_warning_low_ml:g}-"
+                f"{config.tidal_volume_warning_high_ml:g} mL: is it in mL?"
+            )
 
     return EITRecording(
         raw=raw,

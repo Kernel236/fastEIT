@@ -4,8 +4,11 @@ import numpy as np
 import pytest
 
 from fasteit.models.reconstructed_data import ReconstructedFrameData
+from fasteit.parsers.draeger.bin.draeger_dtypes import MEDIBUS_UNITS
+from fasteit.parsers.timpel.timpel_dtypes import TIMPEL_AUX_FIELDS, TIMPEL_AUX_UNITS
 from fasteit.preprocessing.auxiliary import (
     CMH2O_PER_MBAR,
+    COMMON_UNITS,
     auxiliary_signals,
     common_unit,
 )
@@ -104,6 +107,19 @@ def test_timpel_channels_get_common_units_and_flags_pass_through():
         "volume": "mL",
         "qrs_flag": "",
     }
+
+
+def test_every_parser_unit_with_mbar_or_litres_is_converted():
+    for name, unit in MEDIBUS_UNITS.items():
+        if "mbar" in unit or unit == "L":
+            assert unit in COMMON_UNITS, name
+    assert set(TIMPEL_AUX_UNITS) == set(TIMPEL_AUX_FIELDS)
+
+
+def test_resistance_and_elastance_are_converted():
+    assert common_unit("resistance", "mbar/L/s") == ("cmH2O/L/s", CMH2O_PER_MBAR)
+    assert common_unit("elastance", "mbar/L") == ("cmH2O/L", CMH2O_PER_MBAR)
+    assert common_unit("minute_volume", "L/min") == ("L/min", 1.0)
 
 
 def test_an_unknown_channel_is_kept_as_it_is():

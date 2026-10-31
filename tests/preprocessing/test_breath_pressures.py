@@ -155,3 +155,12 @@ def test_one_inspiratory_hold_among_breaths_without_pause():
     plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
     assert np.flatnonzero(np.isfinite(plateau)).tolist() == [2]
     assert plateau[2] == pytest.approx(22, abs=0.05)
+
+
+def test_a_reading_window_longer_than_the_hold_starts_at_the_highest_part():
+    paw, starts = vcv_pressure([10] * 5, pause=0.8)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    plateau = plateau_pressures(paw, 50, onsets, peep, (3.0, 0.05))  # 3 s > 0.8 s hold
+    # Not read on the ramp and the PEEP before it (that would give 16.2).
+    np.testing.assert_allclose(plateau[1:-1], 22, atol=0.05)

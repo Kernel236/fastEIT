@@ -100,3 +100,61 @@ def test_missing_values_give_nan_for_that_breath_only():
     first, after_last = windows(starts, peaks, ends, len(flow))
     volumes = volumes_from_flow_curve(flow, 50, first, after_last)
     assert np.isnan(volumes[1]) and np.isfinite(volumes[[0, 2]]).all()
+
+
+def test_the_window_stops_in_the_middle_of_the_expiration_before():
+    # Breath 2 has a long expiration (an inspiratory hold seen as expiration by EIT):
+    # half of it would reach back into the inspiration of breath 1.
+    first, _ = inspiration_windows(
+        np.array([0, 200, 400]),
+        np.array([50, 250, 450]),
+        np.array([200, 400, 1000]),
+        2000,
+    )
+    assert first[2] == (250 + 400) // 2
+
+
+def test_a_breath_with_a_long_inspiratory_hold_gets_only_its_own_volume():
+    before, _, _, _ = vcv_flow([0.45, 0.60])  # a bigger breath before the hold
+    held, _, _, _ = vcv_flow([0.45], period=9.0, pause=5.0)
+    after, _, _, _ = vcv_flow([0.45] * 2)
+    flow = np.concatenate([before, held, after])
+    starts = np.array([0, 200, 400, 850, 1050])
+    peaks = starts + 50  # the EIT peak at the start of the hold
+    ends = np.r_[starts[1:], len(flow)]
+    first, after_last = inspiration_windows(starts, peaks, ends, len(flow))
+    expected = [450, 600, 450, 450, 450]
+    np.testing.assert_allclose(
+        volumes_from_flow_curve(flow, 50, first, after_last), expected, atol=1
+    )
+    volume = volume_curve(flow, 50) * 1000
+    np.testing.assert_allclose(
+        volumes_from_volume_curve(volume, first, after_last), expected, atol=1
+    )
+
+
+def test_cardiac_oscillations_of_the_flow_are_not_counted_as_volume():
+    flow, starts, peaks, ends = vcv_flow([0.45] * 6)
+    t = np.arange(len(flow)) / 50
+    flow = flow + 0.05 * np.sin(2 * np.pi * 1.3 * t)  # 78/min, 0.05 L/s
+    first, after_last = windows(starts, peaks, ends, len(flow))
+    volumes = volumes_from_flow_curve(flow, 50, first, after_last)
+    # Summing all the positive flow of the window would add 12-27 mL here.
+    assert np.abs(volumes - 450).max() < 15
+
+
+def test_a_flow_never_positive_gives_zero():
+    first, after_last = np.array([0]), np.array([100])
+    assert volumes_from_flow_curve(-np.ones(100), 50, first, after_last)[0] == 0.0
+
+
+def test_after_a_decrease_of_peep_a_reset_volume_curve_adds_the_volume_lost():
+    # Known limit: breath 0 breathes out 20 mL more than it took in (the lung empties
+    # after a decrease of PEEP); with a reset at each breath breath 1 reads 20 mL more.
+    flow, starts, peaks, ends = vcv_flow([0.45] * 3)
+    out = flow[: starts[1]] < 0
+    flow[: starts[1]][out] *= 0.47 / 0.45
+    volume = volume_curve(flow, 50, starts) * 1000
+    first, after_last = windows(starts, peaks, ends, len(flow))
+    volumes = volumes_from_volume_curve(volume, first, after_last)
+    np.testing.assert_allclose(volumes, [450, 470, 450], atol=1)

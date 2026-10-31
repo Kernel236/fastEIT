@@ -24,13 +24,14 @@ DRAEGER_MARKERS = ("min_max_flag", "event_marker")
 
 # 1 mbar = 100 Pa and 1 cmH2O = 98.0665 Pa, so 1 mbar = 1.0197 cmH2O.
 CMH2O_PER_MBAR = 100 / 98.0665
+ML_PER_L = 1000.0
 # Unit given by the parser -> common unit and the factor to multiply by.
 COMMON_UNITS = {
     "mbar": ("cmH2O", CMH2O_PER_MBAR),
     "mbar/L": ("cmH2O/L", CMH2O_PER_MBAR),
     "mbar/L/s": ("cmH2O/L/s", CMH2O_PER_MBAR),
     "mL/mbar": ("mL/cmH2O", 1 / CMH2O_PER_MBAR),
-    "L": ("mL", 1000.0),
+    "L": ("mL", ML_PER_L),
 }
 # The flow waveform in L/s (Draeger gives it in L/min); minute volumes stay in L/min.
 FLOW = "flow"
