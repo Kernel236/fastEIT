@@ -40,6 +40,9 @@ frames      np.ndarray   Structured array shape (N,). Named fields:
 aux_signals dict|None    Named arrays, each shape (N,), frame-aligned with frames.
                          Dräger .bin: 52 or 58 Medibus channels, sentinel values
                          left unchanged (replaced in preprocessing).
+                         Units of the device (parser tables MEDIBUS_UNITS,
+                         TIMPEL_AUX_UNITS); preprocessing converts them to the
+                         same units for every vendor (cmH2O, L/s, mL).
                          Timpel: 6 device channels (airway_pressure, flow,
                          volume, min_flag, max_flag, qrs_flag - cols 1024-1029).
                          None if the source file carries no auxiliary signals.
