@@ -11,7 +11,8 @@ Fixed order of the steps (notebooks/05_preprocessing_choices.ipynb):
 7. auxiliary signals (pressures, flow, volume, device markers) with "no data" as NaN,
    in the same units for every vendor (cmH2O, L/s, mL);
 8. airway pressures of each breath: PEEP, plateau, driving pressure
-   (notebooks/06_peep_trial_segmentation.ipynb).
+   (notebooks/06_peep_trial_segmentation.ipynb);
+9. inspiratory tidal volume of each breath, from the ventilator curves.
 
 Every step writes what it did in ``EITRecording.log`` (saved with the results) and
 in the Python logger ``fasteit.preprocessing.pipeline`` (technical log, configured by
@@ -57,6 +58,11 @@ from fasteit.preprocessing.exclusions import (
 )
 from fasteit.preprocessing.lung_mask import remove_small_regions, watershed_mask
 from fasteit.preprocessing.regions import lung_regions
+from fasteit.preprocessing.tidal_volume import (
+    inspiration_windows,
+    volumes_from_flow_curve,
+    volumes_from_volume_curve,
+)
 from fasteit.run_log import RunLog
 
 logger = logging.getLogger(__name__)
@@ -299,6 +305,52 @@ def _breath_pressures(
     return None, nothing, nothing.copy()
 
 
+def _tidal_volumes(
+    aux: pd.DataFrame,
+    fs: float,
+    table: pd.DataFrame,
+    config: PreprocessingConfig,
+    log: RunLog,
+) -> tuple[str | None, np.ndarray]:
+    """Inspiratory tidal volume of each breath (mL), and the channel it comes from.
+
+    From the volume curve; without it, from the integral of the inspiratory flow;
+    without both, the tidal volume computed by the ventilator (Medibus), median over
+    each breath; otherwise NaN.
+    """
+    starts, peaks, ends = (
+        table[c].to_numpy() for c in ("start_idx", "peak_idx", "end_idx")
+    )
+    first, after_last = inspiration_windows(starts, peaks, ends, len(aux))
+    if _has_data(aux, config.volume_channel):
+        volume = aux[config.volume_channel].to_numpy(dtype=float)
+        log.info(f"Tidal volume of each breath read on {config.volume_channel}.")
+        return config.volume_channel, volumes_from_volume_curve(
+            volume, first, after_last
+        )
+    if _has_data(aux, config.flow_channel):
+        flow = aux[config.flow_channel].to_numpy(dtype=float)
+        log.info(
+            "Tidal volume of each breath from the integral of the inspiratory flow "
+            f"({config.flow_channel})."
+        )
+        return config.flow_channel, volumes_from_flow_curve(flow, fs, first, after_last)
+    if _has_data(aux, config.tidal_volume_value_channel):
+        values = aux[config.tidal_volume_value_channel].to_numpy(dtype=float)
+        log.info(
+            "No volume or flow curve: tidal volume computed by the ventilator, median "
+            f"over each breath ({config.tidal_volume_value_channel})."
+        )
+        return config.tidal_volume_value_channel, _median_over_breaths(
+            values, starts, ends
+        )
+    log.info(
+        "No volume or flow: no tidal volume of the breaths (it can be typed, "
+        "RecordingContext.tidal_volume_ml)."
+    )
+    return None, np.full(len(table), np.nan)
+
+
 def _breath_table(
     time: np.ndarray, breaths: np.ndarray, flags: pd.DataFrame
 ) -> pd.DataFrame:
@@ -451,6 +503,10 @@ def preprocess(
     table["plateau"] = plateau
     table["driving_pressure"] = plateau - peep
 
+    # 9. Inspiratory tidal volume of each breath (mL).
+    tidal_volume_channel, tidal_volume = _tidal_volumes(aux, fs, table, config, log)
+    table["tidal_volume"] = tidal_volume
+
     return EITRecording(
         raw=raw,
         config=config,
@@ -478,5 +534,6 @@ def preprocess(
         aux=aux,
         aux_units=aux_units,
         pressure_channel=pressure_channel,
+        tidal_volume_channel=tidal_volume_channel,
         log=tuple(log.messages),
     )

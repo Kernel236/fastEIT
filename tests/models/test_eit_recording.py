@@ -83,6 +83,7 @@ def small_recording():
         aux=pd.DataFrame({"airway_pressure": np.zeros(4)}),
         aux_units={"airway_pressure": "cmH2O"},
         pressure_channel="airway_pressure",
+        tidal_volume_channel=None,
         log=("done",),
     )
 

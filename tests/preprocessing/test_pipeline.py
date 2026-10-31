@@ -14,6 +14,7 @@ from fasteit.preprocessing.pipeline import preprocess, recording_time
 
 from .test_breath_pressures import vcv_pressure
 from .test_breath_quality import NOTEBOOK_COUNTS, TEST_FILES
+from .test_tidal_volume import vcv_flow, volume_curve
 
 FS = 20.0
 SECONDS = 90
@@ -245,6 +246,50 @@ def test_without_pressure_the_pressures_of_the_breaths_are_missing():
     assert recording.pressure_channel is None
     assert recording.breaths[["peep", "plateau", "driving_pressure"]].isna().all().all()
     assert not any(line.startswith("WARNING: No airway") for line in recording.log)
+
+
+def ventilator_curves(n_frames):
+    """Flow (L/s) and volume (L) of a breath of 450 mL every 4 s, as in synthetic_raw."""
+    flow, _, _, _ = vcv_flow([0.45] * 23, fs=FS, period=4.0)
+    flow = flow[:n_frames]
+    return flow.astype(np.float32), volume_curve(flow, FS).astype(np.float32)
+
+
+def middle(breaths):
+    return breaths.tidal_volume.iloc[1:-1]
+
+
+def test_tidal_volume_of_each_breath_from_the_timpel_volume_curve():
+    raw, _ = synthetic_raw()
+    flow, volume = ventilator_curves(len(raw.frames))
+    raw.aux_signals = {"flow": flow, "volume": volume}  # Timpel: L/s and L
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "volume"  # the volume curve first
+    np.testing.assert_allclose(middle(recording.breaths), 450, atol=2)
+
+
+def test_tidal_volume_of_each_breath_from_the_draeger_flow_curve():
+    raw, _ = synthetic_raw(vendor="draeger")
+    flow, _ = ventilator_curves(len(raw.frames))
+    raw.aux_signals = {"flow": flow * 60}  # Draeger Medibus: L/min
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "flow"
+    np.testing.assert_allclose(middle(recording.breaths), 450, atol=2)
+
+
+def test_tidal_volume_computed_by_the_ventilator_without_curves():
+    raw, _ = synthetic_raw(vendor="draeger")
+    raw.aux_signals = {"tidal_volume": np.full(len(raw.frames), 480, dtype=np.float32)}
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "tidal_volume"
+    np.testing.assert_allclose(recording.breaths.tidal_volume, 480)
+
+
+def test_without_volume_or_flow_the_tidal_volume_is_missing():
+    recording = preprocess(synthetic_raw()[0])
+    assert recording.tidal_volume_channel is None
+    assert recording.breaths.tidal_volume.isna().all()
+    assert any("no tidal volume of the breaths" in line for line in recording.log)
 
 
 def test_vendors_other_than_draeger_get_a_warning():

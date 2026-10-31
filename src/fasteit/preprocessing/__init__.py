@@ -12,6 +12,7 @@ One module per step, in pipeline order:
 - auxiliary        - pressures, flow, volume and device markers, "no data" values as
                      NaN, the same units for every vendor
 - breath_pressures - PEEP and plateau of each breath on the airway pressure
+- tidal_volume     - inspiratory tidal volume of each breath on the volume or flow
 - pipeline         - preprocess(), all the steps in a fixed order
 
 Evidence for every choice: notebooks/05_preprocessing_choices.ipynb (pressures of each

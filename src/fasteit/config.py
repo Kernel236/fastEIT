@@ -5,7 +5,7 @@ values from here - change once, propagates everywhere.
 
 Structure:
     PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions, pressures
-                          of each breath
+                          and tidal volume of each breath
     SegmentationConfig  - layer 2b: PEEP steps of a PEEP trial and the breaths analysed
     AnalysisConfig      - layer 3: clinical indices (to be filled)
     Config              - top-level container for pipeline sections
@@ -138,6 +138,14 @@ class PreprocessingConfig:
         plateau_window_seconds: The plateau is the median airway pressure from the first
             to the second value before the start of expiration; it needs an
             end-inspiratory hold (notebook 06, section 4).
+        volume_channel, flow_channel: Ventilator curves for the inspiratory tidal
+            volume of each breath, in order of preference: the volume curve, then the
+            integral of the inspiratory flow (Timpel, and Draeger with a ventilator on
+            Medibus, use these names). Volumes in mL, flow in L/s.
+        tidal_volume_value_channel: Tidal volume computed by the ventilator for each
+            breath (Medibus "tidal volume"), used only without the curves: median over
+            the breath. Which phase of the breath it measures depends on the
+            ventilator.
     """
 
     moving_average_seconds: float = 0.1
@@ -174,6 +182,9 @@ class PreprocessingConfig:
     plateau_value_channel: str = "plateau_pressure"
     peep_seconds: float = 0.2
     plateau_window_seconds: tuple[float, float] = (0.25, 0.05)
+    volume_channel: str = "volume"
+    flow_channel: str = "flow"
+    tidal_volume_value_channel: str = "tidal_volume"
 
     def __post_init__(self) -> None:
         if self.heart_rate_bpm is not None and self.heart_rate_bpm <= 0:
