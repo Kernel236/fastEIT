@@ -148,3 +148,8 @@ MEDIBUS_BASE_INDEX: dict[str, int] = {
 MEDIBUS_EXT_INDEX: dict[str, int] = {
     name: i for i, (name, _unit, _continuous) in enumerate(MEDIBUS_EXT_FIELDS)
 }
+
+# Unit of each Medibus field, by name (the two formats give the same unit to a name).
+MEDIBUS_UNITS: dict[str, str] = {
+    name: unit for name, unit, _continuous in MEDIBUS_BASE_FIELDS + MEDIBUS_EXT_FIELDS
+}

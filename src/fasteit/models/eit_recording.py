@@ -127,6 +127,10 @@ class EITRecording:
         aux:           (N, n_channels) auxiliary signals with data (pressures, flow,
                        volume, device breath markers), "no data" values as NaN, not
                        filtered; rows are frame numbers like the breath indices.
+                       Same units for every vendor: pressures in cmH2O, flow in L/s,
+                       volumes in mL.
+        aux_units:     Unit of each column of ``aux`` ("" for markers and flags, None
+                       if unknown).
         log:           What each step did, with fallbacks and warnings.
     """
 
@@ -147,6 +151,7 @@ class EITRecording:
     roi_masks: dict[str, np.ndarray]
     roi_signals: pd.DataFrame
     aux: pd.DataFrame
+    aux_units: dict[str, str | None]
     log: tuple[str, ...]
 
     def __post_init__(self) -> None:

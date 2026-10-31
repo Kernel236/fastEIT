@@ -8,7 +8,8 @@ Fixed order of the steps (notebooks/05_preprocessing_choices.ipynb):
 4. breath detection on the global signal (sum of all pixels);
 5. quality flags and exclusions of each breath;
 6. lung mask from the valid breaths, regions of interest, regional signals;
-7. auxiliary signals (pressures, flow, device markers) with "no data" as NaN.
+7. auxiliary signals (pressures, flow, volume, device markers) with "no data" as NaN,
+   in the same units for every vendor (cmH2O, L/s, mL).
 
 Every step writes what it did in ``EITRecording.log`` (saved with the results) and
 in the Python logger ``fasteit.preprocessing.pipeline`` (technical log, configured by
@@ -358,9 +359,12 @@ def preprocess(
     roi_signals = _regional_signals(pixels, roi_masks, log)
 
     # 7. Auxiliary signals (pressures, flow, device markers), cleaned, not filtered.
-    aux = auxiliary_signals(raw)
+    aux, aux_units = auxiliary_signals(raw)
     if len(aux.columns):
-        log.info(f"Auxiliary signals with data: {', '.join(aux.columns)}.")
+        log.info(
+            f"Auxiliary signals with data: {', '.join(aux.columns)} (pressures in cmH2O, "
+            "flow in L/s, volumes in mL)."
+        )
     else:
         log.info("No auxiliary signals with data.")
 
@@ -389,5 +393,6 @@ def preprocess(
         roi_masks=roi_masks,
         roi_signals=roi_signals,
         aux=aux,
+        aux_units=aux_units,
         log=tuple(log.messages),
     )

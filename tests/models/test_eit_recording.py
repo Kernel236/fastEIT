@@ -81,6 +81,7 @@ def small_recording():
         roi_masks={"ventral": np.ones((2, 2), dtype=bool)},
         roi_signals=pd.DataFrame({"ventral": np.zeros(4)}),
         aux=pd.DataFrame({"airway_pressure": np.zeros(4)}),
+        aux_units={"airway_pressure": "cmH2O"},
         log=("done",),
     )
 
