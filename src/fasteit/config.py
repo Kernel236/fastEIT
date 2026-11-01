@@ -7,7 +7,7 @@ Structure:
     PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions, pressures
                           and tidal volume of each breath
     SegmentationConfig  - layer 2b: PEEP steps of a PEEP trial and the breaths analysed
-    AnalysisConfig      - layer 3: clinical indices (to be filled)
+    AnalysisConfig      - layer 3: clinical indices (no parameters yet)
     Config              - top-level container for pipeline sections
 
 Rates and frequencies are given per minute here, as read on a monitor; the
@@ -282,9 +282,12 @@ class SegmentationConfig:
 
 @dataclass
 class AnalysisConfig:
-    """Parameters of layer 3 (clinical indices). To be filled.
+    """Parameters of layer 3 (clinical indices).
 
-    All defaults must cite supporting literature.
+    Empty: the indices of the first version have no parameter to tune, their
+    definitions are fixed in ``notebooks/07_clinical_indices.ipynb``. New indices with
+    a parameter (e.g. the threshold of silent spaces) will add it here, with its
+    source.
     """
 
     pass

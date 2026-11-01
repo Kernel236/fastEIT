@@ -4,7 +4,7 @@ The segmentation layer (layer 2b) takes a preprocessed recording (`EITRecording`
 splits it by protocol. For a PEEP trial it finds the PEEP steps from the PEEP of each
 breath, chooses the breaths analysed in each step and gives each step its driving
 pressure and tidal volume. It is still preparation of the data: the clinical indices
-(EELI, TIV, compliance, Costa) come in layer 3.
+(EELI, TIV, compliance, Costa) come in layer 3 ([`features.md`](features.md)).
 
 The PEEP, plateau and tidal volume of each breath are read in layer 2
 ([`preprocessing.md`](preprocessing.md), section 3), in cmH2O and mL for every
@@ -97,8 +97,7 @@ typed volume outside 100-1500 mL, or more than 15 % from the one measured on the
 analysed breaths of the step (`tidal_volume_agreement`), gives a warning: a typing
 error, or one volume typed for a trial in pressure control. How the tidal volume is
 used in layer 3, and the assumptions of each use (compliance of the respiratory
-system, volume of a region, change of EELI in mL), are in
-`notebooks/07_clinical_indices.ipynb`, section 5.
+system, volume of a region, change of EELI in mL), are in [`features.md`](features.md).
 
 ## 4. Recordings with more than one protocol
 

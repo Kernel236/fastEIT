@@ -110,9 +110,31 @@ trial.analysed_breaths   # breaths to analyse, with PEEP, plateau, driving press
 See [`docs/segmentation.md`](docs/segmentation.md); evidence in
 `notebooks/06_peep_trial_segmentation.ipynb`.
 
+## Clinical indices
+
+`tidal_features()` and `peep_trial_features()` compute the clinical indices as tables ready
+for a database or R: EELI, TIV, share of ventilation by region, global inhomogeneity,
+centre of ventilation, durations, compliance (in EIT units and, with a tidal volume, in
+mL/cmH2O), and for a PEEP trial the indices of each step, Costa collapse and
+overdistension, the crossing PEEP and the changes between steps.
+
+```python
+from fasteit.features import peep_trial_features, tidal_features
+
+tidal = tidal_features(recording)
+tidal.breaths, tidal.regions, tidal.summary   # per breath, per breath and region, summary
+
+features = peep_trial_features(trial)
+features.steps, features.step_regions, features.summary
+```
+
+See [`docs/features.md`](docs/features.md); evidence in
+`notebooks/07_clinical_indices.ipynb`.
+
 ## Project status
 
-Pre-alpha. Data model, parsing, preprocessing and PEEP trial segmentation implemented.
+Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation and clinical indices
+implemented.
 
 **Data model** (`models/`):
 
@@ -123,6 +145,7 @@ Pre-alpha. Data model, parsing, preprocessing and PEEP trial segmentation implem
 | `RawImpedanceData` | Calibrated transimpedances + aux signals for pyEIT | `.eit` |
 | `EITRecording` | Preprocessed recording: breaths with their ventilator values, lung mask, regions, log | `preprocess()` |
 | `PeepTrial` | PEEP steps, breaths analysed, driving pressure and tidal volume of each step | `segment_peep_trial()` |
+| `TidalFeatures`, `PeepTrialFeatures` | Clinical indices per breath, region and step, and a summary | `tidal_features()`, `peep_trial_features()` |
 
 **Parsers** (`parsers/`):
 
@@ -157,6 +180,7 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 - [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
 - [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, ventilator values of each breath, units, outputs, logs and limits
 - [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, driving pressure and tidal volume, phases
+- [`docs/features.md`](docs/features.md) - clinical indices: definitions, tables and limits
 
 ## Contributing
 
