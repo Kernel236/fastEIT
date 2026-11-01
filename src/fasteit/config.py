@@ -280,7 +280,7 @@ class SegmentationConfig:
             )
 
 
-@dataclass
+@dataclass(frozen=True)
 class AnalysisConfig:
     """Parameters of layer 3 (clinical indices).
 

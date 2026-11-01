@@ -56,10 +56,12 @@ class PeepTrialFeatures:
 
     Attributes:
         trial:        The segmented PEEP trial (layer 2b).
-        breaths:      One row per breath, as in ``TidalFeatures`` plus ``peep_step``
-                      and ``analysed``.
+        breaths:      One row per breath, as in ``TidalFeatures`` (without
+                      ``in_phase``) plus ``peep_step`` and ``analysed``.
         regions:      One row per breath and region, as in ``TidalFeatures``.
-        steps:        One row per PEEP step, from its analysed breaths: medians of
+        steps:        One row per PEEP step: the step table of layer 2b (times,
+                      breaths, ``enough``, plateau, driving pressure, tidal volume
+                      and their sources), then from its analysed breaths: medians of
                       the breath indices, compliance in EIT units and in mL/cmH2O
                       (and as % of the best step), Costa collapse and
                       overdistension, and the changes vs the previous and the first

@@ -32,6 +32,11 @@ def test_a_step_without_compliance_is_nan_and_the_others_are_computed():
     assert table.iloc[2].isna().all()
 
 
+def test_with_one_step_only_nothing_can_be_compared():
+    pixels = np.concatenate([PIXELS[:1], np.full((1, 1, 2), np.nan)])
+    assert collapse_and_overdistension(pixels, PEEP, MASK).isna().all().all()
+
+
 def test_without_any_compliance_everything_is_nan():
     table = collapse_and_overdistension(np.full((2, 1, 2), np.nan), PEEP, MASK)
     assert table.isna().all().all()
@@ -44,6 +49,9 @@ def test_without_any_compliance_everything_is_nan():
         ([0, 5, 10], [20, 10, 0], [0, 10, 20], 5.0),  # a step on the crossing
         ([0, 10], [20, 30], [0, 10], np.nan),  # collapse always higher
         ([0, 10, 20], [20, np.nan, 0], [0, np.nan, 20], 10.0),  # a step without values
+        ([0, 5, 10], [5, 0, 3], [0, 0, 0], np.nan),  # the curves touch, do not cross
+        ([0, 5, 10], [20, 10, 0], [0, 0, 0], np.nan),  # they meet only at the top
+        ([0, 5, 10, 15], [10, 0, 10, 0], [0, 10, 0, 10], 2.5),  # twice: the lowest
     ],
 )
 def test_crossing_peep(peep, collapse, overdistension, expected):

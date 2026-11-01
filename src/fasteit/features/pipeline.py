@@ -154,12 +154,11 @@ def _summary(
 ) -> pd.DataFrame:
     """Median and quartiles of each index over the breaths used, globally and by
     region (long table)."""
-    used_ids = set(breaths.breath_id[used])
     tables = [("global", breaths[used], GLOBAL_INDICES)]
-    region_rows = regions[regions.breath_id.isin(used_ids)]
+    # Each region has one row per breath, in the order of the breath table.
     tables += [
-        (r, rows, REGIONAL_INDICES)
-        for r, rows in region_rows.groupby("region", sort=False)
+        (region, rows[used], REGIONAL_INDICES)
+        for region, rows in regions.groupby("region", sort=False)
     ]
     rows = []
     for region, table, indices in tables:
@@ -200,7 +199,7 @@ def tidal_features(
     log.info(f"Summary over {used.sum()} valid breaths.")
     if not used.any():
         log.warning("No valid breath: the summary is empty.")
-    if breaths.driving_pressure[used].isna().all():
+    elif breaths.driving_pressure[used].isna().all():
         log.info("No driving pressure: no compliance.")
     return TidalFeatures(
         recording=recording,
@@ -224,6 +223,7 @@ def _step_breath_volumes(
 
 
 def _pct_of_best(values: pd.Series) -> pd.Series:
+    """Values as % of the highest (NaN if there is no positive value)."""
     best = values.max()
     return 100 * values / best if best > 0 else values * np.nan
 
@@ -241,15 +241,22 @@ def _steps_table(
         rec.lung_mask,
     )  # fmt: skip
 
+    # Each region has one row per breath, in the order of the breath table.
+    by_region = dict(tuple(regions.groupby("region", sort=False)))
+
     rows, region_rows, pixel_compliance = [], [], []
     for _, step in s.iterrows():
         use = analysed & (step_of == step.step)
         medians = {index: _median(breaths[index][use]) for index in STEP_MEDIANS}
         driving, volume = step.driving_pressure, step.tidal_volume
         rows.append({
-            "step": step.step, "peep": step.peep, "n_analysed": int(use.sum()),
-            "driving_pressure": driving,
+            "step": step.step, "peep": step.peep, "start_time": step.start_time,
+            "end_time": step.end_time, "n_breaths": step.n_breaths,
+            "n_analysed": int(use.sum()), "enough": step.enough,
+            "plateau": step.plateau, "driving_pressure": driving,
             "driving_pressure_source": step.driving_pressure_source,
+            "n_driving_pressure": step.n_driving_pressure,
+            "enough_driving_pressure": step.enough_driving_pressure,
             "tidal_volume": volume, "tidal_volume_source": step.tidal_volume_source,
             **medians,
             "compliance": _ratio(medians["tiv"], driving).item(),
@@ -260,10 +267,8 @@ def _steps_table(
         else:
             pixel_compliance.append(np.full(rec.lung_mask.shape, np.nan))
 
-        ids = set(breaths.breath_id[use])
-        for region, r in regions[regions.breath_id.isin(ids)].groupby(
-            "region", sort=False
-        ):
+        for region, table in by_region.items():
+            r = table[use]
             share, tiv = _median(r.share), _median(r.tiv)
             region_rows.append({
                 "step": step.step, "region": region, "eeli": _median(r.eeli),
@@ -306,8 +311,39 @@ def _add_changes(steps: pd.DataFrame) -> pd.DataFrame:
 
 
 def _best_peep(steps: pd.DataFrame, column: str) -> float:
+    """PEEP of the step with the highest value of a column (NaN if none has one)."""
     values = steps[column]
     return float(steps.peep[values.idxmax()]) if values.notna().any() else np.nan
+
+
+def _check_steps(
+    steps: pd.DataFrame, crossing: float, min_breaths: int, log: RunLog
+) -> None:
+    """Warn about steps that are missing or weak in what the indices compare."""
+    if steps.compliance.isna().all():
+        log.warning("No step has a driving pressure: no compliance and no Costa.")
+    else:
+        missing = steps.step[steps.compliance.isna()].tolist()
+        if missing:
+            log.warning(
+                f"Steps {missing} have no compliance (no driving pressure or no analysed "
+                "breaths): they are left out of the best step and of Costa."
+            )
+    few = steps.step[~steps.enough.astype(bool)].tolist()
+    if few:
+        log.warning(
+            f"Steps {few} have fewer than {min_breaths} analysed breaths: they enter the "
+            "best step, the % of the best and Costa (column enough to filter them)."
+        )
+    if np.isnan(steps.eeli.iloc[0]) or np.isnan(steps.tiv.iloc[0]):
+        log.warning("The first step has no EELI or TIV: the changes vs it are NaN.")
+    if np.isnan(crossing):
+        if steps.collapse.notna().sum() >= 2:
+            log.warning("Collapse and overdistension do not cross in the PEEP range.")
+    else:
+        log.info(f"Collapse and overdistension cross at PEEP {crossing:.1f}.")
+    if steps.tidal_volume.isna().all():
+        log.info("No tidal volume: no values in mL.")
 
 
 def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
@@ -327,6 +363,8 @@ def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
     """
     log = RunLog(logger)
     recording = trial.recording
+    if len(trial.breaths) != len(recording.breaths):
+        raise ValueError("The breaths of the trial are not those of its recording.")
     volume, source = _recording_tidal_volume(recording, log)
     volume, source = _step_breath_volumes(trial, volume, source)
     breaths, regions = _breath_tables(recording, volume, source)
@@ -340,14 +378,9 @@ def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
         "best_peep_compliance": _best_peep(steps, "compliance"),
         "best_peep_compliance_ml": _best_peep(steps, "compliance_ml"),
     }])  # fmt: skip
-    log.info(
-        f"{len(steps)} steps; crossing of collapse and overdistension at PEEP "
-        f"{summary.crossing_peep[0]:.1f}."
+    _check_steps(
+        steps, summary.crossing_peep[0], trial.config.analysis_min_breaths, log
     )
-    if steps.compliance.isna().all():
-        log.warning("No step has a driving pressure: no compliance and no Costa.")
-    if steps.tidal_volume.isna().all():
-        log.info("No tidal volume: no values in mL.")
     return PeepTrialFeatures(
         trial=trial,
         breaths=breaths,

@@ -1,9 +1,11 @@
 """Tests for tidal_features() and peep_trial_features()."""
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from fasteit.features import peep_trial_features, tidal_features
+from fasteit.features.pipeline import _add_changes
 from fasteit.models import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
@@ -13,7 +15,7 @@ from ..preprocessing.test_breath_pressures import vcv_pressure
 from ..preprocessing.test_breath_quality import TEST_FILES
 from ..preprocessing.test_pipeline import FS, synthetic_raw
 from ..preprocessing.test_tidal_volume import vcv_flow, volume_curve
-from ..segmentation.test_pipeline import synthetic_trial
+from ..segmentation.test_pipeline import FOUR_STEPS, PEEPS, synthetic_trial
 
 
 def tidal_recording(context=None, volume=False):
@@ -102,7 +104,43 @@ def test_the_tidal_phase_limits_the_summary():
         )
 
 
+def test_a_phase_without_valid_breaths_keeps_every_region_in_the_summary():
+    recording = preprocess(
+        tidal_recording().raw, exclusions=[Segment(40, 90, label="cough")]
+    )
+    phase = Segment(45, 90, category="phase", label="tidal")
+    features = tidal_features(recording, phase=phase)
+    assert (features.summary.n_breaths == 0).all()
+    assert set(features.summary.region) == {"global", *recording.roi_masks}
+    assert any("No valid breath" in line for line in features.log)
+    with pytest.raises(ValueError, match="No breath inside"):
+        tidal_features(
+            recording, phase=Segment(200, 300, category="phase", label="tidal")
+        )
+
+
 # --- PEEP trials ---
+
+
+def test_changes_between_steps_with_a_known_answer():
+    steps = pd.DataFrame({
+        "eeli": [100.0, 80.0, 50.0], "tiv": [20.0, 25.0, 20.0],
+        "tidal_volume": [500.0, 500.0, 400.0],
+        "compliance_pct_of_best": [90.0, 100.0, 80.0],
+        "compliance_ml_pct_of_best": [90.0, 100.0, 80.0],
+        "collapse": [0.0, 5.0, 20.0], "overdistension": [30.0, 10.0, 0.0],
+    })  # fmt: skip
+    c = _add_changes(steps)
+    np.testing.assert_allclose(c.d_eeli_tiv_vs_previous, [np.nan, -1.0, -1.2])
+    np.testing.assert_allclose(c.d_eeli_tiv_vs_first, [0.0, -1.0, -2.5])
+    np.testing.assert_allclose(c.d_eeli_ml_vs_previous, [np.nan, -500.0, -600.0])
+    np.testing.assert_allclose(c.d_eeli_ml_vs_first, [0.0, -500.0, -1250.0])
+    np.testing.assert_allclose(
+        c.d_compliance_pct_of_best_vs_previous, [np.nan, 10, -20]
+    )
+    np.testing.assert_allclose(c.d_compliance_pct_of_best_vs_first, [0, 10, -10])
+    np.testing.assert_allclose(c.d_collapse_vs_first, [0, 5, 20])
+    np.testing.assert_allclose(c.d_overdistension_vs_previous, [np.nan, -20, -10])
 
 
 @pytest.fixture(scope="module")
@@ -134,6 +172,40 @@ def test_step_regions_and_summary(trial_features):
     summary = trial_features.summary.iloc[0]
     assert summary.n_steps == 4
     assert set(trial_features.breaths.columns) >= {"peep_step", "analysed"}
+
+
+def test_the_step_table_of_layer_2b_is_carried(trial_features):
+    s = trial_features.steps
+    layer_2b = trial_features.trial.steps
+    for column in ["start_time", "end_time", "n_breaths", "enough", "plateau",
+                   "n_driving_pressure", "enough_driving_pressure"]:  # fmt: skip
+        assert (s[column] == layer_2b[column]).all(), column
+
+
+def test_a_step_without_analysed_breaths_has_its_rows_and_a_warning():
+    raw, _ = synthetic_raw(seconds=200)
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    recording = preprocess(raw, exclusions=[Segment(138, 180, label="cough")])
+    features = peep_trial_features(segment_peep_trial(recording, peep_steps=FOUR_STEPS))
+    s = features.steps
+    assert s.n_analysed.iloc[3] == 0 and not s.enough.iloc[3]
+    assert np.isnan(s.compliance.iloc[3]) and np.isnan(s.collapse.iloc[3])
+    assert np.isfinite(s.collapse.iloc[:3]).all()
+    last = features.step_regions[features.step_regions.step == 3]
+    assert set(last.region) == set(recording.roi_masks) and last.tiv.isna().all()
+    assert any("have no compliance" in line for line in features.log)
+    assert any("fewer than 5 analysed breaths" in line for line in features.log)
+
+
+def test_a_first_step_without_breaths_gives_a_warning():
+    raw, _ = synthetic_raw(seconds=200)
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    recording = preprocess(raw, exclusions=[Segment(15, 60, label="cough")])
+    features = peep_trial_features(segment_peep_trial(recording, peep_steps=FOUR_STEPS))
+    assert features.steps.d_eeli_tiv_vs_first.isna().all()
+    assert any("The first step has no EELI" in line for line in features.log)
 
 
 def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
