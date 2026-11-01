@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
+import pandas as pd
 
 from fasteit.models.eit_recording import PEEP_STEP, Segment
 
@@ -39,39 +40,49 @@ def find_steps(
         ValueError: if no breath has a PEEP.
     """
     peep = _fill_backward(np.asarray(peep, dtype=float))
-    starts, level, i = [0], np.median(peep[:min_breaths]), 1
-    while i < len(peep):
-        window = peep[i : i + min_breaths]
+    step_starts = [0]
+    level = np.median(peep[:min_breaths])  # level of the first step: its first breaths
+    breath = 1
+    while breath < len(peep):
+        next_breaths = peep[breath : breath + min_breaths]
         opens_step = (
-            len(window) == min_breaths
-            and np.all(np.abs(window - level) > threshold)
-            and np.ptp(window) <= agreement
+            len(next_breaths) == min_breaths  # enough breaths left
+            and np.all(
+                np.abs(next_breaths - level) > threshold
+            )  # all far from the level
+            and np.ptp(next_breaths) <= agreement  # and close to each other
         )
         if opens_step:
-            starts.append(i)
-            level = np.median(window)
-            i += min_breaths
+            step_starts.append(breath)
+            level = np.median(next_breaths)
+            breath += min_breaths
         else:
-            # At least the first min_breaths breaths of the step, so one odd breath cannot move it.
-            level = np.median(peep[starts[-1] : max(i + 1, starts[-1] + min_breaths)])
-            i += 1
-    return np.array(starts, dtype=int)
+            # The breath stays in the current step: its level is the median of the
+            # breaths of the step so far, at least its first min_breaths, so that one
+            # odd breath cannot move it.
+            step_start = step_starts[-1]
+            level_until = max(breath + 1, step_start + min_breaths)
+            level = np.median(peep[step_start:level_until])
+            breath += 1
+    return np.array(step_starts, dtype=int)
 
 
 def _fill_backward(values: np.ndarray) -> np.ndarray:
     """NaN replaced with the next value that is not NaN (the last ones with the last)."""
-    known = np.flatnonzero(~np.isnan(values))
-    if len(known) == 0:
+    if np.isnan(values).all():
         raise ValueError("No breath has a PEEP: the steps cannot be found.")
-    position = np.minimum(
-        np.searchsorted(known, np.arange(len(values))), len(known) - 1
-    )
-    return values[known[position]]
+    # bfill: each NaN takes the next value; ffill: NaN at the end take the last value.
+    return pd.Series(values).bfill().ffill().to_numpy()
 
 
 def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
-    """Step number of each breath, from the first breath of each step."""
-    return np.searchsorted(step_starts, np.arange(n_breaths), side="right") - 1
+    """Step number of each breath, from the first breath of each step.
+
+    A breath belongs to the last step that starts at or before it: searchsorted counts
+    the steps that start at or before each breath, minus one gives the step number.
+    """
+    breaths = np.arange(n_breaths)
+    return np.searchsorted(step_starts, breaths, side="right") - 1
 
 
 def steps_from_segments(
@@ -172,9 +183,11 @@ def analysed_breaths(
     if max_breaths < 1:
         raise ValueError("max_breaths must be at least 1.")
     analysed = np.zeros(len(step), dtype=bool)
-    for k in np.unique(step[step >= 0]):
-        in_step = np.flatnonzero(step == k)
-        after_skip = breath_starts[in_step] >= breath_starts[in_step[0]] + skip_seconds
+    for step_number in np.unique(step[step >= 0]):
+        in_step = np.flatnonzero(step == step_number)  # breaths of the step, in order
+        step_start = breath_starts[in_step[0]]
+        after_skip = breath_starts[in_step] >= step_start + skip_seconds
         usable = in_step[after_skip & valid[in_step]]
-        analysed[usable[-max_breaths:]] = True
+        last_usable = usable[-max_breaths:]
+        analysed[last_usable] = True
     return analysed

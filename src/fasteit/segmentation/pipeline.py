@@ -65,10 +65,8 @@ def _check_readings(
     peep: np.ndarray, plateau: np.ndarray, in_phase: np.ndarray, log: RunLog
 ) -> None:
     """Warn when few breaths of the phase have a PEEP or a plateau."""
-    with_peep, with_plateau = (
-        np.isfinite(peep[in_phase]),
-        np.isfinite(plateau[in_phase]),
-    )
+    with_peep = np.isfinite(peep[in_phase])
+    with_plateau = np.isfinite(plateau[in_phase])
     log.info(f"PEEP read for {with_peep.sum()} of {in_phase.sum()} breaths.")
     if with_peep.mean() < MIN_FRACTION_READ:
         log.warning("PEEP missing in most breaths: is the pressure signal complete?")
@@ -85,15 +83,24 @@ def _automatic_steps(
     in_phase: np.ndarray,
     excluded: np.ndarray,
     valid: np.ndarray,
-    starts: np.ndarray,
+    breath_starts: np.ndarray,
     config: SegmentationConfig,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Steps from the PEEP of each breath; excluded breaths (maneuvers) do not count."""
-    usable_peep = np.where(excluded, np.nan, peep)
-    inside = np.flatnonzero(in_phase)
+    """Steps from the PEEP of each breath; excluded breaths (maneuvers) do not count.
+
+    Returns:
+        Step number of each breath (-1 outside every step), PEEP level of each step,
+        and the breaths analysed.
+    """
+    # Excluded breaths do not count when the steps are found.
+    usable_peep = peep.copy()
+    usable_peep[excluded] = np.nan
+
+    # Steps are found on the breaths of the phase only.
+    phase_breaths = np.flatnonzero(in_phase)
     try:
         step_starts = find_steps(
-            usable_peep[inside],
+            usable_peep[phase_breaths],
             config.step_threshold,
             config.step_min_breaths,
             config.step_agreement,
@@ -101,18 +108,22 @@ def _automatic_steps(
     except ValueError as error:
         raise ValueError(f"{error} Place the PEEP steps by hand.") from error
     step = np.full(len(peep), -1, dtype=int)
-    step[inside] = step_of_each_breath(step_starts, len(inside))
+    step[phase_breaths] = step_of_each_breath(step_starts, len(phase_breaths))
+
+    # Level of each step: median PEEP of its breaths.
+    n_steps = step.max() + 1
     levels = np.array(
-        [np.nanmedian(usable_peep[step == k]) for k in range(step.max() + 1)]
+        [np.nanmedian(usable_peep[step == number]) for number in range(n_steps)]
     )
+
     # A breath at an intermediate PEEP (e.g. just before a change) is not analysed.
-    at_level = np.zeros(len(peep), dtype=bool)
-    in_step = step >= 0
-    at_level[in_step] = (
-        np.abs(peep[in_step] - levels[step[in_step]]) <= config.analysis_peep_tolerance
-    )
+    level_of_breath = np.full(len(peep), np.nan)
+    in_a_step = step >= 0
+    level_of_breath[in_a_step] = levels[step[in_a_step]]
+    at_level = np.abs(peep - level_of_breath) <= config.analysis_peep_tolerance
+
     analysed = analysed_breaths(
-        starts,
+        breath_starts,
         step,
         valid & at_level,
         config.analysis_skip_seconds,
@@ -153,16 +164,20 @@ def _step_driving_pressure(
     (one is enough; a maneuver excluded by hand is not used); otherwise the value typed
     with a step placed by hand.
     """
-    with_driving = analysed[analysed.driving_pressure.notna()]
-    if len(with_driving) >= config.analysis_min_breaths:
-        source, used = "breaths", with_driving
-    else:
-        holds = in_step[in_step.driving_pressure.notna() & ~in_step.excluded]
-        source, used = "hold", holds
-    if len(used):
-        enough = source == "hold" or len(used) >= config.analysis_min_breaths
-        return (float(used.plateau.median()), float(used.driving_pressure.median()),
-                source, len(used), enough)  # fmt: skip
+    # 1. Continuous end-inspiratory pause: enough analysed breaths have a plateau.
+    analysed_with_plateau = analysed[analysed.driving_pressure.notna()]
+    if len(analysed_with_plateau) >= config.analysis_min_breaths:
+        used = analysed_with_plateau
+        plateau, driving = used.plateau.median(), used.driving_pressure.median()
+        return float(plateau), float(driving), "breaths", len(used), True
+
+    # 2. Inspiratory holds: the breaths of the step with a plateau (one is enough).
+    holds = in_step[in_step.driving_pressure.notna() & ~in_step.excluded]
+    if len(holds):
+        plateau, driving = holds.plateau.median(), holds.driving_pressure.median()
+        return float(plateau), float(driving), "hold", len(holds), True
+
+    # 3. The plateau typed with a step placed by hand.
     if np.isfinite(typed_plateau):
         return typed_plateau, typed_plateau - level, "typed", 0, True
     return np.nan, np.nan, None, 0, False
