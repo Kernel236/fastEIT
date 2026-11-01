@@ -190,7 +190,10 @@ There are two kinds of record, kept apart on purpose:
   PEEP the driving pressure is overestimated and compliance underestimated, more at
   low PEEP in obstructive patients. A single missing
   frame of the pressure near the start of a breath loses the PEEP of that breath
-  (85-100 % of the breaths read in the tidal recordings of notebook 05).
+  (85-100 % of the breaths read in the tidal recordings of notebook 05, 100 % in the
+  four PEEP trials). The missing PEEP is not estimated from the breaths around it: the
+  breath keeps its EIT values and is left out only of what needs the pressure (it is
+  not analysed in a step found from the pressure, it has no compliance).
 - **Plateau** needs at least 0.5 s of hold (volume control) or of flat inspiratory
   pressure (pressure control, valid only if the flow is zero at the end of
   inspiration); otherwise it is missing. Inspiratory holds and pressure control are
