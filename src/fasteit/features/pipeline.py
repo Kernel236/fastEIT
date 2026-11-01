@@ -5,14 +5,18 @@ Definitions and evidence: notebooks/07_clinical_indices.ipynb (section 5):
 - EELI and TIV of a breath: one sample at the frames of the layer 2 breaths, on the
   signal inside the lung mask; EELI at the start of the breath, TIV = peak - start
   (TREND: Frerichs et al., Thorax 2017, DOI: 10.1136/thoraxjnl-2016-208357);
-- per breath: TIV, EELI and share by region, GI, centre of ventilation, durations,
-  compliance in EIT units (TIV / driving pressure) and in mL/cmH2O (tidal volume /
-  driving pressure); with a tidal volume, the TIV and compliance of each region in mL
+- per breath: TIV, EELI and share by region, GI, centre of ventilation, respiratory
+  rate, compliance in EIT units (TIV / driving pressure) and in mL/cmH2O (tidal volume
+  / driving pressure); with a tidal volume, the TIV and compliance of each region in mL
   (share x tidal volume);
 - tidal recording: median and quartiles over the valid breaths;
 - PEEP trial: per step, medians of the analysed breaths, compliance (also as % of the
   best step), Costa collapse and overdistension, changes vs the previous and the
   first step (EELI in tidal volumes and in mL).
+
+The tables hold the keys (``breath_id``, ``step``, ``peep``, ``region``) and what this
+layer computes; what layers 2 and 2b measured stays in ``recording.breaths``,
+``trial.breaths`` and ``trial.steps``, reached from the same object.
 """
 
 from __future__ import annotations
@@ -37,11 +41,11 @@ logger = logging.getLogger(__name__)
 
 TIDAL = "tidal"  # label of a tidal phase
 SECONDS_PER_MINUTE = 60.0
-# Indices summarised over the breaths, globally and by region.
+# Indices summarised over the breaths, globally (with the pressures of layer 2) and by
+# region.
 GLOBAL_INDICES = [
-    "duration", "inspiratory_time", "expiratory_time", "ti_ttot", "respiratory_rate",
-    "eeli", "tiv", "gi", "cov_vd", "cov_rl", "peep", "plateau", "driving_pressure",
-    "tidal_volume", "compliance", "compliance_ml",
+    "respiratory_rate", "eeli", "tiv", "gi", "cov_vd", "cov_rl", "peep", "plateau",
+    "driving_pressure", "tidal_volume_used", "compliance", "compliance_ml",
 ]  # fmt: skip
 REGIONAL_INDICES = ["eeli", "tiv", "share", "tiv_ml", "compliance", "compliance_ml"]
 # Indices of a step: median of its analysed breaths.
@@ -81,21 +85,15 @@ def _breath_tables(
     images = tidal_images(recording.pixels, start, peak, recording.lung_mask)
     centre = np.array([centre_of_ventilation(image) for image in images])
     duration = (b.end_time - b.start_time).to_numpy()
-    inspiration = (b.peak_time - b.start_time).to_numpy()
     driving = b.driving_pressure.to_numpy()
 
     breaths = pd.DataFrame({
-        "breath_id": b.breath_id, "start_time": b.start_time, "peak_time": b.peak_time,
-        "end_time": b.end_time, "is_valid": b.is_valid, "excluded": b.excluded,
-        "duration": duration, "inspiratory_time": inspiration,
-        "expiratory_time": duration - inspiration,
-        "ti_ttot": _ratio(inspiration, duration),
+        "breath_id": b.breath_id,
         "respiratory_rate": _ratio(SECONDS_PER_MINUTE, duration),
         "eeli": lung[start], "tiv": tiv,
         "gi": [global_inhomogeneity(image) for image in images],
         "cov_vd": centre[:, 0], "cov_rl": centre[:, 1],
-        "peep": b.peep, "plateau": b.plateau, "driving_pressure": driving,
-        "tidal_volume": tidal_volume, "tidal_volume_source": source,
+        "tidal_volume_used": tidal_volume, "tidal_volume_source": source,
         "compliance": _ratio(tiv, driving),
         "compliance_ml": _ratio(tidal_volume, driving),
     })  # fmt: skip
@@ -192,20 +190,24 @@ def tidal_features(
         ValueError: if the phase is not usable or no breath is inside it.
     """
     log = RunLog(logger)
+    measured = recording.breaths
     volume, source = _recording_tidal_volume(recording, log)
     breaths, regions = _breath_tables(recording, volume, source)
-    breaths["in_phase"] = _in_phase(breaths, phase, log)
-    used = (breaths.in_phase & breaths.is_valid).to_numpy()
+    breaths.insert(1, "in_phase", _in_phase(measured, phase, log))
+    used = (breaths.in_phase & measured.is_valid).to_numpy()
     log.info(f"Summary over {used.sum()} valid breaths.")
     if not used.any():
         log.warning("No valid breath: the summary is empty.")
-    elif breaths.driving_pressure[used].isna().all():
+    elif measured.driving_pressure[used].isna().all():
         log.info("No driving pressure: no compliance.")
+    pressures = measured[["peep", "plateau", "driving_pressure"]].to_numpy()
+    with_pressures = breaths.assign(peep=pressures[:, 0], plateau=pressures[:, 1],
+                                    driving_pressure=pressures[:, 2])  # fmt: skip
     return TidalFeatures(
         recording=recording,
         breaths=breaths,
         regions=regions,
-        summary=_summary(breaths, regions, used),
+        summary=_summary(with_pressures, regions, used),
         log=tuple(log.messages),
     )
 
@@ -234,8 +236,8 @@ def _steps_table(
     """One row per step, and one row per step and region, from the analysed breaths."""
     s = trial.steps
     rec = trial.recording
-    analysed = breaths.analysed.to_numpy()
-    step_of = breaths.peep_step.to_numpy()
+    analysed = trial.breaths.analysed.to_numpy()
+    step_of = trial.breaths.peep_step.to_numpy()
     images = tidal_images(
         rec.pixels, rec.breaths.start_idx.to_numpy(), rec.breaths.peak_idx.to_numpy(),
         rec.lung_mask,
@@ -250,15 +252,7 @@ def _steps_table(
         medians = {index: _median(breaths[index][use]) for index in STEP_MEDIANS}
         driving, volume = step.driving_pressure, step.tidal_volume
         rows.append({
-            "step": step.step, "peep": step.peep, "start_time": step.start_time,
-            "end_time": step.end_time, "n_breaths": step.n_breaths,
-            "n_analysed": int(use.sum()), "enough": step.enough,
-            "plateau": step.plateau, "driving_pressure": driving,
-            "driving_pressure_source": step.driving_pressure_source,
-            "n_driving_pressure": step.n_driving_pressure,
-            "enough_driving_pressure": step.enough_driving_pressure,
-            "tidal_volume": volume, "tidal_volume_source": step.tidal_volume_source,
-            **medians,
+            "step": step.step, "peep": step.peep, **medians,
             "compliance": _ratio(medians["tiv"], driving).item(),
             "compliance_ml": _ratio(volume, driving).item(),
         })  # fmt: skip
@@ -284,24 +278,30 @@ def _steps_table(
         np.array(pixel_compliance), steps.peep.to_numpy(), rec.lung_mask
     )
     steps["collapse"], steps["overdistension"] = costa.collapse, costa.overdistension
-    return _add_changes(steps), pd.DataFrame(region_rows)
+    changes = _add_changes(steps, s.tidal_volume.to_numpy(dtype=float))
+    return changes, pd.DataFrame(region_rows)
 
 
-def _add_changes(steps: pd.DataFrame) -> pd.DataFrame:
+def _add_changes(steps: pd.DataFrame, tidal_volume: np.ndarray) -> pd.DataFrame:
     """Changes vs the previous step and vs the first step.
 
     EELI in tidal volumes (change of EELI / TIV of the reference step) and in mL (x the
     tidal volume of the same reference step); compliance in points of % of the best
     step; collapse and overdistension in points of %.
+
+    Args:
+        steps:        One row per step, with ``eeli``, ``tiv`` and the indices.
+        tidal_volume: Tidal volume of each step (mL), NaN if none.
     """
     previous, first = steps.shift(1), steps.iloc[0]
+    volume_before = np.r_[np.nan, tidal_volume[:-1]]
     eeli_tiv_prev = (steps.eeli - previous.eeli) / previous.tiv
     eeli_tiv_first = (steps.eeli - first.eeli) / first.tiv
     changes = {
         "d_eeli_tiv_vs_previous": eeli_tiv_prev,
         "d_eeli_tiv_vs_first": eeli_tiv_first,
-        "d_eeli_ml_vs_previous": eeli_tiv_prev * previous.tidal_volume,
-        "d_eeli_ml_vs_first": eeli_tiv_first * first.tidal_volume,
+        "d_eeli_ml_vs_previous": eeli_tiv_prev * volume_before,
+        "d_eeli_ml_vs_first": eeli_tiv_first * tidal_volume[0],
     }
     for index in ["compliance_pct_of_best", "compliance_ml_pct_of_best", "collapse",
                   "overdistension"]:  # fmt: skip
@@ -317,9 +317,10 @@ def _best_peep(steps: pd.DataFrame, column: str) -> float:
 
 
 def _check_steps(
-    steps: pd.DataFrame, crossing: float, min_breaths: int, log: RunLog
+    steps: pd.DataFrame, trial: PeepTrial, crossing: float, log: RunLog
 ) -> None:
     """Warn about steps that are missing or weak in what the indices compare."""
+    min_breaths = trial.config.analysis_min_breaths
     if steps.compliance.isna().all():
         log.warning("No step has a driving pressure: no compliance and no Costa.")
     else:
@@ -329,7 +330,7 @@ def _check_steps(
                 f"Steps {missing} have no compliance (no driving pressure or no analysed "
                 "breaths): they are left out of the best step and of Costa."
             )
-    few = steps.step[~steps.enough.astype(bool)].tolist()
+    few = trial.steps.step[~trial.steps.enough.astype(bool)].tolist()
     if few:
         log.warning(
             f"Steps {few} have fewer than {min_breaths} analysed breaths: they enter the "
@@ -342,7 +343,7 @@ def _check_steps(
             log.warning("Collapse and overdistension do not cross in the PEEP range.")
     else:
         log.info(f"Collapse and overdistension cross at PEEP {crossing:.1f}.")
-    if steps.tidal_volume.isna().all():
+    if trial.steps.tidal_volume.isna().all():
         log.info("No tidal volume: no values in mL.")
 
 
@@ -368,9 +369,6 @@ def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
     volume, source = _recording_tidal_volume(recording, log)
     volume, source = _step_breath_volumes(trial, volume, source)
     breaths, regions = _breath_tables(recording, volume, source)
-    breaths["peep_step"] = trial.breaths.peep_step.to_numpy()
-    breaths["analysed"] = trial.breaths.analysed.to_numpy()
-
     steps, step_regions = _steps_table(trial, breaths, regions)
     summary = pd.DataFrame([{
         "n_steps": len(steps),
@@ -378,9 +376,7 @@ def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
         "best_peep_compliance": _best_peep(steps, "compliance"),
         "best_peep_compliance_ml": _best_peep(steps, "compliance_ml"),
     }])  # fmt: skip
-    _check_steps(
-        steps, summary.crossing_peep[0], trial.config.analysis_min_breaths, log
-    )
+    _check_steps(steps, trial, summary.crossing_peep[0], log)
     return PeepTrialFeatures(
         trial=trial,
         breaths=breaths,

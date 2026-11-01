@@ -19,6 +19,13 @@ def test_two_pixels_give_the_weighted_collapse_and_overdistension():
     np.testing.assert_allclose(table.overdistension, [37.5, 0.0])
 
 
+def test_a_pixel_no_more_ventilated_loses_at_most_100_percent():
+    # Pixel 1 is best at PEEP 16 and its TIV turns negative at PEEP 6 (noise around 0).
+    pixels = np.array([[[1.0, 1.5]], [[-0.2, 3.0]]])
+    table = collapse_and_overdistension(pixels, PEEP, MASK)
+    np.testing.assert_allclose(table.collapse, [0.0, 100 * 1 / 4])
+
+
 def test_pixels_outside_the_mask_are_not_used():
     table = collapse_and_overdistension(PIXELS, PEEP, np.array([[True, False]]))
     np.testing.assert_allclose(table.collapse, [0.0, 50.0])

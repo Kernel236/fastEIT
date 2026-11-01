@@ -40,12 +40,12 @@ def middle(values):
 
 
 def test_breath_indices_and_compliance(tidal):
-    b = tidal.breaths
-    assert len(b) == len(tidal.recording.breaths)
+    b, measured = tidal.breaths, tidal.recording.breaths
+    assert len(b) == len(measured)
     assert (b.tidal_volume_source == "typed_recording").all()
-    np.testing.assert_allclose(middle(b.driving_pressure), 12, atol=0.2)
+    np.testing.assert_allclose(middle(measured.driving_pressure), 12, atol=0.2)
     np.testing.assert_allclose(middle(b.compliance_ml), 450 / 12, rtol=0.02)
-    np.testing.assert_allclose(b.compliance, b.tiv / b.driving_pressure)
+    np.testing.assert_allclose(b.compliance, b.tiv / measured.driving_pressure)
     np.testing.assert_allclose(b.respiratory_rate, 15, atol=0.5)
     np.testing.assert_allclose(b.cov_rl, 0.5, atol=0.02)  # two symmetric lungs
 
@@ -58,7 +58,8 @@ def test_regions_share_the_tidal_volume(tidal):
     right = r[r.region == "right"]
     np.testing.assert_allclose(right.share, 0.5, atol=0.02)
     np.testing.assert_allclose(
-        right.compliance_ml, right.share * 450 / tidal.breaths.driving_pressure.values
+        right.compliance_ml,
+        right.share * 450 / tidal.recording.breaths.driving_pressure.values,
     )
 
 
@@ -68,7 +69,9 @@ def test_the_summary_is_over_the_valid_breaths(tidal):
     assert row["median"] == pytest.approx(450 / 12, rel=0.02)
     assert row.q1 <= row["median"] <= row.q3
     tiv = s[(s.region == "global") & (s.feature == "tiv")].iloc[0]
-    assert tiv.n_breaths == tidal.breaths.is_valid.sum()
+    assert tiv.n_breaths == tidal.recording.breaths.is_valid.sum()
+    peep = s[(s.region == "global") & (s.feature == "peep")].iloc[0]
+    assert peep["median"] == pytest.approx(10, abs=0.1)  # pressures of layer 2 too
     assert set(s.region) == {"global", *tidal.recording.roi_masks}
 
 
@@ -86,7 +89,7 @@ def test_the_measured_tidal_volume_is_used_without_a_typed_one():
     features = tidal_features(tidal_recording(volume=True))
     b = features.breaths
     assert (middle(b.tidal_volume_source) == "breaths").all()
-    np.testing.assert_allclose(middle(b.tidal_volume), 450, atol=2)
+    np.testing.assert_allclose(middle(b.tidal_volume_used), 450, atol=2)
 
 
 def test_the_tidal_phase_limits_the_summary():
@@ -94,7 +97,7 @@ def test_the_tidal_phase_limits_the_summary():
     features = tidal_features(
         recording, phase=Segment(40, 90, category="phase", label="tidal")
     )
-    inside = features.breaths[features.breaths.in_phase]
+    inside = recording.breaths[features.breaths.in_phase.to_numpy()]
     assert (inside.start_time >= 40).all()
     tiv = features.summary.query("region == 'global' and feature == 'tiv'").iloc[0]
     assert tiv.n_breaths == inside.is_valid.sum()
@@ -125,12 +128,11 @@ def test_a_phase_without_valid_breaths_keeps_every_region_in_the_summary():
 def test_changes_between_steps_with_a_known_answer():
     steps = pd.DataFrame({
         "eeli": [100.0, 80.0, 50.0], "tiv": [20.0, 25.0, 20.0],
-        "tidal_volume": [500.0, 500.0, 400.0],
         "compliance_pct_of_best": [90.0, 100.0, 80.0],
         "compliance_ml_pct_of_best": [90.0, 100.0, 80.0],
         "collapse": [0.0, 5.0, 20.0], "overdistension": [30.0, 10.0, 0.0],
     })  # fmt: skip
-    c = _add_changes(steps)
+    c = _add_changes(steps, tidal_volume=np.array([500.0, 500.0, 400.0]))
     np.testing.assert_allclose(c.d_eeli_tiv_vs_previous, [np.nan, -1.0, -1.2])
     np.testing.assert_allclose(c.d_eeli_tiv_vs_first, [0.0, -1.0, -2.5])
     np.testing.assert_allclose(c.d_eeli_ml_vs_previous, [np.nan, -500.0, -600.0])
@@ -150,17 +152,16 @@ def trial_features():
 
 
 def test_one_row_per_step_with_compliance_and_changes(trial_features):
-    s = trial_features.steps
+    s, layer_2b = trial_features.steps, trial_features.trial.steps
     np.testing.assert_allclose(s.peep, [12, 10, 8, 6], atol=0.1)
-    assert (s.n_analysed > 0).all()
     np.testing.assert_allclose(s.compliance_ml, 450 / 12, rtol=0.02)
-    np.testing.assert_allclose(s.compliance, s.tiv / s.driving_pressure)
+    np.testing.assert_allclose(s.compliance, s.tiv / layer_2b.driving_pressure)
     assert s.compliance_pct_of_best.max() == pytest.approx(100)
     # The same ventilation at every step: no collapse or overdistension to speak of.
     assert s.collapse.max() < 2 and s.overdistension.max() < 2
     assert np.isnan(s.d_eeli_tiv_vs_previous[0]) and s.d_eeli_ml_vs_first[0] == 0
     np.testing.assert_allclose(
-        s.d_eeli_ml_vs_first, s.d_eeli_tiv_vs_first * s.tidal_volume[0]
+        s.d_eeli_ml_vs_first, s.d_eeli_tiv_vs_first * layer_2b.tidal_volume[0]
     )
 
 
@@ -171,15 +172,16 @@ def test_step_regions_and_summary(trial_features):
     np.testing.assert_allclose(halves.tiv_ml.sum(), 450, rtol=0.02)
     summary = trial_features.summary.iloc[0]
     assert summary.n_steps == 4
-    assert set(trial_features.breaths.columns) >= {"peep_step", "analysed"}
 
 
-def test_the_step_table_of_layer_2b_is_carried(trial_features):
-    s = trial_features.steps
-    layer_2b = trial_features.trial.steps
-    for column in ["start_time", "end_time", "n_breaths", "enough", "plateau",
-                   "n_driving_pressure", "enough_driving_pressure"]:  # fmt: skip
-        assert (s[column] == layer_2b[column]).all(), column
+def test_layer_3_tables_do_not_copy_what_layers_2_and_2b_measured(trial_features):
+    trial = trial_features.trial
+    breaths_before = set(trial.recording.breaths.columns) | set(trial.breaths.columns)
+    assert set(trial_features.breaths.columns) & breaths_before == {"breath_id"}
+    assert set(trial_features.steps.columns) & set(trial.steps.columns) == {
+        "step",
+        "peep",
+    }
 
 
 def test_a_step_without_analysed_breaths_has_its_rows_and_a_warning():
@@ -188,8 +190,8 @@ def test_a_step_without_analysed_breaths_has_its_rows_and_a_warning():
     raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
     recording = preprocess(raw, exclusions=[Segment(138, 180, label="cough")])
     features = peep_trial_features(segment_peep_trial(recording, peep_steps=FOUR_STEPS))
-    s = features.steps
-    assert s.n_analysed.iloc[3] == 0 and not s.enough.iloc[3]
+    s, layer_2b = features.steps, features.trial.steps
+    assert layer_2b.n_analysed.iloc[3] == 0 and not layer_2b.enough.iloc[3]
     assert np.isnan(s.compliance.iloc[3]) and np.isnan(s.collapse.iloc[3])
     assert np.isfinite(s.collapse.iloc[:3]).all()
     last = features.step_regions[features.step_regions.step == 3]
@@ -211,15 +213,14 @@ def test_a_first_step_without_breaths_gives_a_warning():
 def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
     trial = segment_peep_trial(synthetic_trial(), tidal_volumes=[400, 420, 440, 460])
     features = peep_trial_features(trial)
-    b = features.breaths
-    in_step_1 = b[b.peep_step == 1]
-    assert (in_step_1.tidal_volume == 420).all() and (
-        in_step_1.tidal_volume_source == "typed"
-    ).all()
-    assert b[b.peep_step == -1].tidal_volume.isna().all()
+    b, step = features.breaths, trial.breaths.peep_step
+    in_step_1 = b[step == 1]
+    assert (in_step_1.tidal_volume_used == 420).all()
+    assert (in_step_1.tidal_volume_source == "typed").all()
+    assert b[step == -1].tidal_volume_used.isna().all()
     np.testing.assert_allclose(
         features.steps.compliance_ml,
-        np.array([400, 420, 440, 460]) / features.steps.driving_pressure,
+        np.array([400, 420, 440, 460]) / trial.steps.driving_pressure,
     )
 
 
@@ -229,7 +230,7 @@ SET_VT = {"A": 550, "B": 400}
 NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, change of EELI in mL at the end
     "A_park_bench": (4.7, 6.2, -1734),
     "A_supine": (6.6, 6.2, -2419),
-    "B_park_bench": (10.1, 8.5, -1441),
+    "B_park_bench": (9.9, 8.5, -1441),
     "B_supine": (12.9, 12.7, -910),
 }
 

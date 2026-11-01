@@ -35,7 +35,7 @@ def collapse_and_overdistension(
     collapse(step) = sum(loss_pixel(step) x best_pixel) / sum(best_pixel) over the
     pixels whose best PEEP is above the PEEP of the step, with loss_pixel = (best_pixel
     - compliance_pixel(step)) / best_pixel x 100; overdistension the same over the
-    pixels whose best PEEP is below it.
+    pixels whose best PEEP is below it. The loss of a pixel is at most 100 %.
 
     Args:
         pixel_compliance: (n_steps, rows, cols) compliance of each pixel at each step
@@ -62,7 +62,9 @@ def collapse_and_overdistension(
     if used.any():
         best = best[used]
         best_peep = peep[known][filled.argmax(axis=0)[used]]
-        loss = (best - compliance[:, used]) / best * 100  # % below the best, per step
+        # % below the best, per step; at most 100: a pixel that is no more ventilated
+        # (its TIV around zero, with noise) has lost all of its compliance.
+        loss = np.minimum((best - compliance[:, used]) / best * 100, 100)
         weight = best.sum()
         for i, k in enumerate(np.flatnonzero(known)):
             below, above = peep[k] < best_peep, peep[k] > best_peep

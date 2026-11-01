@@ -41,6 +41,14 @@ features.step_regions   # one row per step and region
 features.summary        # crossing PEEP, best PEEP
 ```
 
+The object holds everything: `features.trial.steps` (driving pressure and tidal volume of
+each step, breaths analysed), `features.trial.breaths` (step of each breath),
+`features.trial.recording.breaths` (times, quality flags, PEEP, plateau, driving
+pressure, measured tidal volume). Each value is stored once: the tables of layer 3 have
+the keys (`breath_id`, `step`, `peep`, `region`) and what layer 3 computes, and are
+joined on the keys with the tables before them. The flat export with everything in one
+table per breath and per step belongs to the next layer (database and export).
+
 ## 2. Indices of a breath
 
 All from the frames of the layer 2 breath (one sample, no averaging): start =
@@ -52,9 +60,8 @@ end-expiratory valley, peak = end-inspiratory peak.
 | `tiv` | signal at the peak minus at the start | TREND |
 | `gi` | global inhomogeneity: sum of \|pixel TIV - median\| / sum of pixel TIV, over the lung pixels | Zhao 2009, DOI: 10.1007/s00134-009-1589-y |
 | `cov_vd`, `cov_rl` | centre of ventilation on the image grid: 0 = ventral / patient right, 1 = dorsal / patient left | Frerichs 2006, DOI: 10.1164/rccm.200512-1942OC |
-| `duration`, `inspiratory_time`, `expiratory_time`, `ti_ttot`, `respiratory_rate` | from the EIT breath (impedance), not from the ventilator | - |
-| `peep`, `plateau`, `driving_pressure` | from layer 2 (cmH2O) | notebook 06 |
-| `tidal_volume`, `tidal_volume_source` | typed for the step, typed for the recording, or measured (mL) | layer 2 and 2b |
+| `respiratory_rate` | 60 / duration of the EIT breath (breaths/min) | - |
+| `tidal_volume_used`, `tidal_volume_source` | tidal volume used for the values in mL: typed for the step, typed for the recording, or measured | layer 2 and 2b |
 | `compliance` | TIV / driving pressure (EIT units per cmH2O) | - |
 | `compliance_ml` | tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume typed or measured | - |
 
@@ -94,7 +101,6 @@ curves.
 | Column | Definition |
 |--------|------------|
 | `respiratory_rate`, `eeli`, `tiv`, `gi`, `cov_vd`, `cov_rl` | median of the analysed breaths |
-| `start_time`, `end_time`, `n_breaths`, `enough`, `plateau`, `driving_pressure`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume` (and the sources) | from the step table of layer 2b; `n_analysed` is the number of breaths the step indices come from |
 | `compliance` | median TIV / driving pressure of the step: it also works when the driving pressure comes from one inspiratory hold or is typed |
 | `compliance_ml` | tidal volume / driving pressure of the step (it needs no EIT data, so it exists also for a step without analysed breaths) |
 | `compliance_pct_of_best`, `compliance_ml_pct_of_best` | as % of the best step |
@@ -142,13 +148,10 @@ first step has no analysed breaths, the changes vs the first step are NaN.
   the tidal volume seen by the slice) shifts them together and appears as collapse or
   overdistension; the best of each pixel is the highest of noisy values, so both curves
   keep a small floor in a stable lung.
-- One lung mask for the whole recording, from the mean TIV of the valid breaths: a pixel
-  ventilated only at the high PEEP steps may fall outside it, which would lower the
-  collapse at low PEEP (to be checked).
+- One lung mask for the whole recording, from the mean TIV of the valid breaths: in the
+  four trials the pixels ventilated at some step but outside it carry at most 1-3 % of
+  the TIV.
 - GI is computed on each breath inside the watershed lung mask: its values are not
   comparable with published cut-offs computed on other masks or averaged images.
-- Times (`inspiratory_time`, `expiratory_time`, `ti_ttot`) come from the impedance: in
-  volume control with an end-inspiratory pause the peak falls inside the pause, so they
-  are not the I:E of the ventilator; `respiratory_rate` is not affected.
 
 *Research use only - not a medical device.*
