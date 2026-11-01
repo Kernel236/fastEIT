@@ -50,26 +50,43 @@ def collapse_and_overdistension(
         pixel has a positive best compliance.
     """
     peep = np.asarray(peep, dtype=float)
-    known = ~np.isnan(pixel_compliance).all(axis=(1, 2))
-    collapse = np.full(len(peep), np.nan)
-    overdistension = np.full(len(peep), np.nan)
-    if known.sum() < MIN_STEPS:
+    n_steps = len(peep)
+    collapse = np.full(n_steps, np.nan)
+    overdistension = np.full(n_steps, np.nan)
+
+    # Steps with a compliance (a step without a driving pressure is all NaN).
+    has_compliance = ~np.isnan(pixel_compliance).all(axis=(1, 2))
+    if has_compliance.sum() < MIN_STEPS:
         return pd.DataFrame({"collapse": collapse, "overdistension": overdistension})
-    compliance = pixel_compliance[known]
-    filled = np.where(np.isnan(compliance), -np.inf, compliance)
-    best = filled.max(axis=0)
+    known_steps = np.flatnonzero(has_compliance)
+    known_peep = peep[known_steps]
+    compliance = pixel_compliance[known_steps]  # (n_known_steps, rows, cols)
+
+    # Best compliance of each pixel over the steps, and the PEEP where it is reached.
+    # A missing value (NaN) must never be the best: it counts as -infinity here.
+    comparable = np.where(np.isnan(compliance), -np.inf, compliance)
+    best = comparable.max(axis=0)  # (rows, cols)
+    best_peep = known_peep[comparable.argmax(axis=0)]  # (rows, cols)
+
+    # Pixels used: inside the lung mask, with a positive best compliance.
     used = lung_mask & (best > 0)
-    if used.any():
-        best = best[used]
-        best_peep = peep[known][filled.argmax(axis=0)[used]]
-        # % below the best, per step; at most 100: a pixel that is no more ventilated
-        # (its TIV around zero, with noise) has lost all of its compliance.
-        loss = np.minimum((best - compliance[:, used]) / best * 100, 100)
-        weight = best.sum()
-        for i, k in enumerate(np.flatnonzero(known)):
-            below, above = peep[k] < best_peep, peep[k] > best_peep
-            collapse[k] = np.nansum(loss[i, below] * best[below]) / weight
-            overdistension[k] = np.nansum(loss[i, above] * best[above]) / weight
+    if not used.any():
+        return pd.DataFrame({"collapse": collapse, "overdistension": overdistension})
+    best_used = best[used]  # (n_pixels,)
+    best_peep_used = best_peep[used]  # (n_pixels,)
+    total_weight = best_used.sum()
+
+    for row, step in enumerate(known_steps):
+        # Loss of each pixel at this step, as % of its best; at most 100: a pixel that
+        # is no more ventilated (its TIV around zero, with noise) lost all of it.
+        loss = (best_used - compliance[row][used]) / best_used * 100
+        loss = np.minimum(loss, 100)
+        weighted_loss = loss * best_used
+        # Below the best PEEP of a pixel its loss is collapse, above it overdistension.
+        below_best = peep[step] < best_peep_used
+        above_best = peep[step] > best_peep_used
+        collapse[step] = np.nansum(weighted_loss[below_best]) / total_weight
+        overdistension[step] = np.nansum(weighted_loss[above_best]) / total_weight
     return pd.DataFrame({"collapse": collapse, "overdistension": overdistension})
 
 
@@ -87,17 +104,24 @@ def crossing_peep(
     Returns:
         The crossing PEEP; NaN if the curves do not cross.
     """
+    # Sort the steps by PEEP, going up, and leave out those without values.
     order = np.argsort(peep, kind="stable")
     peep = np.asarray(peep, dtype=float)[order]
-    diff = (
-        np.asarray(collapse, dtype=float) - np.asarray(overdistension, dtype=float)
-    )[order]
-    keep = ~np.isnan(diff)
-    peep, diff = peep[keep], diff[keep]
-    apart = np.flatnonzero(diff != 0)
-    for a, b in zip(apart[:-1], apart[1:], strict=True):
-        if diff[a] > 0 > diff[b]:
-            if b - a > 1:  # a step with no difference between them
-                return float(peep[a + 1])
-            return float(peep[a] + (peep[b] - peep[a]) * diff[a] / (diff[a] - diff[b]))
+    collapse = np.asarray(collapse, dtype=float)[order]
+    overdistension = np.asarray(overdistension, dtype=float)[order]
+    difference = collapse - overdistension
+    known = ~np.isnan(difference)
+    peep, difference = peep[known], difference[known]
+
+    # Steps where the curves are apart, and each pair of them in a row: a crossing is a
+    # change from collapse above (positive) to overdistension above (negative).
+    apart = np.flatnonzero(difference != 0)
+    for lower, upper in zip(apart[:-1], apart[1:], strict=True):
+        if difference[lower] > 0 > difference[upper]:
+            if upper - lower > 1:
+                # A step between them where the two are equal: that is the crossing.
+                return float(peep[lower + 1])
+            # Linear interpolation between the two steps.
+            fraction = difference[lower] / (difference[lower] - difference[upper])
+            return float(peep[lower] + fraction * (peep[upper] - peep[lower]))
     return np.nan
