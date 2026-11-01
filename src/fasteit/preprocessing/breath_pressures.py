@@ -77,11 +77,12 @@ def inspiration_onsets(
         lo, hi = max(0, start - before), min(len(smoothed) - 1, start + after)
         if hi <= lo or np.isnan(smoothed[max(0, lo - lookback) : hi]).any():
             continue
-        steepest = lo + int(np.argmax(slope[lo:hi]))
+        steepest = lo + int(np.argmax(slope[lo:hi]))  # frame of the steepest rise
         back = max(0, steepest - lookback)
         before_rise = smoothed[back : steepest + 1]
-        # Last occurrence of the minimum (on a flat PEEP the first one would be too early).
-        onsets[i] = back + len(before_rise) - 1 - int(np.argmin(before_rise[::-1]))
+        # The last frame at the minimum: on a flat PEEP the first one would be too early.
+        at_minimum = np.flatnonzero(before_rise == before_rise.min())
+        onsets[i] = back + at_minimum[-1]
     return onsets
 
 

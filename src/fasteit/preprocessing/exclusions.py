@@ -128,7 +128,9 @@ def merge_overlapping(segments: list[Segment]) -> list[Segment]:
         Segments sorted by start time.
     """
     merged: list[Segment] = []
-    for segment in sorted(segments, key=lambda s: (s.source, s.start)):
+    for segment in sorted(
+        segments, key=lambda segment: (segment.source, segment.start)
+    ):
         last = merged[-1] if merged else None
         if last and last.source == segment.source and segment.start <= last.end:
             labels = _label_list(last.label)
@@ -140,7 +142,7 @@ def merge_overlapping(segments: list[Segment]) -> list[Segment]:
             )
         else:
             merged.append(segment)
-    return sorted(merged, key=lambda s: s.start)
+    return sorted(merged, key=lambda segment: segment.start)
 
 
 def breaths_in_segments(
@@ -161,9 +163,9 @@ def breaths_in_segments(
     excluded = np.zeros(len(breath_starts), dtype=bool)
     labels: list[str | None] = []
     for i, (start, end) in enumerate(zip(breath_starts, breath_ends, strict=True)):
-        touched = [s for s in segments if s.overlaps(start, end)]
+        touched = [segment for segment in segments if segment.overlaps(start, end)]
         excluded[i] = bool(touched)
-        names = [name for s in touched for name in _label_list(s.label)]
+        names = [name for segment in touched for name in _label_list(segment.label)]
         if touched:
             labels.append(", ".join(dict.fromkeys(names)) or "unlabelled")
         else:

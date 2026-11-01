@@ -196,19 +196,22 @@ def drop_doubles(
         Peaks and valleys, alternating.
     """
     peaks, valleys = list(peaks), list(valleys)
-    i = 0
-    while i < len(valleys) - 1:
-        between = [k for k, p in enumerate(peaks) if valleys[i] < p < valleys[i + 1]]
+    current = 0  # the valley being checked, with the next one
+    while current < len(valleys) - 1:
+        left, right = valleys[current], valleys[current + 1]
+        between = [number for number, peak in enumerate(peaks) if left < peak < right]
         if not between:
-            higher = i if signal[valleys[i]] > signal[valleys[i + 1]] else i + 1
+            # No peak between two valleys: drop the higher valley.
+            higher = current if signal[left] > signal[right] else current + 1
             del valleys[higher]
             continue
         if len(between) > 1:
+            # More than one peak: drop the lower of the first two.
             first, second = between[0], between[1]
             lower = first if signal[peaks[first]] < signal[peaks[second]] else second
             del peaks[lower]
             continue
-        i += 1
+        current += 1  # exactly one peak: move to the next pair of valleys
     return np.array(peaks, dtype=int), np.array(valleys, dtype=int)
 
 

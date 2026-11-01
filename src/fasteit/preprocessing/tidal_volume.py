@@ -39,9 +39,14 @@ def inspiration_windows(
     """
     starts, peaks, ends = np.asarray(starts), np.asarray(peaks), np.asarray(ends)
     half_expiration = (ends - peaks) // 2
-    # Middle of the expiration of the breath before (none before the first breath).
-    previous_middle = np.r_[0, (peaks[:-1] + starts[1:]) // 2]
-    first = np.maximum(starts - half_expiration, np.maximum(previous_middle, 0))
+
+    # Middle of the expiration of the breath before (frame 0 for the first breath).
+    previous_middle = np.zeros(len(starts), dtype=int)
+    previous_middle[1:] = (peaks[:-1] + starts[1:]) // 2
+
+    # From half an expiration before the start, but not before that middle...
+    first = np.maximum(starts - half_expiration, previous_middle)
+    # ...to the middle of its own expiration, inside the recording.
     after_last = np.minimum(peaks + half_expiration + 1, n_frames)
     return first, after_last
 

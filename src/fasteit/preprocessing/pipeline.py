@@ -84,8 +84,10 @@ def recording_time(raw: ReconstructedFrameData) -> np.ndarray:
     timestamps = np.asarray(raw.timestamps, dtype=float)
     if raw.vendor == "draeger":
         seconds = timestamps * SECONDS_PER_DAY
-        # Each jump back of more than half a day is a midnight crossing.
-        days_passed = np.cumsum(np.r_[0, np.diff(seconds) < -SECONDS_PER_DAY / 2])
+        # A jump back of more than half a day between two frames is a midnight
+        # crossing: from there on, one more day has passed.
+        crosses_midnight = np.diff(seconds) < -SECONDS_PER_DAY / 2
+        days_passed = np.concatenate([[0], np.cumsum(crosses_midnight)])
         timestamps = seconds + days_passed * SECONDS_PER_DAY
     return timestamps - timestamps[0]
 
@@ -279,7 +281,8 @@ def _breath_pressures(
         paw = aux[channel].to_numpy(dtype=float)
         # The valley that closes the last breath is one more start of inspiration, so
         # that the last breath also has a plateau.
-        onsets = inspiration_onsets(paw, fs, np.r_[starts, ends[-1]])
+        valleys = np.append(starts, ends[-1])
+        onsets = inspiration_onsets(paw, fs, valleys)
         peep = pressure_before(paw, fs, onsets, config.peep_seconds)
         plateau = plateau_pressures(
             paw, fs, onsets, peep, config.plateau_window_seconds
