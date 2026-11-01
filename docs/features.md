@@ -8,8 +8,8 @@ region, and a summary. The tables are ready for a database or for R: the clinica
 recording does not need to know it.
 
 The definitions and the evidence are in `notebooks/07_clinical_indices.ipynb` (11 tidal
-recordings, four PEEP trials); on the four trials the functions below give the numbers of
-the notebook.
+recordings, four PEEP trials); on the four trials the functions below give the crossing
+PEEP, the best PEEP and the change of EELI in mL of the notebook.
 
 1. [Entry points](#1-entry-points)
 2. [Indices of a breath](#2-indices-of-a-breath)
@@ -56,7 +56,7 @@ end-expiratory valley, peak = end-inspiratory peak.
 | `peep`, `plateau`, `driving_pressure` | from layer 2 (cmH2O) | notebook 06 |
 | `tidal_volume`, `tidal_volume_source` | typed for the step, typed for the recording, or measured (mL) | layer 2 and 2b |
 | `compliance` | TIV / driving pressure (EIT units per cmH2O) | - |
-| `compliance_ml` | tidal volume / driving pressure (mL/cmH2O) | - |
+| `compliance_ml` | tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume typed or measured | - |
 
 By region (`regions`, one row per breath and region; regions of layer 2: ventral and
 dorsal halves, layers, right and left, quadrants):
@@ -66,13 +66,16 @@ dorsal halves, layers, right and left, quadrants):
 | `eeli`, `tiv` | the same on the signal of the region |
 | `share` | TIV of the region / TIV of the lung (0-1): a ratio of sums |
 | `tiv_ml` | share × tidal volume (mL) |
-| `compliance` | TIV of the region / driving pressure (EIT units per cmH2O) |
+| `compliance` | TIV of the region / driving pressure (EIT units per cmH2O): the sum of the compliances of its pixels, which are in parallel under the same driving pressure |
 | `compliance_ml` | share × tidal volume / driving pressure (mL/cmH2O) |
 
-The two compliances are both kept: the one in mL/cmH2O is that of the respiratory system,
-as the ventilator would show it; the one in EIT units also follows what changes in the
-imaged slice (in volume control the same tidal volume gives 80-105 % of the TIV of the
-first step across a PEEP trial) and moves the best PEEP and the crossing point.
+The two compliances are both kept: the one in mL/cmH2O is the static compliance of the
+respiratory system; the one in EIT units also follows what changes in the imaged slice
+(in volume control the same tidal volume gives 80-105 % of the TIV of the first step
+across a PEEP trial) and can move the best PEEP (B park bench: 4.5 in EIT units, 8.5 in
+mL/cmH2O). Costa is computed in EIT units only. A region's compliance is a partial
+compliance, its share of the total: a small region has a low compliance even when it is
+healthy.
 
 ## 3. Tidal recordings
 
@@ -91,9 +94,9 @@ curves.
 | Column | Definition |
 |--------|------------|
 | `respiratory_rate`, `eeli`, `tiv`, `gi`, `cov_vd`, `cov_rl` | median of the analysed breaths |
-| `driving_pressure`, `tidal_volume` (and their sources) | from the step table of layer 2b |
+| `start_time`, `end_time`, `n_breaths`, `enough`, `plateau`, `driving_pressure`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume` (and the sources) | from the step table of layer 2b; `n_analysed` is the number of breaths the step indices come from |
 | `compliance` | median TIV / driving pressure of the step: it also works when the driving pressure comes from one inspiratory hold or is typed |
-| `compliance_ml` | tidal volume / driving pressure of the step |
+| `compliance_ml` | tidal volume / driving pressure of the step (it needs no EIT data, so it exists also for a step without analysed breaths) |
 | `compliance_pct_of_best`, `compliance_ml_pct_of_best` | as % of the best step |
 | `collapse`, `overdistension` | Costa method (%), from the median tidal image of the step: pixel compliance, loss as % of the best of each pixel, weighted by the best compliance (Costa 2009, DOI: 10.1007/s00134-009-1447-y; formulas as in Shono and Kotani 2019, DOI: 10.1186/s40560-019-0358-4) |
 | `d_eeli_tiv_vs_previous`, `d_eeli_tiv_vs_first` | change of EELI in tidal volumes: change / TIV of the reference step |
@@ -104,7 +107,9 @@ curves.
 the analysed breaths, and `tiv_ml`, `compliance` and `compliance_ml` of the step. The
 summary gives the crossing PEEP of collapse and overdistension (linear interpolation; the
 lowest if the curves cross more than once) and the PEEP of the best global compliance in
-EIT units and in mL/cmH2O.
+EIT units and in mL/cmH2O. Steps with fewer analysed breaths than the minimum of layer 2b
+(`enough` false) are kept, with a warning: filter them in the analysis if needed. If the
+first step has no analysed breaths, the changes vs the first step are NaN.
 
 ## 5. Limits
 
@@ -116,8 +121,10 @@ EIT units and in mL/cmH2O.
   linearly during PEEP changes (Hinz et al., Intensive Care Med 2003, DOI:
   10.1007/s00134-002-1555-4); the conversion to mL further assumes the same impedance per
   mL for the tidal and the end-expiratory change, in every region and at every PEEP. In the
-  four trials it gives 1.6-2.3 times compliance × change of PEEP: an estimate for research
-  on groups, not a measurement of lung volume.
+  four trials it gives 1.6-2.3 times compliance × change of PEEP, for a reason not known:
+  alveoli that close (missed by the compliance), the conversion, or changes of EELI that
+  are not gas (chest wall, blood volume, drift of the electrodes). Exploratory, not a
+  measurement of lung volume.
 - The mL of a region are the tidal volume shared as in the imaged slice: the regions sum
   to the tidal volume, so they are a distribution, not independent measurements; not
   corrected for the uneven sensitivity of EIT, a different impedance per mL in diseased
@@ -128,6 +135,20 @@ EIT units and in mL/cmH2O.
   [`preprocessing.md`](preprocessing.md), section 6.
 - Which regions are dependent depends on the position (ventral/dorsal supine, right/left
   on the side): the tables have every region, the choice belongs to the analysis.
-- One lung mask for the whole recording.
+- % of the best step, Costa and the changes vs the first step depend on the PEEP range
+  tested: patients are comparable only with the same range and steps. The first step,
+  at the highest PEEP, follows a recruitment maneuver and can be the least stable.
+- Costa: an error common to all the pixels of a step (its driving pressure, the share of
+  the tidal volume seen by the slice) shifts them together and appears as collapse or
+  overdistension; the best of each pixel is the highest of noisy values, so both curves
+  keep a small floor in a stable lung.
+- One lung mask for the whole recording, from the mean TIV of the valid breaths: a pixel
+  ventilated only at the high PEEP steps may fall outside it, which would lower the
+  collapse at low PEEP (to be checked).
+- GI is computed on each breath inside the watershed lung mask: its values are not
+  comparable with published cut-offs computed on other masks or averaged images.
+- Times (`inspiratory_time`, `expiratory_time`, `ti_ttot`) come from the impedance: in
+  volume control with an end-inspiratory pause the peak falls inside the pause, so they
+  are not the I:E of the ventilator; `respiratory_rate` is not affected.
 
 *Research use only - not a medical device.*
