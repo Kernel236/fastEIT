@@ -124,7 +124,8 @@ class SegmentationConfig:
         peep_levels: PEEP levels of the protocol, e.g. ``(16, 14, ..., 0)``. Each step
             gets the nearest one as ``peep_set``, so that steps can be compared between
             patients (the measured PEEP is noisy, and 10 mbar set on a Dräger
-            ventilator is 10.2 cmH2O). None: the nearest whole number.
+            ventilator is 10.2 cmH2O); none, with a warning, if further than
+            ``step_threshold``. None: the nearest whole number.
     """
 
     step_threshold: float = 1.0

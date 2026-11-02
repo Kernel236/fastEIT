@@ -204,8 +204,8 @@ def _breath_table(features: TidalFeatures | PeepTrialFeatures) -> pd.DataFrame:
         indices = features.breaths
     else:
         measured = features.recording.breaths.copy()
-        in_phase = features.breaths.set_index("breath_id").in_phase
-        measured = measured[measured.breath_id.map(in_phase).to_numpy(dtype=bool)]
+        in_phase = features.breaths.breath_id[features.breaths.in_phase]
+        measured = measured[measured.breath_id.isin(in_phase)]
         used = measured.is_valid  # tidal: every valid breath of the phase
         indices = features.breaths.drop(columns="in_phase")
     measured = measured.drop(columns=BREATH_COLUMNS_LEFT_OUT)

@@ -174,6 +174,13 @@ def test_two_analyses_with_the_same_keys_are_rejected(tables):
         combine_tables([])
 
 
+def test_booleans_of_combined_tables_are_written_as_numbers(tmp_path):
+    # A boolean column missing in one of the combined tables holds True, False, NaN.
+    table = pd.DataFrame({"flag": [True, np.nan, False], "label": ["a", None, "b"]})
+    path = write_csv({"t": table}, tmp_path)["t"]
+    assert path.read_text().splitlines() == ["flag,label", "1,a", ",", "0,b"]
+
+
 def test_csv_files_for_r_and_spss(tables, tmp_path):
     paths = write_csv(combine_tables(list(tables)), tmp_path / "results")
     assert sorted(paths) == ["breaths", "log", "recordings", "settings", "steps"]
