@@ -1,0 +1,4166 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Parsing, preprocessing and clinical indices of electrical impedance tomography recordings">
+      
+      
+      
+        <link rel="canonical" href="https://kernel236.github.io/fastEIT/latest/api/models/">
+      
+      
+        <link rel="prev" href="../parsers/">
+      
+      
+        <link rel="next" href="../preprocessing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Models - fastEIT</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#models" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="fastEIT" class="md-header__button md-logo" aria-label="fastEIT" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            fastEIT
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Models
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Kernel236/fastEIT" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kernel236/fastEIT
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting_started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../data_model/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../parsing_layer/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="fastEIT" class="md-nav__button md-logo" aria-label="fastEIT" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    fastEIT
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Kernel236/fastEIT" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kernel236/fastEIT
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parsers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing (layer 2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PEEP trial segmentation (layer 2b)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical indices (layer 3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parsers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.base_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        base_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="base_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.base_data.BaseData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseData
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reconstructed_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="reconstructed_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReconstructedFrameData
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ReconstructedFrameData">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.timestamps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timestamps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.pixels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pixels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.min_max_flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        min_max_flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.event_markers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        event_markers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.event_texts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        event_texts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.global_signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        global_signal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        roi_signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        roi_signal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.continuous_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        continuous_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="continuous_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.continuous_data.ContinuousSignalData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ContinuousSignalData
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.raw_impedance_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raw_impedance_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="raw_impedance_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.raw_impedance_data.RawImpedanceData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RawImpedanceData
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        eit_recording
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="eit_recording">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.Segment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Segment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.Segment.overlaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        overlaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.RecordingContext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RecordingContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.EITRecording" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EITRecording
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EITRecording">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.EITRecording.fs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.EITRecording.valid_breaths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        valid_breaths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.peep_trial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        peep_trial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="peep_trial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.peep_trial.PeepTrial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PeepTrial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PeepTrial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.peep_trial.PeepTrial.analysed_breaths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        analysed_breaths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.features.TidalFeatures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TidalFeatures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.features.PeepTrialFeatures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PeepTrialFeatures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parsing_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsing layer architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../license/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    License
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.base_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        base_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="base_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.base_data.BaseData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseData
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reconstructed_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="reconstructed_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReconstructedFrameData
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ReconstructedFrameData">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.timestamps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timestamps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.pixels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pixels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.min_max_flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        min_max_flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.event_markers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        event_markers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.event_texts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        event_texts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.global_signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        global_signal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        roi_signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        roi_signal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.continuous_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        continuous_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="continuous_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.continuous_data.ContinuousSignalData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ContinuousSignalData
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.raw_impedance_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raw_impedance_data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="raw_impedance_data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.raw_impedance_data.RawImpedanceData" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RawImpedanceData
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        eit_recording
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="eit_recording">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.Segment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Segment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.Segment.overlaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        overlaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.RecordingContext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RecordingContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.EITRecording" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EITRecording
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EITRecording">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.EITRecording.fs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.eit_recording.EITRecording.valid_breaths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        valid_breaths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.peep_trial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        peep_trial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="peep_trial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.peep_trial.PeepTrial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PeepTrial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PeepTrial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.peep_trial.PeepTrial.analysed_breaths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        analysed_breaths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fasteit.models.features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.features.TidalFeatures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TidalFeatures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.models.features.PeepTrialFeatures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PeepTrialFeatures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Kernel236/fastEIT/edit/dev/docs/api/models.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="models">Models<a class="headerlink" href="#models" title="Permanent link">&para;</a></h1>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.base_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">base_data</span>
+
+
+<a href="#fasteit.models.base_data" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>BaseData: base dataclass for all fasteit data containers.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.base_data.BaseData" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">BaseData</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.base_data.BaseData" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">BaseData</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">file_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">vendor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">())</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Base container for raw data from any parser.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.filename">filename</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path of the source file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.file_format">file_format</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Format identifier - "bin", "eit", "asc", "csv", or "txt".</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.vendor">vendor</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detected device vendor - "draeger" or "timpel".</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.fs">fs</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sampling rate in Hz, estimated by parser from timestamps.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.metadata">metadata</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parsed header information (framerate, date, firmware, etc.).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.n_frames">n_frames</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of frames - set by subclass <strong>post_init</strong>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.base_data.BaseData.duration">duration</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Recording duration in seconds - set by subclass <strong>post_init</strong>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.reconstructed_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">reconstructed_data</span>
+
+
+<a href="#fasteit.models.reconstructed_data" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>ReconstructedFrameData: container for frame-wise reconstructed EIT data.</p>
+<p>Produced by: DragerBinParser (.bin), TimpelTabularParser (.txt/.csv).</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.reconstructed_data.ReconstructedFrameData" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ReconstructedFrameData</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ReconstructedFrameData</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">file_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">vendor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">frames</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">aux_signals</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseData
+
+
+  
+      dataclass
+   (fasteit.models.base_data.BaseData)" href="#fasteit.models.base_data.BaseData">BaseData</a></code></p>
+
+
+
+        <p>Container for frame-wise reconstructed EIT data with synchronized signals.</p>
+<p>Stores vendor-reconstructed 32×32 pixel images and any continuous signals
+that are frame-synchronised in the source file (e.g. Medibus waveforms in
+Dräger .bin, device channels in Timpel .txt).</p>
+<p><code>aux_signals</code> is a vendor-agnostic dict of named continuous signals that
+are frame-aligned with <code>frames</code>. For Dräger .bin this is the Medibus dict;
+for Timpel tabular exports it holds the 6 device channels.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.reconstructed_data.ReconstructedFrameData.frames">frames</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Structured numpy array, shape (N,). Required fields: <code>ts</code>
+         (float64, timestamp), <code>pixels</code> (float32, 32×32 image).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.reconstructed_data.ReconstructedFrameData.aux_signals">aux_signals</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dict mapping signal name → 1-D array of length N, or None
+         if the source file carries no auxiliary channels.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.timestamps" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">timestamps</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.timestamps" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">timestamps</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Timestamp per frame. Shape (N,).</p>
+<p>Convention depends on vendor:
+- Dräger <code>.bin</code>: wall-clock time as fraction of day (0.0-1.0, float64)
+- Timpel <code>.csv</code>: seconds from start of recording (e.g. 2.0 s at frame
+  100 with 50 Hz), generated as <code>(first_frame + i) / fs</code></p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.pixels" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">pixels</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.pixels" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">pixels</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstructed 32×32 images for all frames. Shape (N, 32, 32).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.min_max_flags" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">min_max_flags</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.min_max_flags" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">min_max_flags</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Breath phase marker per frame. Shape (N,). Dräger .bin only.</p>
+<p>+1 = inspiration peak, -1 = expiration trough, 0 = neither.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.event_markers" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">event_markers</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.event_markers" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">event_markers</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Event counter per frame. Shape (N,). Dräger .bin only.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.event_texts" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">event_texts</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.event_texts" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">event_texts</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Event text strings per frame. Shape (N,) of bytes. Dräger .bin only.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.global_signal" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">global_signal</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.global_signal" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">global_signal</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Sum of all pixels per frame (no lung mask applied). Shape (N,).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signals" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">roi_signals</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signals" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">roi_signals</span><span class="p">:</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>4 ventro-dorsal strip signals (equal horizontal strips). Shape (N, 4).</p>
+<p>Each strip sums 8 rows of the 32×32 image:
+  strip 0 = rows  0- 7 (ventral)
+  strip 1 = rows  8-15 (mid-ventral)
+  strip 2 = rows 16-23 (mid-dorsal)
+  strip 3 = rows 24-31 (dorsal)</p>
+<p>Note: these are horizontal <em>strips</em>, not the 2×2 TREND quadrants
+(ROI1-ROI4 in Frerichs et al., Thorax 2017; doi:10.1136/thoraxjnl-2016-208357).
+TREND quadrant decomposition is a separate future feature.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signal" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">roi_signal</span>
+
+
+<a href="#fasteit.models.reconstructed_data.ReconstructedFrameData.roi_signal" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">roi_signal</span><span class="p">(</span><span class="n">roi</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Signal for a single ROI (0 = ventral … 3 = dorsal). Shape (N,).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>roi</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ROI index in range 0-3.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.continuous_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">continuous_data</span>
+
+
+<a href="#fasteit.models.continuous_data" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>ContinuousSignalData: container for signal-table EIT exports (no pixel matrices).</p>
+<p>Produced by: DragerAscParser (.asc), and future vendors with signal-only exports.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.continuous_data.ContinuousSignalData" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ContinuousSignalData</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.continuous_data.ContinuousSignalData" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ContinuousSignalData</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">file_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">vendor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">table</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseData
+
+
+  
+      dataclass
+   (fasteit.models.base_data.BaseData)" href="#fasteit.models.base_data.BaseData">BaseData</a></code></p>
+
+
+
+        <p>Container for time-aligned continuous signal tables.</p>
+<p>For files whose primary artifact is a table of sampled signals over time,
+with no pixel matrices.</p>
+<p>Dräger <code>.asc</code> is the canonical source. Future vendors producing signal-only
+exports (no pixel matrices) should map here too.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.continuous_data.ContinuousSignalData.table">table</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parsed tabular data as a pandas DataFrame.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.raw_impedance_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">raw_impedance_data</span>
+
+
+<a href="#fasteit.models.raw_impedance_data" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>RawImpedanceData: container for raw transimpedance measurements.</p>
+<p>Produced by: DragerEitParser (.eit).
+Primary use case: pyEIT interface for image reconstruction.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.raw_impedance_data.RawImpedanceData" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">RawImpedanceData</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.raw_impedance_data.RawImpedanceData" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">RawImpedanceData</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">file_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">vendor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">measurements</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">aux_signals</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseData
+
+
+  
+      dataclass
+   (fasteit.models.base_data.BaseData)" href="#fasteit.models.base_data.BaseData">BaseData</a></code></p>
+
+
+
+        <p>Container for raw EIT transimpedance measurements.</p>
+<p>Stores the 208 transimpedance values per frame as-is from the file,
+before any image reconstruction. The intended consumer is pyEIT.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.raw_impedance_data.RawImpedanceData.measurements">measurements</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Calibrated transimpedance array, shape (N_frames, 208).
+          Values are gain-corrected (e.g. <code>vv = FT_A*trans_A - FT_B*trans_B</code>
+          for Dräger), not raw ADC counts and not yet image-reconstructed.
+          208 = 16 electrodes × 13 measurement pairs
+          (adjacent drive, standard Dräger pattern).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.raw_impedance_data.RawImpedanceData.aux_signals">aux_signals</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional dict of auxiliary waveforms keyed by signal
+          name, e.g. <code>{"timestamp": ..., "frame_counter": ...,
+          "medibus_Paw": ...}</code>. Each value is a 1-D array of
+          length N_frames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.eit_recording" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">eit_recording</span>
+
+
+<a href="#fasteit.models.eit_recording" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Containers for a preprocessed recording (layer 2).</p>
+<ul>
+<li>Segment          - a time interval of a recording (exclusion, later PEEP step)</li>
+<li>RecordingContext - attributes of the whole recording (patient, position, protocol)</li>
+<li>EITRecording     - the recording ready for analysis, output of <code>preprocess()</code></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.eit_recording.Segment" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Segment</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.eit_recording.Segment" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">Segment</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EXCLUSION</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'manual'</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">())</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A time interval of a recording, in seconds from the start of the recording.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.Segment.start">start</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Start time in seconds.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.Segment.end">end</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>End time in seconds (must be greater than <code>start</code>).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.Segment.category">category</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What the interval is: <code>"exclusion"</code> (layer 2), <code>"peep_step"</code>
+        or <code>"phase"</code> (layer 2b).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.Segment.label">label</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Why, e.g. <code>"artifact"</code>, <code>"movement"</code>, <code>"timing_error"</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.Segment.source">source</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Who created it: <code>"manual"</code>, <code>"device"</code> or <code>"auto"</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.Segment.parameters">parameters</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>For automatic segments, how they were found. Not used for
+        hashing, so segments can be put in a set.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Two segments that share an end point, e.g. [0, 10] and [10, 20], touch: a breath
+ending at 10 s overlaps both.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fasteit.models.eit_recording.Segment.overlaps" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">overlaps</span>
+
+
+<a href="#fasteit.models.eit_recording.Segment.overlaps" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">overlaps</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return True if the interval [start, end] touches this segment.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.eit_recording.RecordingContext" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">RecordingContext</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.eit_recording.RecordingContext" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">RecordingContext</span><span class="p">(</span><span class="n">patient_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">protocol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'tidal'</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tidal_volume_ml</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">notes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Attributes of the whole recording, given by the user.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.patient_id">patient_id</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Anonymised patient identifier.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.position">position</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Patient position during the recording, e.g. <code>"supine"</code>, <code>"prone"</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.protocol">protocol</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"tidal"</code> or <code>"peep_trial"</code>; decides what layers 3-4 compute.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.interface">interface</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Ventilation interface, e.g. <code>"helmet"</code>, <code>"face_mask"</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.tidal_volume_ml">tidal_volume_ml</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tidal volume of the whole recording typed by the user (mL),
+        e.g. the one set in volume control or the mean on the case report
+        form; None if not typed. It wins over the tidal volume measured
+        on the ventilator curves of each breath.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.notes">notes</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Free text.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.eit_recording.EITRecording" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">EITRecording</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.eit_recording.EITRecording" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">EITRecording</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">ReconstructedFrameData</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">PreprocessingConfig</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">RecordingContext</span><span class="p">,</span> <span class="n">exclusions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Segment</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">time</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">rates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">cardiac_filter</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pixels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">image_mask</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">detection_signal</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">global_signal</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">lung_mask</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">tiv_map</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">roi_masks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">],</span> <span class="n">roi_signals</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">aux</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">aux_units</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">pressure_channel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tidal_volume_channel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A recording ready for breath-by-breath analysis (output of <code>preprocess()</code>).</p>
+<p>To change a parameter or an exclusion, call <code>preprocess()</code> again. The fields
+cannot be reassigned, the config is frozen, the arrays are read-only and the
+parsed data in <code>raw</code> is never modified. The DataFrames and dicts can still be
+changed in place by Python: do not modify them, make a copy.</p>
+<p>All signals are in arbitrary impedance units (EELI is relative, not comparable
+between recordings). Breath frames (<code>start_idx</code>, <code>peak_idx</code>, <code>end_idx</code>)
+are extrema of <code>detection_signal</code>, the signal they were found on.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.raw">raw</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ReconstructedFrameData
+
+
+  
+      dataclass
+   (fasteit.models.reconstructed_data.ReconstructedFrameData)" href="#fasteit.models.reconstructed_data.ReconstructedFrameData">ReconstructedFrameData</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Data from the parser, untouched.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.config">config</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="PreprocessingConfig
+
+
+  
+      dataclass
+   (fasteit.config.PreprocessingConfig)" href="../config/#fasteit.config.PreprocessingConfig">PreprocessingConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parameters used.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.context">context</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="RecordingContext
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.RecordingContext)" href="#fasteit.models.eit_recording.RecordingContext">RecordingContext</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Attributes of the recording given by the user.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.exclusions">exclusions</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-internal" title="Segment
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.Segment)" href="#fasteit.models.eit_recording.Segment">Segment</a>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Excluded parts (manual and device), widened by the margin and
+           merged.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.time">time</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(N,) seconds from the start of the recording.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.rates">rates</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a> | None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>respiratory_rate_hz</code> from the spectrum (None if it could
+           not be estimated) and <code>heart_rate_hz</code> as entered by the
+           user (None if not given).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.cardiac_filter">cardiac_filter</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Filter actually applied: <code>"mdn"</code> (cardiac component
+           removed) or <code>"moving_average"</code> (not removed).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.pixels">pixels</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(N, rows, cols) float32, after the cardiac step; NaN for pixels
+           without data in the whole recording.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.image_mask">image_mask</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(rows, cols) bool, pixels with a signal (the image inside the
+           belt outline); wider than the lung, e.g. for silent spaces.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.detection_signal">detection_signal</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(N,) sum of all pixels after the cardiac step, used for
+           the breath detection and the quality flags.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.global_signal">global_signal</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(N,) sum of the pixels inside the lung mask.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.breaths">breaths</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per breath: times and frames of start, peak and end,
+           quality flags, <code>excluded</code>, <code>exclusion_label</code>,
+           <code>is_valid</code>; <code>peep</code>, <code>plateau</code> and <code>driving_pressure</code>
+           (cmH2O) and the inspiratory <code>tidal_volume</code> (mL), NaN where
+           not available.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.lung_mask">lung_mask</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(rows, cols) bool, ventilated lung (not the anatomical lung).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.tiv_map">tiv_map</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(rows, cols) mean TIV of the valid breaths (first and last
+           breath excluded), used for the mask.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.roi_masks">roi_masks</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Regions of interest, each inside the lung mask.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.roi_signals">roi_signals</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(N, n_regions) sum of the pixels of each region.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.aux">aux</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(N, n_channels) auxiliary signals with data (pressures, flow,
+           volume, device breath markers), "no data" values as NaN, not
+           filtered; rows are frame numbers like the breath indices.
+           Same units for every vendor: pressures in cmH2O, flow in L/s,
+           volumes in mL.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.aux_units">aux_units</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Unit of each column of <code>aux</code> ("" for markers and flags, None
+           if unknown).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.pressure_channel">pressure_channel</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Column of <code>aux</code> the pressures of the breaths were read
+           from, or None if there was no pressure.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.tidal_volume_channel">tidal_volume_channel</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Column of <code>aux</code> the tidal volumes of the breaths come
+           from (volume curve, flow curve or ventilator value), or None.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.EITRecording.log">log</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What each step did, with fallbacks and warnings.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.eit_recording.EITRecording.fs" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">fs</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.eit_recording.EITRecording.fs" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">fs</span><span class="p">:</span> <span class="nb">float</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Sampling frequency in Hz.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.eit_recording.EITRecording.valid_breaths" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">valid_breaths</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.eit_recording.EITRecording.valid_breaths" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">valid_breaths</span><span class="p">:</span> <span class="n">DataFrame</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The breaths without quality flags and outside the exclusions.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.peep_trial" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">peep_trial</span>
+
+
+<a href="#fasteit.models.peep_trial" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>PeepTrial: a preprocessed PEEP trial split into PEEP steps (layer 2b).</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.peep_trial.PeepTrial" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">PeepTrial</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.peep_trial.PeepTrial" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PeepTrial</span><span class="p">(</span><span class="n">recording</span><span class="p">:</span> <span class="n">EITRecording</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">SegmentationConfig</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A PEEP trial ready for layer 3: PEEP steps and the breaths analysed in each.</p>
+<p>Output of <code>segment_peep_trial()</code>. To change a parameter or a step placed by hand,
+call it again. Do not modify the DataFrames in place: make a copy.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.recording">recording</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="EITRecording
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.EITRecording)" href="#fasteit.models.eit_recording.EITRecording">EITRecording</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The preprocessed recording (layer 2).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.config">config</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="SegmentationConfig
+
+
+  
+      dataclass
+   (fasteit.config.SegmentationConfig)" href="../config/#fasteit.config.SegmentationConfig">SegmentationConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parameters used.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.source">source</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Where the steps come from: <code>"pressure"</code> or <code>"manual"</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.steps">steps</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per step: <code>step</code>, <code>peep</code> (level, as measured or as
+              typed, cmH2O), <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>,
+              <code>n_analysed</code>, <code>enough</code> (at least the minimum), <code>plateau</code>
+              and <code>driving_pressure</code> with <code>driving_pressure_source</code>:
+              <code>"breaths"</code> (median of the analysed breaths, continuous
+              pause), <code>"hold"</code> (median of the breaths of the step with an
+              inspiratory hold) or <code>"typed"</code> (step placed by hand);
+              <code>n_driving_pressure</code> and <code>enough_driving_pressure</code>;
+              <code>tidal_volume</code> (mL) with <code>tidal_volume_source</code>:
+              <code>"typed"</code> (for the step), <code>"typed_recording"</code>
+              (<code>RecordingContext.tidal_volume_ml</code>) or <code>"breaths"</code>
+              (median of the analysed breaths, ventilator curves).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.breaths">breaths</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The breath table of the recording (with <code>peep</code>,
+              <code>plateau</code> and <code>driving_pressure</code> in cmH2O and
+              <code>tidal_volume</code> in mL, read in layer 2) plus <code>peep_step</code>
+              (-1 outside every step) and <code>analysed</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.log">log</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What the segmentation did, with warnings.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="fasteit.models.peep_trial.PeepTrial.analysed_breaths" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">analysed_breaths</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fasteit.models.peep_trial.PeepTrial.analysed_breaths" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">analysed_breaths</span><span class="p">:</span> <span class="n">DataFrame</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The breaths analysed in each step.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="fasteit.models.features" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">features</span>
+
+
+<a href="#fasteit.models.features" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Clinical indices of a recording (layer 3), as tables ready for a database or R.</p>
+<ul>
+<li>TidalFeatures     - indices of each breath of a recording, and their summary</li>
+<li>PeepTrialFeatures - indices of each breath and of each PEEP step of a PEEP trial</li>
+</ul>
+<p>Each object holds everything: its tables, and the objects of the layers before it
+(<code>features.trial.recording.breaths</code>...). Each value is stored once: the tables of
+layer 3 have the keys (<code>breath_id</code>, <code>step</code>, <code>peep</code>, <code>region</code>) and what layer 3
+computes; what layers 2 and 2b measured (times, quality, pressures, steps) stays in
+their own tables, joined on the keys. The tables are "long" by region (one row per
+breath, or step, and region), so that they can be joined with the clinical data
+(patient, position, side) at the time of the analysis.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.features.TidalFeatures" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">TidalFeatures</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.features.TidalFeatures" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">TidalFeatures</span><span class="p">(</span><span class="n">recording</span><span class="p">:</span> <span class="n">EITRecording</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">summary</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Clinical indices of a recording breathing at one setting (output of
+<code>tidal_features()</code>). Do not modify the DataFrames in place: make a copy.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.TidalFeatures.recording">recording</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="EITRecording
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.EITRecording)" href="#fasteit.models.eit_recording.EITRecording">EITRecording</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The preprocessed recording (layer 2).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.TidalFeatures.breaths">breaths</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per breath of the recording: <code>breath_id</code>,
+       <code>in_phase</code>, <code>respiratory_rate</code>, <code>eeli</code>, <code>tiv</code>, <code>gi</code>,
+       <code>cov_vd</code>, <code>cov_rl</code>, <code>tidal_volume_used</code> (typed or
+       measured) and its <code>tidal_volume_source</code>, <code>compliance</code> (EIT
+       units per cmH2O), <code>compliance_ml</code> (mL/cmH2O). Times, quality and
+       pressures: <code>recording.breaths</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.TidalFeatures.regions">regions</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per breath and region: <code>breath_id</code>, <code>region</code>,
+       <code>eeli</code>, <code>tiv</code>, <code>share</code>, <code>tiv_ml</code>, <code>compliance</code>,
+       <code>compliance_ml</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.TidalFeatures.summary">summary</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per region (<code>"global"</code> for the whole lung) and index
+       (column <code>feature</code>, with PEEP, plateau and driving pressure):
+       <code>median</code>, <code>q1</code>, <code>q3</code> over the valid breaths of the phase,
+       and <code>n_breaths</code> with a value.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.TidalFeatures.log">log</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What was computed, with warnings.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="fasteit.models.features.PeepTrialFeatures" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">PeepTrialFeatures</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#fasteit.models.features.PeepTrialFeatures" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PeepTrialFeatures</span><span class="p">(</span><span class="n">trial</span><span class="p">:</span> <span class="n">PeepTrial</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">step_regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">summary</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Clinical indices of a PEEP trial (output of <code>peep_trial_features()</code>). Do not
+modify the DataFrames in place: make a copy.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.trial">trial</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="PeepTrial
+
+
+  
+      dataclass
+   (fasteit.models.peep_trial.PeepTrial)" href="#fasteit.models.peep_trial.PeepTrial">PeepTrial</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The segmented PEEP trial (layer 2b).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.breaths">breaths</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per breath, as in <code>TidalFeatures</code> (without
+          <code>in_phase</code>). Step and analysed breaths: <code>trial.breaths</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.regions">regions</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per breath and region, as in <code>TidalFeatures</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.steps">steps</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per PEEP step (<code>step</code>, <code>peep</code>), from its analysed
+          breaths: medians of the breath indices, compliance in EIT
+          units and in mL/cmH2O (and as % of the best step), Costa
+          collapse and overdistension, and the changes vs the previous
+          and the first step. Driving pressure, tidal volume, breaths
+          analysed: <code>trial.steps</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.step_regions">step_regions</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per step and region: <code>eeli</code>, <code>tiv</code>, <code>share</code>,
+          <code>tiv_ml</code>, <code>compliance</code>, <code>compliance_ml</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.summary">summary</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per region and feature (<code>region</code>, <code>feature</code>,
+          <code>value</code>): for <code>"global"</code> the crossing PEEP of collapse and
+          overdistension, the PEEP of the best compliance in EIT units and
+          in mL/cmH2O, the two PEEP of the R/I; for every region (global
+          included) the recruitment-to-inflation ratio <code>ri</code> and the
+          <code>recruited_volume_ml</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.log">log</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What was computed, with warnings.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../parsers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Parsers">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Parsers
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../preprocessing/" class="md-footer__link md-footer__link--next" aria-label="Next: Preprocessing">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Preprocessing
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Research use only - not a medical device
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
