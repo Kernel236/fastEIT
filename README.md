@@ -5,6 +5,7 @@
 | **Status** | ![Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-orange) |
 | **License** | ![Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg) |
 | **Python** | ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue) |
+| **Docs** | [![Docs](https://github.com/Kernel236/fastEIT/actions/workflows/docs.yml/badge.svg)](https://kernel236.github.io/fastEIT/) |
 | **Coverage** | [![codecov](https://codecov.io/gh/Kernel236/fastEIT/branch/dev/graph/badge.svg)](https://codecov.io/gh/Kernel236/fastEIT) |
 | **CI / CD** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) ![deploy](https://img.shields.io/badge/deploy-todo-lightgrey) |
 
@@ -175,6 +176,10 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 ```
 
 ## Documentation
+
+The site [kernel236.github.io/fastEIT](https://kernel236.github.io/fastEIT/) gathers the
+guides below and the API reference generated from the docstrings, one version per release
+and one for `dev`. The same guides in the repository:
 
 - [`docs/data_model.md`](docs/data_model.md) - data containers of every layer, and where each value is stored
 - [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
