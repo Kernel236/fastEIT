@@ -119,12 +119,15 @@ def quality_flags(
         fs:           Sampling frequency in Hz.
         breaths:      Integer array (n_breaths, 3) from ``detect_breaths``.
         near_invalid: Boolean array (n_breaths,) from ``detect_breaths``.
-        short_seconds, long_seconds: Duration limits in seconds.
-        ti_ratio_low, ti_ratio_high: Ti/Ttot limits.
-        window_breaths, min_breaths: Window of ``ratio_to_local_median``.
-        amplitude_ratio_low, amplitude_ratio_high: Amplitude limits as ratios to the
-            local median.
-        duration_ratio_high: Duration limit as a ratio to the local median.
+        short_seconds: Shortest duration in seconds.
+        long_seconds:  Longest duration in seconds.
+        ti_ratio_low:  Lowest Ti/Ttot.
+        ti_ratio_high: Highest Ti/Ttot.
+        window_breaths: Window of ``ratio_to_local_median``, in breaths.
+        min_breaths:    Fewest breaths in that window.
+        amplitude_ratio_low:  Lowest amplitude as a ratio to the local median.
+        amplitude_ratio_high: Highest amplitude as a ratio to the local median.
+        duration_ratio_high:  Longest duration as a ratio to the local median.
 
     Returns:
         DataFrame of booleans, one column per flag. The pipeline adds whether the

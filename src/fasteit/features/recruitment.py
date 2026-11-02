@@ -38,7 +38,8 @@ def ri_steps(
 
     Args:
         peep:     PEEP of each step.
-        high, low: Target PEEP levels (e.g. 15 and 5).
+        high:     Target high PEEP (e.g. 15).
+        low:      Target low PEEP (e.g. 5).
         min_drop: Smallest drop of PEEP between the two steps.
 
     Returns:
@@ -67,7 +68,8 @@ def recruitment_to_inflation(
     """R/I and recruited volume between a high and a low PEEP step (see the module).
 
     Args:
-        eeli_high, eeli_low: EELI of the two steps (EIT units, global or of a region).
+        eeli_high:    EELI of the high step (EIT units, global or of a region).
+        eeli_low:     EELI of the low step, of the same region (EIT units).
         tiv_low:      TIV of the low step, of the same region (EIT units).
         driving_low:  Driving pressure of the low step (cmH2O).
         peep_drop:    PEEP of the high step minus PEEP of the low step (cmH2O).

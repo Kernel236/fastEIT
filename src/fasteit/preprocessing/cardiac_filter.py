@@ -310,7 +310,8 @@ def heart_rate_warnings(
     Args:
         heart_rate_bpm:       Heart rate given by the user, beats/min.
         respiratory_rate_bpm: Respiratory rate from the spectrum, breaths/min.
-        low_bpm, high_bpm:    Plausible heart rate range.
+        low_bpm:              Lowest plausible heart rate.
+        high_bpm:             Highest plausible heart rate.
         margin_bpm:           Distance from a multiple of the respiratory rate below
                               which a warning is given.
 

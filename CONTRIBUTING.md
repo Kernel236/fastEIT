@@ -37,6 +37,19 @@ ruff format src/ tests/
 GitHub Actions runs `ruff check` and `ruff format --check` on every pull request
 to `dev` or `main`, and on every push to those branches.
 
+## Documentation
+
+The site is built with [MkDocs](https://www.mkdocs.org/) from `docs/` and from the
+docstrings of the code (Google style). To see it while editing:
+
+```bash
+pip install -e ".[docs]"
+mkdocs serve
+```
+
+A pull request is checked with `mkdocs build --strict`: a broken link or a docstring
+parameter that is not in the signature fails the build.
+
 ## Running tests
 
 ```bash
@@ -49,9 +62,9 @@ skipped and why.
 
 ## Adding a new parser
 
-See [docs/parsing_layer.md](docs/parsing_layer.md) for a step-by-step recipe
-covering detection, schema definition, parser class, loader registration, and
-the testing checklist.
+See [docs/parsing_layer.md](https://github.com/Kernel236/fastEIT/blob/dev/docs/parsing_layer.md)
+for a step-by-step recipe covering detection, schema definition, parser class,
+loader registration, and the testing checklist.
 
 ## Pull request process
 
@@ -65,4 +78,4 @@ Please open a GitHub issue to discuss your idea before opening a PR.
 
 ## Code of Conduct
 
-This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+This project follows the [Contributor Covenant](https://github.com/Kernel236/fastEIT/blob/dev/CODE_OF_CONDUCT.md).
