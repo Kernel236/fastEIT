@@ -70,6 +70,9 @@ class RecordingContext:
 
     Attributes:
         patient_id: Anonymised patient identifier.
+        label:      Name of the recording for this patient, e.g. a time point (``"T0"``)
+                    or a position; with ``patient_id`` it identifies the rows of the
+                    exported tables (layer 4), where it can also be changed.
         position:   Patient position during the recording, e.g. ``"supine"``, ``"prone"``.
         protocol:   ``"tidal"`` or ``"peep_trial"``; decides what layers 3-4 compute.
         interface:  Ventilation interface, e.g. ``"helmet"``, ``"face_mask"``.
@@ -81,6 +84,7 @@ class RecordingContext:
     """
 
     patient_id: str = ""
+    label: str = ""
     position: str | None = None
     protocol: str = "tidal"
     interface: str | None = None
