@@ -39,8 +39,9 @@ trial.analysed_breaths   # the breaths to analyse, with PEEP, plateau, driving p
 print("\n".join(trial.log))
 ```
 
-Without a pressure signal the steps are placed by hand, one segment per step with its
-PEEP level (cmH2O):
+Without a pressure signal (or to choose the breaths yourself) the steps are placed by
+hand: for each step, a segment around the breaths to analyse (e.g. the 10 stable breaths
+chosen on the figure), with the PEEP level of the step (cmH2O):
 
 ```python
 steps = [
@@ -50,8 +51,13 @@ steps = [
 trial = segment_peep_trial(recording, peep_steps=steps)
 ```
 
-Steps placed by hand replace the automatic ones; the breaths analysed are then the
-valid breaths inside each segment (a breath cut by the edge of a segment is left out).
+Steps placed by hand replace the automatic ones, and a segment is the selection of
+breaths to analyse: every valid breath entirely inside it is analysed, with no time left
+out after the change of PEEP and no limit of 10 (those rules apply only to the steps found
+from the pressure). A breath cut by the edge of the segment, or with a quality flag, is
+left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
+looked for only inside the segment: include its breath, or type the plateau or the
+driving pressure.
 Without a pressure signal the plateau read on the ventilator can be typed with the
 step, `parameters={"peep": 16, "plateau": 28}`, or directly the driving pressure,
 `parameters={"peep": 16, "driving_pressure": 12}` (e.g. in pressure control, where it

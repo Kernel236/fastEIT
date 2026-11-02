@@ -402,3 +402,16 @@ def test_a_typed_tidal_volume_far_from_the_measured_one_gives_a_warning():
 def test_a_tidal_volume_typed_for_a_step_in_litres_gives_a_warning(recording):
     trial = segment_peep_trial(recording, tidal_volumes=[0.45, None, None, None])
     assert any("Step 0: typed tidal volume 0.45 mL" in m for m in trial.log)
+
+
+def test_a_step_placed_by_hand_is_the_selection_of_breaths_to_analyse(recording):
+    # Every valid breath inside the segment is analysed: no 15 s left out after the
+    # start, no limit of 10 (here 11 breaths in the first 48 s, at PEEP 12).
+    segment = Segment(1, 48, category="peep_step", parameters={"peep": 12})
+    trial = segment_peep_trial(recording, peep_steps=[segment])
+    b = trial.breaths
+    inside = b[(b.start_time >= 1) & (b.end_time <= 48) & b.is_valid]
+    analysed = trial.analysed_breaths
+    assert analysed.breath_id.tolist() == inside.breath_id.tolist()
+    assert len(analysed) > trial.config.analysis_max_breaths
+    assert analysed.start_time.min() < 1 + trial.config.analysis_skip_seconds
