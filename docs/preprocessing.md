@@ -172,53 +172,27 @@ There are two kinds of record, kept apart on purpose:
 
 ## 6. Limits
 
-- Validated as equivalent to eitprocessing, not against a gold standard; 946 breaths
-  from two patients and one volunteer; the pressures of each breath on four PEEP
-  trials from two patients (notebook 06).
-- Breath timing comes from impedance: the valley is the minimum of lung volume, not
-  the ventilator trigger; patient-ventilator asynchrony is not detected; breaths
-  within about 15 s of a sudden EELI step are unreliable.
+- Validated as equivalent to eitprocessing, not against a gold standard: 946 breaths from
+  two patients and one volunteer; pressures of each breath on four PEEP trials (notebook 06).
+- Breath timing from the impedance: the valley is the minimum of lung volume, not the
+  ventilator trigger; asynchrony is not detected; breaths within about 15 s of a sudden
+  EELI step are unreliable.
 - Without a heart rate the cardiac component is not removed.
-- The lung mask is the ventilated lung. The regions are cut on its vertical extent,
-  so they are relative to the ventilated lung: indices of a shift of ventilation
-  (centre of ventilation, silent spaces) must use image coordinates.
-- Orientation and signal sign are verified on Dräger PulmoVista recordings only.
-- Adults only (respiratory rate 6-60/min).
-- **PEEP** is the end-expiratory pressure at the airway opening: it does not include
-  intrinsic PEEP, so it is a lower bound of the total PEEP (in one trial it read
-  0.2-0.5 cmH2O above the set value, 1 at PEEP 0, at 19 breaths/min). With intrinsic
-  PEEP the driving pressure is overestimated and compliance underestimated, more at
-  low PEEP in obstructive patients. A single missing
-  frame of the pressure near the start of a breath loses the PEEP of that breath
-  (85-100 % of the breaths read in the tidal recordings of notebook 05, 100 % in the
-  four PEEP trials). The missing PEEP is not estimated from the breaths around it: the
-  breath keeps its EIT values and is left out only of what needs the pressure (it is
-  not analysed in a step found from the pressure, it has no compliance).
-- **Plateau** needs at least 0.5 s of hold (volume control) or of flat inspiratory
-  pressure (pressure control, valid only if the flow is zero at the end of
-  inspiration); otherwise it is missing. Inspiratory holds and pressure control are
-  tested on synthetic data only; the plateau was not validated against the
-  ventilator plateau or a manual hold. Medibus and Timpel pressures are tested on
-  synthetic data only; Medibus values are updated once per ventilator breath and can
-  lag by one breath.
-- The **driving pressure** is that of the respiratory system (lung and chest wall):
-  the oesophageal and transpulmonary pressures of the PressurePod are not used, and it
-  is valid only in passive patients.
-- **Tidal volume** from the curves is tested on synthetic curves only: the recordings
-  available have no volume or flow curve. Inspiratory flow is taken as positive. It is
-  the volume measured by the ventilator, not the volume that enters the lung:
-  - with a leak (non-invasive ventilation, a leaking cuff) it includes the leak;
-  - without compensation of the compressible volume of the circuit it includes that
-    volume, about 1-2.5 mL per cmH2O of inspiratory pressure (15-40 mL at 15 cmH2O,
-    5-15 % of compliance in mL/cmH2O); whether the ventilator compensates it, and
-    whether it measures at the ventilator or at the Y-piece, depends on the device;
-  - a zero offset of the flow sensor adds offset × duration of the inspiration (e.g.
-    0.01 L/s over 1 s = 10 mL);
-  - with a ventilator that sets the volume curve back to zero at each breath, the
-    first breaths after a decrease of PEEP read too much, by the volume the lung lost
-    (they are not analysed in a PEEP step: the first 15 s are left out);
-  - the generic Medibus "tidal volume" (the last fallback) may be expiratory, depending
-    on the ventilator.
+- Regions are relative to the ventilated lung: indices of a shift of ventilation use image
+  coordinates.
+- Verified on Dräger PulmoVista only; adults only (respiratory rate 6-60/min).
+- **PEEP** at the airway opening, without intrinsic PEEP (a lower bound; with intrinsic
+  PEEP the driving pressure is overestimated). A missing pressure frame near the start of
+  a breath loses its PEEP: the breath keeps its EIT values, the PEEP is not estimated.
+- **Plateau** only after a hold of at least 0.5 s (or a flat pressure in pressure
+  control), not validated against the ventilator plateau; holds, pressure control,
+  Medibus and Timpel pressures tested on synthetic data only.
+- **Driving pressure** of the respiratory system, valid in passive patients.
+- **Tidal volume** from the curves tested on synthetic curves only. It is the volume
+  measured by the ventilator: it includes a leak and, if not compensated, the compressible
+  volume of the circuit (about 1-2.5 mL per cmH2O); a zero offset of the flow sensor adds
+  to it; with a volume curve set back to zero at each breath, the first breaths after a
+  decrease of PEEP read too much; the generic Medibus value may be expiratory.
 
 ## 7. File layout
 

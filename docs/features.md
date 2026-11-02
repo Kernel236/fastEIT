@@ -120,38 +120,24 @@ first step has no analysed breaths, the changes vs the first step are NaN.
 ## 5. Limits
 
 - Tested on four decremental PEEP trials from two patients (volume control, tidal volume as
-  set on the ventilator) and on synthetic recordings with a known answer; the Costa method
-  is implemented from its published formulas, not checked against another implementation.
-- EELI is in arbitrary units: only its changes are comparable, and in mL only through the
-  tidal volume. The change of EELI follows the change of end-expiratory lung volume
-  linearly during PEEP changes (Hinz et al., Intensive Care Med 2003, DOI:
-  10.1007/s00134-002-1555-4); the conversion to mL further assumes the same impedance per
-  mL for the tidal and the end-expiratory change, in every region and at every PEEP. In the
-  four trials it gives 1.6-2.3 times compliance × change of PEEP, for a reason not known:
-  alveoli that close (missed by the compliance), the conversion, or changes of EELI that
-  are not gas (chest wall, blood volume, drift of the electrodes). Exploratory, not a
-  measurement of lung volume.
-- The mL of a region are the tidal volume shared as in the imaged slice: the regions sum
-  to the tidal volume, so they are a distribution, not independent measurements; not
-  corrected for the uneven sensitivity of EIT, a different impedance per mL in diseased
-  regions, or the lung outside the slice.
-- Compliance from the airway pressure is that of the respiratory system (lung and chest
-  wall), valid in passive patients; regional compliance uses the same driving pressure for
-  every region. The limits of the pressures and of the tidal volume are in
-  [`preprocessing.md`](preprocessing.md), section 6.
-- Which regions are dependent depends on the position (ventral/dorsal supine, right/left
-  on the side): the tables have every region, the choice belongs to the analysis.
+  set) and on synthetic data with a known answer; Costa implemented from its published
+  formulas, not checked against another implementation.
+- EELI is in arbitrary units: only its changes are comparable. The change in mL assumes the
+  same impedance per mL for the tidal and the end-expiratory change (Hinz et al.,
+  Intensive Care Med 2003, DOI: 10.1007/s00134-002-1555-4, show the linear relation of the
+  changes); in the four trials it is 1.6-2.3 times compliance × change of PEEP, cause
+  unknown: exploratory, not a measurement of lung volume.
+- The mL of a region are the tidal volume shared as in the imaged slice (they sum to the
+  tidal volume): a distribution, not independent measurements.
+- Compliance from the airway pressure is that of the respiratory system, in passive
+  patients; regional compliance is a partial compliance with the same driving pressure
+  for every region.
 - % of the best step, Costa and the changes vs the first step depend on the PEEP range
-  tested: patients are comparable only with the same range and steps. The first step,
-  at the highest PEEP, follows a recruitment maneuver and can be the least stable.
-- Costa: an error common to all the pixels of a step (its driving pressure, the share of
-  the tidal volume seen by the slice) shifts them together and appears as collapse or
-  overdistension; the best of each pixel is the highest of noisy values, so both curves
-  keep a small floor in a stable lung.
-- One lung mask for the whole recording, from the mean TIV of the valid breaths: in the
-  four trials the pixels ventilated at some step but outside it carry at most 1-3 % of
-  the TIV.
-- GI is computed on each breath inside the watershed lung mask: its values are not
-  comparable with published cut-offs computed on other masks or averaged images.
+  tested: patients are comparable with the same range and steps.
+- Costa: an error common to a step (its driving pressure, the share of the tidal volume
+  seen by the slice) appears as collapse or overdistension.
+- One lung mask for the whole recording (in the four trials the pixels ventilated at some
+  step but outside it carry at most 1-3 % of the TIV); GI not comparable with cut-offs
+  computed on other masks.
 
 *Research use only - not a medical device.*

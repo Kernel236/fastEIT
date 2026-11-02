@@ -4,7 +4,8 @@ Specifications for all data containers. For parser details, calibration
 constants, and loader utilities see [`parsers.md`](parsers.md). For architecture
 and extension recipes see [`parsing_layer.md`](parsing_layer.md).
 
-All containers inherit from `BaseData` (`models/base_data.py`).
+All containers of layer 1 inherit from `BaseData` (`models/base_data.py`). The
+objects of the later layers are in [section 5](#5-from-a-file-to-the-clinical-indices).
 
 ---
 
@@ -121,3 +122,41 @@ Intended consumer: `reconstruct_greit()` (in `fasteit.parsers.draeger.eit.eit_py
 requires optional `pyeit` dependency) or any external reconstruction library.
 For `.bin` and Timpel `.csv` files, fastEIT ingests vendor-reconstructed images
 and does not re-reconstruct them.
+
+---
+
+## 5. From a file to the clinical indices
+
+Each layer returns one object that holds the object of the layer before it, so the last
+one holds everything:
+
+```
+file .bin / .csv
+ └─ load_data() ───────────► ReconstructedFrameData   layer 1: the file as it is
+     └─ preprocess() ──────► EITRecording             layer 2: the measured breaths
+          ├─ tidal_features() ───────► TidalFeatures       layer 3: indices
+          └─ segment_peep_trial() ───► PeepTrial           layer 2b: PEEP steps
+               └─ peep_trial_features() ► PeepTrialFeatures  layer 3: indices
+```
+
+Each value is stored once, in the table of the layer that produces it; tables are joined
+on `breath_id`, `step` (with `peep`) and `region`.
+
+| Where | One row per | Content |
+|-------|-------------|---------|
+| `EITRecording.breaths` | breath | times and frames, quality flags, `excluded`, `is_valid`, PEEP, plateau, driving pressure, measured tidal volume |
+| `EITRecording.aux` (+ `aux_units`) | frame | auxiliary signals in cmH2O, L/s, mL; device markers |
+| `EITRecording` arrays | - | `pixels`, `lung_mask`, `roi_masks`, `roi_signals`, `global_signal`, `time` |
+| `PeepTrial.breaths` | breath | the breaths of the recording plus `peep_step`, `analysed` |
+| `PeepTrial.steps` | step | PEEP level, times, breaths analysed, `enough`, plateau, driving pressure and tidal volume with their sources |
+| `TidalFeatures.breaths`, `PeepTrialFeatures.breaths` | breath | EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (EIT units and mL/cmH2O) |
+| `...Features.regions` | breath and region | EELI, TIV, share, TIV in mL, compliance (EIT units and mL/cmH2O) |
+| `PeepTrialFeatures.steps` | step | medians of the analysed breaths, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step |
+| `PeepTrialFeatures.step_regions` | step and region | the regional values of each step |
+| `TidalFeatures.summary` | region and index | median and quartiles over the valid breaths |
+| `PeepTrialFeatures.summary` | trial | crossing PEEP, best PEEP |
+
+The flat export, with everything in one table per breath and per step, belongs to the
+next layer (database and export). Details: [`preprocessing.md`](preprocessing.md),
+[`segmentation.md`](segmentation.md), [`features.md`](features.md).
+

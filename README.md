@@ -175,7 +175,7 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 
 ## Documentation
 
-- [`docs/data_model.md`](docs/data_model.md) - data container field specifications
+- [`docs/data_model.md`](docs/data_model.md) - data containers of every layer, and where each value is stored
 - [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
 - [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
 - [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, ventilator values of each breath, units, outputs, logs and limits

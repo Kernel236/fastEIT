@@ -133,17 +133,12 @@ Dräger mbar, 1 mbar = 1.02 cmH2O). The channels they come from are
 
 ## 6. Limits
 
-- Tested on four decremental trials from two patients, in volume control with an
-  end-inspiratory pause, with the Dräger PressurePod; Timpel and Medibus pressures,
-  inspiratory holds, pressure control and the tidal volume from the curves are tested
-  on synthetic data only. The limits of the pressures and tidal volume of each breath
-  are in [`preprocessing.md`](preprocessing.md), section 6.
-- The thresholds were chosen in mbar in notebook 06 and are applied in cmH2O (2 %
-  apart): in one trial the breath of a change opens its step one breath earlier.
-- Compliance from the airway pressure is that of the respiratory system (lung and
-  chest wall), valid only in passive patients; without a tidal volume it is in EIT
-  units per cmH2O.
-- Short steps at a low rate leave few breaths after the first 15 s (4-9 in the trials at
-  11-13 breaths/min with 40 s steps): the warning reports it.
+- Tested on four decremental trials from two patients (volume control with an
+  end-inspiratory pause, Dräger PressurePod); Timpel and Medibus pressures, holds, pressure
+  control and the measured tidal volume on synthetic data only. Limits of the pressures and
+  tidal volume of each breath: [`preprocessing.md`](preprocessing.md), section 6.
+- Thresholds chosen in mbar (notebook 06), applied in cmH2O (2 % apart).
+- Short steps at a low rate leave few breaths after the first 15 s (4-9 at 11-13
+  breaths/min with 40 s steps): a warning reports it.
 
 *Research use only - not a medical device.*
