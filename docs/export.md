@@ -40,6 +40,9 @@ tables = combine_tables([
 write_csv(tables, "results/")   # results/recordings.csv, breaths.csv, steps.csv, ...
 ```
 
+The tables on real recordings (11 tidal recordings, four PEEP trials) are in
+`notebooks/08_export.ipynb`.
+
 A study is the same call with the analyses of every recording: one or a hundred, the
 tables are the same. For a simple tidal recording `recording_tables(tidal_features(recording))`
 is enough.
