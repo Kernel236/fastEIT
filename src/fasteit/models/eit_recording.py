@@ -73,6 +73,10 @@ class RecordingContext:
         position:   Patient position during the recording, e.g. ``"supine"``, ``"prone"``.
         protocol:   ``"tidal"`` or ``"peep_trial"``; decides what layers 3-4 compute.
         interface:  Ventilation interface, e.g. ``"helmet"``, ``"face_mask"``.
+        tidal_volume_ml: Tidal volume of the whole recording typed by the user (mL),
+                    e.g. the one set in volume control or the mean on the case report
+                    form; None if not typed. It wins over the tidal volume measured
+                    on the ventilator curves of each breath.
         notes:      Free text.
     """
 
@@ -80,7 +84,13 @@ class RecordingContext:
     position: str | None = None
     protocol: str = "tidal"
     interface: str | None = None
+    tidal_volume_ml: float | None = None
     notes: str = ""
+
+    def __post_init__(self) -> None:
+        volume = self.tidal_volume_ml
+        if volume is not None and not (math.isfinite(volume) and volume > 0):
+            raise ValueError(f"tidal_volume_ml must be positive, got {volume}.")
 
 
 # eq=False: two recordings are compared by identity, not array by array.
@@ -118,7 +128,9 @@ class EITRecording:
         global_signal: (N,) sum of the pixels inside the lung mask.
         breaths:       One row per breath: times and frames of start, peak and end,
                        quality flags, ``excluded``, ``exclusion_label``,
-                       ``is_valid``.
+                       ``is_valid``; ``peep``, ``plateau`` and ``driving_pressure``
+                       (cmH2O) and the inspiratory ``tidal_volume`` (mL), NaN where
+                       not available.
         lung_mask:     (rows, cols) bool, ventilated lung (not the anatomical lung).
         tiv_map:       (rows, cols) mean TIV of the valid breaths (first and last
                        breath excluded), used for the mask.
@@ -127,6 +139,14 @@ class EITRecording:
         aux:           (N, n_channels) auxiliary signals with data (pressures, flow,
                        volume, device breath markers), "no data" values as NaN, not
                        filtered; rows are frame numbers like the breath indices.
+                       Same units for every vendor: pressures in cmH2O, flow in L/s,
+                       volumes in mL.
+        aux_units:     Unit of each column of ``aux`` ("" for markers and flags, None
+                       if unknown).
+        pressure_channel: Column of ``aux`` the pressures of the breaths were read
+                       from, or None if there was no pressure.
+        tidal_volume_channel: Column of ``aux`` the tidal volumes of the breaths come
+                       from (volume curve, flow curve or ventilator value), or None.
         log:           What each step did, with fallbacks and warnings.
     """
 
@@ -147,6 +167,9 @@ class EITRecording:
     roi_masks: dict[str, np.ndarray]
     roi_signals: pd.DataFrame
     aux: pd.DataFrame
+    aux_units: dict[str, str | None]
+    pressure_channel: str | None
+    tidal_volume_channel: str | None
     log: tuple[str, ...]
 
     def __post_init__(self) -> None:

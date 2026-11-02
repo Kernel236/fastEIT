@@ -31,6 +31,22 @@ import math
 import numpy as np
 from scipy.signal import find_peaks
 
+# Defaults of eitprocessing ``BreathDetection`` (v1.8.8), not meant to be tuned
+# (notebooks/05_preprocessing_choices.ipynb, section 8):
+# - a sample is invalid beyond mean ± 4 x (distance between the mean and the 5th / 95th
+#   percentile);
+# - 15 s Blackman moving average as local threshold (it follows slow EELI drift; below
+#   about 8 breaths/min it starts to follow the breathing);
+# - peaks and valleys at least 2/3 s apart (at most 90 breaths/min);
+# - peaks below 25 % of the median amplitude merged into the breath around them;
+# - a breath within 0.5 s of invalid data is flagged (eitprocessing removes it).
+INVALID_DATA_PERCENTILE = 5.0
+INVALID_DATA_MULTIPLIER = 4.0
+BASELINE_SECONDS = 15.0
+MIN_DURATION_SECONDS = 2 / 3
+LOW_AMPLITUDE_FRACTION = 0.25
+INVALID_MARGIN_SECONDS = 0.5
+
 
 def invalid_samples(
     signal: np.ndarray, percentile: float, multiplier: float
@@ -196,19 +212,22 @@ def drop_doubles(
         Peaks and valleys, alternating.
     """
     peaks, valleys = list(peaks), list(valleys)
-    i = 0
-    while i < len(valleys) - 1:
-        between = [k for k, p in enumerate(peaks) if valleys[i] < p < valleys[i + 1]]
+    current = 0  # the valley being checked, with the next one
+    while current < len(valleys) - 1:
+        left, right = valleys[current], valleys[current + 1]
+        between = [number for number, peak in enumerate(peaks) if left < peak < right]
         if not between:
-            higher = i if signal[valleys[i]] > signal[valleys[i + 1]] else i + 1
+            # No peak between two valleys: drop the higher valley.
+            higher = current if signal[left] > signal[right] else current + 1
             del valleys[higher]
             continue
         if len(between) > 1:
+            # More than one peak: drop the lower of the first two.
             first, second = between[0], between[1]
             lower = first if signal[peaks[first]] < signal[peaks[second]] else second
             del peaks[lower]
             continue
-        i += 1
+        current += 1  # exactly one peak: move to the next pair of valleys
     return np.array(peaks, dtype=int), np.array(valleys, dtype=int)
 
 

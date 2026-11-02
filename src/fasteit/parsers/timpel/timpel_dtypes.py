@@ -58,6 +58,16 @@ TIMPEL_AUX_FIELDS: tuple[str, ...] = (
     "qrs_flag",  # col 1029, binary (QRS complex)
 )
 
+# Unit of each auxiliary field ("" for the binary flags).
+TIMPEL_AUX_UNITS: dict[str, str] = {
+    "airway_pressure": "cmH2O",
+    "flow": "L/s",
+    "volume": "L",
+    "min_flag": "",
+    "max_flag": "",
+    "qrs_flag": "",
+}
+
 # ---------------------------------------------------------------------------
 # Structured dtype for ReconstructedFrameData.frames
 # ---------------------------------------------------------------------------

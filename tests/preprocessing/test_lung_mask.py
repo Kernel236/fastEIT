@@ -4,8 +4,17 @@ import numpy as np
 import pytest
 
 from fasteit.config import PreprocessingConfig
-from fasteit.preprocessing.breaths import detect_breaths
+from fasteit.preprocessing.breaths import (
+    BASELINE_SECONDS,
+    INVALID_DATA_MULTIPLIER,
+    INVALID_DATA_PERCENTILE,
+    INVALID_MARGIN_SECONDS,
+    LOW_AMPLITUDE_FRACTION,
+    MIN_DURATION_SECONDS,
+    detect_breaths,
+)
 from fasteit.preprocessing.lung_mask import (
+    MIN_REGION_PIXELS,
     amplitude_per_breath,
     pixel_lag,
     remove_small_regions,
@@ -42,12 +51,12 @@ def synthetic_recording():
     breaths, _ = detect_breaths(
         global_signal,
         FS,
-        invalid_percentile=CFG.invalid_data_percentile,
-        invalid_multiplier=CFG.invalid_data_multiplier,
-        baseline_seconds=CFG.breath_baseline_seconds,
-        min_duration_seconds=CFG.breath_min_duration_seconds,
-        low_amplitude_fraction=CFG.breath_low_amplitude_fraction,
-        invalid_margin_seconds=CFG.invalid_data_margin_seconds,
+        invalid_percentile=INVALID_DATA_PERCENTILE,
+        invalid_multiplier=INVALID_DATA_MULTIPLIER,
+        baseline_seconds=BASELINE_SECONDS,
+        min_duration_seconds=MIN_DURATION_SECONDS,
+        low_amplitude_fraction=LOW_AMPLITUDE_FRACTION,
+        invalid_margin_seconds=INVALID_MARGIN_SECONDS,
     )
     is_lung = lung >= CFG.lung_mask_threshold_fraction
     return pixels, global_signal, breaths, is_lung & late, artifact > 0.15
@@ -129,7 +138,7 @@ def test_islands_smaller_than_the_minimum_are_removed():
     mask = np.zeros((12, 12), dtype=bool)
     mask[0:2, 0:5] = True  # 10 pixels: kept
     mask[6:9, 6:9] = True  # 9 pixels: removed
-    cleaned = remove_small_regions(mask, CFG.lung_mask_min_region_pixels)
+    cleaned = remove_small_regions(mask, MIN_REGION_PIXELS)
     assert cleaned[0:2, 0:5].all() and not cleaned[6:9, 6:9].any()
 
 
@@ -137,7 +146,7 @@ def test_pixels_touching_only_by_a_corner_are_separate_islands():
     mask = np.zeros((12, 12), dtype=bool)
     mask[0:3, 0:3] = True  # 9 pixels
     mask[3:6, 3:6] = True  # 9 pixels, touching the first by one corner
-    assert not remove_small_regions(mask, CFG.lung_mask_min_region_pixels).any()
+    assert not remove_small_regions(mask, MIN_REGION_PIXELS).any()
 
 
 # --- edge cases ---

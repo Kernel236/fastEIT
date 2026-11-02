@@ -15,6 +15,10 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+# Fewest breaths in the local window to compute the local median (at the edges of a
+# short recording); with fewer, no outlier flag.
+LOCAL_MIN_BREATHS = 5
+
 
 def breath_measures(signal: np.ndarray, fs: float, breaths: np.ndarray) -> pd.DataFrame:
     """Duration, Ti/Ttot and amplitude of each breath.

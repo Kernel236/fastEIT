@@ -37,8 +37,8 @@ def test_preprocessing_config_is_frozen():
 
 def test_preprocessing_config_rejects_impossible_values():
     for wrong in [
+        {"heart_rate_bpm": 0},
         {"lung_mask_threshold_fraction": 1.5},
-        {"lung_mask_min_region_pixels": 0},
         {"exclusion_margin_seconds": -1},
         {"ti_ratio_low": 0.7},
     ]:
@@ -48,20 +48,28 @@ def test_preprocessing_config_rejects_impossible_values():
 
 def test_segmentation_config_defaults_follow_notebook_06():
     cfg = SegmentationConfig()
-    assert cfg.pressure_channels[0] == "airway_pressure_pod"
     assert (cfg.step_threshold, cfg.analysis_skip_seconds) == (1.0, 15.0)
     assert (cfg.analysis_min_breaths, cfg.analysis_max_breaths) == (5, 10)
 
 
 def test_segmentation_config_rejects_impossible_values():
+    assert SegmentationConfig(step_threshold=0.5).step_threshold == 0.5  # 1 cmH2O steps
     for wrong in [
         {"step_threshold": 0},
-        {"step_min_breaths": 0},
         {"analysis_min_breaths": 12},
-        {"plateau_window_seconds": (0.05, 0.25)},
-        {"peep_seconds": 0},
         {"analysis_skip_seconds": -1},
-        {"step_threshold": 0.5},  # tolerance 0.5 would then be above half of it
     ]:
         with pytest.raises(ValueError):
             SegmentationConfig(**wrong)
+
+
+def test_analysis_config_ri_levels_of_the_original_method():
+    cfg = AnalysisConfig()
+    assert (cfg.ri_peep_high, cfg.ri_peep_low, cfg.ri_min_peep_drop) == (
+        15.0,
+        5.0,
+        10.0,
+    )
+    for wrong in [{"ri_min_peep_drop": 0}, {"ri_peep_high": 5, "ri_peep_low": 15}]:
+        with pytest.raises(ValueError):
+            AnalysisConfig(**wrong)

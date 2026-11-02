@@ -1,8 +1,8 @@
 """PEEP steps of a PEEP trial and the breaths analysed in each step.
 
-Steps come from the PEEP of each breath (``breath_pressures``) or are placed by hand as
-segments with their PEEP level; steps placed by hand win over the automatic ones
-(notebooks/06_peep_trial_segmentation.ipynb, sections 3, 5 and 7).
+Steps come from the PEEP of each breath (``EITRecording.breaths``) or are placed by
+hand as segments with their PEEP level; steps placed by hand win over the automatic
+ones (notebooks/06_peep_trial_segmentation.ipynb, sections 3, 5 and 7).
 """
 
 from __future__ import annotations
@@ -10,8 +10,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
+import pandas as pd
 
 from fasteit.models.eit_recording import PEEP_STEP, Segment
+
+# Breaths in a row needed to open a step, so that a single odd breath (a maneuver)
+# cannot (notebooks/06_peep_trial_segmentation.ipynb, section 3).
+STEP_MIN_BREATHS = 3
 
 
 def find_steps(
@@ -39,61 +44,74 @@ def find_steps(
         ValueError: if no breath has a PEEP.
     """
     peep = _fill_backward(np.asarray(peep, dtype=float))
-    starts, level, i = [0], np.median(peep[:min_breaths]), 1
-    while i < len(peep):
-        window = peep[i : i + min_breaths]
+    step_starts = [0]
+    level = np.median(peep[:min_breaths])  # level of the first step: its first breaths
+    breath = 1
+    while breath < len(peep):
+        next_breaths = peep[breath : breath + min_breaths]
         opens_step = (
-            len(window) == min_breaths
-            and np.all(np.abs(window - level) > threshold)
-            and np.ptp(window) <= agreement
+            len(next_breaths) == min_breaths  # enough breaths left
+            and np.all(
+                np.abs(next_breaths - level) > threshold
+            )  # all far from the level
+            and np.ptp(next_breaths) <= agreement  # and close to each other
         )
         if opens_step:
-            starts.append(i)
-            level = np.median(window)
-            i += min_breaths
+            step_starts.append(breath)
+            level = np.median(next_breaths)
+            breath += min_breaths
         else:
-            # At least the first min_breaths breaths of the step, so one odd breath cannot move it.
-            level = np.median(peep[starts[-1] : max(i + 1, starts[-1] + min_breaths)])
-            i += 1
-    return np.array(starts, dtype=int)
+            # The breath stays in the current step: its level is the median of the
+            # breaths of the step so far, at least its first min_breaths, so that one
+            # odd breath cannot move it.
+            step_start = step_starts[-1]
+            level_until = max(breath + 1, step_start + min_breaths)
+            level = np.median(peep[step_start:level_until])
+            breath += 1
+    return np.array(step_starts, dtype=int)
 
 
 def _fill_backward(values: np.ndarray) -> np.ndarray:
     """NaN replaced with the next value that is not NaN (the last ones with the last)."""
-    known = np.flatnonzero(~np.isnan(values))
-    if len(known) == 0:
+    if np.isnan(values).all():
         raise ValueError("No breath has a PEEP: the steps cannot be found.")
-    position = np.minimum(
-        np.searchsorted(known, np.arange(len(values))), len(known) - 1
-    )
-    return values[known[position]]
+    # bfill: each NaN takes the next value; ffill: NaN at the end take the last value.
+    return pd.Series(values).bfill().ffill().to_numpy()
 
 
 def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
-    """Step number of each breath, from the first breath of each step."""
-    return np.searchsorted(step_starts, np.arange(n_breaths), side="right") - 1
+    """Step number of each breath, from the first breath of each step.
+
+    A breath belongs to the last step that starts at or before it: searchsorted counts
+    the steps that start at or before each breath, minus one gives the step number.
+    """
+    breaths = np.arange(n_breaths)
+    return np.searchsorted(step_starts, breaths, side="right") - 1
 
 
 def steps_from_segments(
     breath_starts: np.ndarray, breath_ends: np.ndarray, segments: Sequence[Segment]
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Steps placed by hand: the breaths inside each segment, its PEEP and plateau.
 
     A breath belongs to a segment when it starts and ends inside it: a breath cut by
     the edge of a segment is left out. Segments are numbered in time order. The plateau,
     or directly the driving pressure, is optional (e.g. read on the ventilator during an
-    inspiratory hold), for recordings without a pressure signal.
+    inspiratory hold), for recordings without a pressure signal; so is the tidal volume
+    of the step (e.g. its mean on the case report form).
 
     Args:
         breath_starts, breath_ends: Start and end time of each breath, in seconds.
         segments: Segments with ``category="peep_step"``, the PEEP level in
-            ``parameters["peep"]`` and optionally ``parameters["plateau"]`` or
-            ``parameters["driving_pressure"]`` (the plateau wins if both are given).
+            ``parameters["peep"]`` (cmH2O) and optionally ``parameters["plateau"]`` or
+            ``parameters["driving_pressure"]`` (the plateau wins if both are given) and
+            ``parameters["tidal_volume"]`` (mL).
 
     Returns:
         ``step``: step number of each breath (-1 outside every segment);
         ``levels``: PEEP level of each step; ``plateaus``: plateau typed for each step,
-        or PEEP + driving pressure typed (NaN if neither is given).
+        or PEEP + driving pressure typed (NaN if neither is given); ``volumes``: tidal
+        volume typed for each step (NaN if not given).
 
     Raises:
         ValueError: if a segment is not a PEEP step, has no PEEP level, overlaps
@@ -123,7 +141,13 @@ def steps_from_segments(
         )
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
     plateaus = np.array([_typed_plateau(s.parameters) for s in ordered])
-    return step, levels, plateaus
+    volumes = np.array([_typed_value(s.parameters, "tidal_volume") for s in ordered])
+    return step, levels, plateaus, volumes
+
+
+def _typed_value(parameters: dict, key: str) -> float:
+    value = parameters.get(key)
+    return np.nan if value is None else float(value)
 
 
 def _typed_plateau(parameters: dict) -> float:
@@ -163,9 +187,11 @@ def analysed_breaths(
     if max_breaths < 1:
         raise ValueError("max_breaths must be at least 1.")
     analysed = np.zeros(len(step), dtype=bool)
-    for k in np.unique(step[step >= 0]):
-        in_step = np.flatnonzero(step == k)
-        after_skip = breath_starts[in_step] >= breath_starts[in_step[0]] + skip_seconds
+    for step_number in np.unique(step[step >= 0]):
+        in_step = np.flatnonzero(step == step_number)  # breaths of the step, in order
+        step_start = breath_starts[in_step[0]]
+        after_skip = breath_starts[in_step] >= step_start + skip_seconds
         usable = in_step[after_skip & valid[in_step]]
-        analysed[usable[-max_breaths:]] = True
+        last_usable = usable[-max_breaths:]
+        analysed[last_usable] = True
     return analysed

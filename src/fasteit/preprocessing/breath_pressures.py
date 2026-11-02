@@ -1,11 +1,13 @@
 """Airway pressures of each breath: PEEP, plateau and driving pressure.
 
-Read on the airway pressure curve, all from the same channel so that a constant offset
-of the sensor cancels in the driving pressure (notebooks/06_peep_trial_segmentation.ipynb,
-sections 2 and 4). The PEEP of a breath is the end-expiratory pressure at the airway
-opening: the PEEP applied by the ventilator, without intrinsic PEEP (that would need an
-end-expiratory occlusion), so it is a lower bound of the total PEEP. A breath whose
-pressure is missing (NaN) near its start gets NaN.
+Read on the airway pressure curve (cmH2O), all from the same channel so that a constant
+offset of the sensor cancels in the driving pressure
+(notebooks/06_peep_trial_segmentation.ipynb, sections 2 and 4). The PEEP of a breath is
+the end-expiratory pressure at the airway opening: the PEEP applied by the ventilator,
+without intrinsic PEEP (that would need an end-expiratory occlusion), so it is a lower
+bound of the total PEEP; with intrinsic PEEP the driving pressure is overestimated and
+compliance underestimated. A breath whose pressure is missing (NaN) near its start gets
+NaN.
 """
 
 from __future__ import annotations
@@ -24,14 +26,19 @@ ONSET_SEARCH_AFTER_SECONDS = 0.5
 ONSET_LOOKBACK_SECONDS = 0.5
 # Start of expiration = steepest fall in the 0.3 s before the pressure is back near PEEP.
 EXPIRATION_SEARCH_SECONDS = 0.3
-# The pressure is back near PEEP when it is within 2 (mbar or cmH2O) of it.
+# The pressure is back near PEEP when it is within 2 cmH2O of it.
 BACK_TO_PEEP_MARGIN = 2.0
-# The highest part of a breath starts at the first frame within 1 (mbar or cmH2O) of its
+# The highest part of a breath starts at the first frame within 1 cmH2O of its
 # maximum: the peak in volume control, the start of the flat pressure in pressure control.
 TOP_MARGIN = 1.0
 # A plateau needs an end-inspiratory hold of at least 0.5 s (0.9-1.3 s in the trials of
 # notebook 06; 5 of 606 breaths were shorter).
 MIN_PAUSE_SECONDS = 0.5
+# PEEP = median pressure in the 0.2 s before the start of inspiration (section 2).
+PEEP_SECONDS = 0.2
+# Plateau = median pressure from 0.25 to 0.05 s before the start of expiration
+# (section 4).
+PLATEAU_WINDOW_SECONDS = (0.25, 0.05)
 
 
 def _samples(seconds: float, fs: float) -> int:
@@ -75,11 +82,12 @@ def inspiration_onsets(
         lo, hi = max(0, start - before), min(len(smoothed) - 1, start + after)
         if hi <= lo or np.isnan(smoothed[max(0, lo - lookback) : hi]).any():
             continue
-        steepest = lo + int(np.argmax(slope[lo:hi]))
+        steepest = lo + int(np.argmax(slope[lo:hi]))  # frame of the steepest rise
         back = max(0, steepest - lookback)
         before_rise = smoothed[back : steepest + 1]
-        # Last occurrence of the minimum (on a flat PEEP the first one would be too early).
-        onsets[i] = back + len(before_rise) - 1 - int(np.argmin(before_rise[::-1]))
+        # The last frame at the minimum: on a flat PEEP the first one would be too early.
+        at_minimum = np.flatnonzero(before_rise == before_rise.min())
+        onsets[i] = back + at_minimum[-1]
     return onsets
 
 
@@ -165,6 +173,8 @@ def plateau_pressures(
         reached = peak + back_to_peep[0]
         lo = max(peak, reached - search)
         expiration = lo + int(np.argmin(slope[lo : reached + 1]))
-        if expiration - peak >= min_pause:
-            plateaus[i] = np.median(paw[expiration - first : expiration - last])
+        # The reading never starts before the highest part, whatever the window.
+        read_from, read_to = max(peak, expiration - first), expiration - last
+        if expiration - peak >= min_pause and read_to > read_from:
+            plateaus[i] = np.median(paw[read_from:read_to])
     return plateaus

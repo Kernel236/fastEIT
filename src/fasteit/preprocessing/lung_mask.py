@@ -37,6 +37,9 @@ from skimage import feature, segmentation
 # Constants of eitprocessing PixelBreath (v1.8.8), not meant to be tuned.
 MAX_LAG_BREATHS = 1  # pixel delay searched within ± one mean breath duration
 MAX_SKIPPED_FRACTION = 0.25  # a pixel losing more breaths than this is dropped
+# Islands of the mask smaller than this are removed (eitprocessing ``FilterROIBySize``
+# default; notebooks/05_preprocessing_choices.ipynb, section 9).
+MIN_REGION_PIXELS = 10
 
 
 def tiv_per_breath(pixels: np.ndarray, breaths: np.ndarray) -> np.ndarray:
@@ -77,11 +80,13 @@ def pixel_lag(
     peaks, _ = signal.find_peaks(xcorr[in_range], height=0, prominence=xcorr.std())
     if len(peaks) == 0:
         return None
-    candidates = lags[in_range][peaks]
+    candidates = lags[in_range][peaks]  # lags of the cross-correlation peaks
     closest = candidates[np.abs(candidates) == np.abs(candidates).min()]
     if len(closest) == 1:
         return int(closest[0])
-    return int(closest[np.argmax(xcorr[np.searchsorted(lags, closest)])])
+    # Two peaks equally close to zero lag (one on each side): the higher one.
+    heights = xcorr[np.searchsorted(lags, closest)]
+    return int(closest[np.argmax(heights)])
 
 
 def _extremes(pixel: np.ndarray, edges: np.ndarray, find) -> np.ndarray:
@@ -91,10 +96,13 @@ def _extremes(pixel: np.ndarray, edges: np.ndarray, find) -> np.ndarray:
     gives its edge; that breath is then skipped because its start, peak and end are
     not in order. eitprocessing crashes in this case.
     """
-    return np.array(
-        [a + find(pixel[a:b]) if b > a else a for a, b in itertools.pairwise(edges)],
-        dtype=int,
-    )
+    positions = []
+    for window_start, window_end in itertools.pairwise(edges):
+        if window_end > window_start:
+            positions.append(window_start + find(pixel[window_start:window_end]))
+        else:
+            positions.append(window_start)  # empty window
+    return np.array(positions, dtype=int)
 
 
 def amplitude_per_breath(
@@ -152,7 +160,8 @@ def amplitude_per_breath(
                 continue
 
             amplitude = pixel[tops] - pixel[starts]
-            amplitude[[i for i in skipped if i < len(amplitude)]] = np.nan
+            skipped_breaths = [breath for breath in skipped if breath < len(amplitude)]
+            amplitude[skipped_breaths] = np.nan
             amplitudes[1:-1, row, col] = amplitude
     return amplitudes
 

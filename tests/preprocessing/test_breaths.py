@@ -3,8 +3,13 @@
 import numpy as np
 import pytest
 
-from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.breaths import (
+    BASELINE_SECONDS,
+    INVALID_DATA_MULTIPLIER,
+    INVALID_DATA_PERCENTILE,
+    INVALID_MARGIN_SECONDS,
+    LOW_AMPLITUDE_FRACTION,
+    MIN_DURATION_SECONDS,
     detect_breaths,
     drop_doubles,
     drop_low_amplitude,
@@ -16,8 +21,6 @@ from fasteit.preprocessing.breaths import (
     trim_edges,
 )
 
-CFG = PreprocessingConfig()
-
 
 def breathing(rate_hz=0.5, fs=50, seconds=60, amplitude=1.0):
     t = np.arange(0, seconds, 1 / fs)
@@ -28,7 +31,7 @@ def breathing(rate_hz=0.5, fs=50, seconds=60, amplitude=1.0):
 
 
 def invalid(x):
-    return invalid_samples(x, CFG.invalid_data_percentile, CFG.invalid_data_multiplier)
+    return invalid_samples(x, INVALID_DATA_PERCENTILE, INVALID_DATA_MULTIPLIER)
 
 
 def test_clean_breathing_has_no_invalid_samples():
@@ -74,8 +77,8 @@ def test_fill_with_nearest_rejects_an_all_missing_signal():
 
 
 def candidates(x, fs=50):
-    base = local_baseline(x, fs, CFG.breath_baseline_seconds)
-    return peaks_and_valleys(x, base, fs, CFG.breath_min_duration_seconds)
+    base = local_baseline(x, fs, BASELINE_SECONDS)
+    return peaks_and_valleys(x, base, fs, MIN_DURATION_SECONDS)
 
 
 def test_baseline_of_a_constant_signal_is_the_constant():
@@ -126,8 +129,8 @@ def test_two_valleys_without_a_peak_keep_the_lower():
 
 def test_peaks_and_valleys_alternate_after_drop_doubles():
     x = breathing(seconds=60) + 0.3 * breathing(rate_hz=1.3, seconds=60)
-    base = local_baseline(x, 50, CFG.breath_baseline_seconds)
-    peaks, valleys = peaks_and_valleys(x, base, 50, CFG.breath_min_duration_seconds)
+    base = local_baseline(x, 50, BASELINE_SECONDS)
+    peaks, valleys = peaks_and_valleys(x, base, 50, MIN_DURATION_SECONDS)
     peaks, valleys = drop_doubles(x, *trim_edges(x, peaks, valleys, base))
     assert len(peaks) == len(valleys) - 1
     assert np.all((valleys[:-1] < peaks) & (peaks < valleys[1:]))
@@ -135,8 +138,8 @@ def test_peaks_and_valleys_alternate_after_drop_doubles():
 
 def test_trim_edges_keeps_only_peaks_between_the_first_and_last_valley():
     x = breathing(seconds=20)
-    base = local_baseline(x, 50, CFG.breath_baseline_seconds)
-    peaks, valleys = peaks_and_valleys(x, base, 50, CFG.breath_min_duration_seconds)
+    base = local_baseline(x, 50, BASELINE_SECONDS)
+    peaks, valleys = peaks_and_valleys(x, base, 50, MIN_DURATION_SECONDS)
     peaks, valleys = trim_edges(x, peaks, valleys, base)
     assert peaks.min() > valleys.min() and peaks.max() < valleys.max()
 
@@ -182,12 +185,12 @@ def detect(x, fs=50):
     return detect_breaths(
         x,
         fs,
-        invalid_percentile=CFG.invalid_data_percentile,
-        invalid_multiplier=CFG.invalid_data_multiplier,
-        baseline_seconds=CFG.breath_baseline_seconds,
-        min_duration_seconds=CFG.breath_min_duration_seconds,
-        low_amplitude_fraction=CFG.breath_low_amplitude_fraction,
-        invalid_margin_seconds=CFG.invalid_data_margin_seconds,
+        invalid_percentile=INVALID_DATA_PERCENTILE,
+        invalid_multiplier=INVALID_DATA_MULTIPLIER,
+        baseline_seconds=BASELINE_SECONDS,
+        min_duration_seconds=MIN_DURATION_SECONDS,
+        low_amplitude_fraction=LOW_AMPLITUDE_FRACTION,
+        invalid_margin_seconds=INVALID_MARGIN_SECONDS,
     )
 
 

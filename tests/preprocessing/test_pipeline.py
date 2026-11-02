@@ -7,12 +7,15 @@ import pytest
 from scipy import signal as scipy_signal
 
 from fasteit.config import PreprocessingConfig
-from fasteit.models.eit_recording import Segment
+from fasteit.models.eit_recording import RecordingContext, Segment
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.loader import load_data
+from fasteit.preprocessing.auxiliary import CMH2O_PER_MBAR
 from fasteit.preprocessing.pipeline import preprocess, recording_time
 
+from .test_breath_pressures import vcv_pressure
 from .test_breath_quality import NOTEBOOK_COUNTS, TEST_FILES
+from .test_tidal_volume import vcv_flow, volume_curve
 
 FS = 20.0
 SECONDS = 90
@@ -72,18 +75,6 @@ def test_breaths_mask_and_regions_of_a_regular_recording():
     assert recording.rates["heart_rate_hz"] is None
 
 
-def test_without_heart_rate_the_log_says_the_heart_is_not_removed():
-    recording = preprocess(synthetic_raw()[0])
-    assert any("cardiac component NOT removed" in line for line in recording.log)
-
-
-def test_with_heart_rate_the_mdn_filter_is_used():
-    config = PreprocessingConfig(heart_rate_bpm=80)
-    recording = preprocess(synthetic_raw()[0], config)
-    assert any("MDN cardiac filter" in line for line in recording.log)
-    assert recording.rates["heart_rate_hz"] == pytest.approx(80 / 60)
-
-
 def test_an_implausible_heart_rate_is_used_with_a_warning():
     recording = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=250))
     assert any(line.startswith("WARNING: Heart rate 250") for line in recording.log)
@@ -133,9 +124,13 @@ def test_data_without_frames_is_an_error():
 
 
 def test_the_cardiac_filter_applied_is_recorded():
-    assert preprocess(synthetic_raw()[0]).cardiac_filter == "moving_average"
-    config = PreprocessingConfig(heart_rate_bpm=80)
-    assert preprocess(synthetic_raw()[0], config).cardiac_filter == "mdn"
+    without = preprocess(synthetic_raw()[0])
+    assert without.cardiac_filter == "moving_average"
+    assert any("cardiac component NOT removed" in line for line in without.log)
+    with_heart = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=80))
+    assert with_heart.cardiac_filter == "mdn"
+    assert any("MDN cardiac filter" in line for line in with_heart.log)
+    assert with_heart.rates["heart_rate_hz"] == pytest.approx(80 / 60)
     # A heart rate below the respiratory rate cannot be filtered: fallback, logged.
     slow_heart = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=10))
     assert slow_heart.cardiac_filter == "moving_average"
@@ -218,6 +213,140 @@ def test_auxiliary_signals_are_cleaned_and_aligned_with_the_frames():
     )
 
 
+def test_the_pressures_of_each_breath_are_read_on_the_airway_pressure():
+    raw, _ = synthetic_raw()
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)  # 15 breaths/min
+    raw.aux_signals = {"airway_pressure": paw[: len(raw.frames)].astype(np.float32)}
+    recording = preprocess(raw)
+    breaths = recording.breaths
+    assert recording.pressure_channel == "airway_pressure"
+    np.testing.assert_allclose(breaths.peep, 10, atol=0.1)
+    np.testing.assert_allclose(breaths.driving_pressure.iloc[1:-1], 12, atol=0.2)
+    assert any("PEEP and plateau of each breath read on" in m for m in recording.log)
+
+
+def test_draeger_pressures_of_each_breath_are_in_cmh2o():
+    raw, _ = synthetic_raw(vendor="draeger")
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)  # in mbar, as recorded
+    raw.aux_signals = {"airway_pressure_pod": paw[: len(raw.frames)].astype(np.float32)}
+    breaths = preprocess(raw).breaths
+    np.testing.assert_allclose(breaths.peep, 10.2, atol=0.1)
+    np.testing.assert_allclose(breaths.driving_pressure.iloc[1:-1], 12.24, atol=0.2)
+
+
+def test_draeger_ventilator_pressures_without_a_waveform_are_in_cmh2o():
+    raw, _ = synthetic_raw(vendor="draeger")
+    n = len(raw.frames)
+    raw.aux_signals = {  # Medibus values, in mbar
+        "peep": np.full(n, 10, dtype=np.float32),
+        "plateau_pressure": np.full(n, 25, dtype=np.float32),
+    }
+    recording = preprocess(raw)
+    assert recording.pressure_channel == "peep"
+    np.testing.assert_allclose(recording.breaths.peep, 10 * CMH2O_PER_MBAR, rtol=1e-6)
+    np.testing.assert_allclose(
+        recording.breaths.driving_pressure, 15 * CMH2O_PER_MBAR, rtol=1e-6
+    )
+
+
+def test_the_pressurepod_comes_before_the_ventilator_pressure():
+    raw, _ = synthetic_raw()
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)
+    paw = paw[: len(raw.frames)].astype(np.float32)
+    raw.aux_signals = {"airway_pressure": paw + 5, "airway_pressure_pod": paw}
+    recording = preprocess(raw)
+    assert recording.pressure_channel == "airway_pressure_pod"
+    np.testing.assert_allclose(recording.breaths.peep, 10, atol=0.1)
+    # A PressurePod without data is dropped: the ventilator pressure is used.
+    raw.aux_signals = {
+        "airway_pressure": paw + 5,
+        "airway_pressure_pod": np.full_like(paw, np.nan),
+    }
+    assert preprocess(raw).pressure_channel == "airway_pressure"
+
+
+def test_without_pressure_the_pressures_of_the_breaths_are_missing():
+    recording = preprocess(synthetic_raw()[0])
+    assert recording.pressure_channel is None
+    assert recording.breaths[["peep", "plateau", "driving_pressure"]].isna().all().all()
+    assert not any(line.startswith("WARNING: No airway") for line in recording.log)
+
+
+def ventilator_curves(n_frames):
+    """Flow (L/s) and volume (L) of a breath of 450 mL every 4 s, as in synthetic_raw."""
+    flow, _, _, _ = vcv_flow([0.45] * 23, fs=FS, period=4.0)
+    flow = flow[:n_frames]
+    return flow.astype(np.float32), volume_curve(flow, FS).astype(np.float32)
+
+
+def middle(breaths):
+    return breaths.tidal_volume.iloc[1:-1]
+
+
+def test_tidal_volume_of_each_breath_from_the_timpel_volume_curve():
+    raw, _ = synthetic_raw()
+    flow, volume = ventilator_curves(len(raw.frames))
+    raw.aux_signals = {"flow": flow, "volume": volume}  # Timpel: L/s and L
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "volume"  # the volume curve first
+    np.testing.assert_allclose(middle(recording.breaths), 450, atol=2)
+
+
+def test_tidal_volume_of_each_breath_from_the_draeger_flow_curve():
+    raw, _ = synthetic_raw(vendor="draeger")
+    flow, _ = ventilator_curves(len(raw.frames))
+    raw.aux_signals = {"flow": flow * 60}  # Draeger Medibus: L/min
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "flow"
+    np.testing.assert_allclose(middle(recording.breaths), 450, atol=2)
+
+
+def test_tidal_volume_computed_by_the_ventilator_without_curves():
+    raw, _ = synthetic_raw(vendor="draeger")
+    raw.aux_signals = {"tidal_volume": np.full(len(raw.frames), 480, dtype=np.float32)}
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "tidal_volume"
+    np.testing.assert_allclose(recording.breaths.tidal_volume, 480)
+
+
+def test_the_inspiratory_values_of_the_ventilator_come_first():
+    raw, _ = synthetic_raw(vendor="draeger")
+    n = len(raw.frames)
+    raw.aux_signals = {
+        "tidal_volume": np.full(n, 430, dtype=np.float32),  # phase not known
+        "mandatory_inspiratory_tidal_volume": np.full(n, 450, dtype=np.float32),
+    }
+    recording = preprocess(raw)
+    assert recording.tidal_volume_channel == "mandatory_inspiratory_tidal_volume"
+    np.testing.assert_allclose(recording.breaths.tidal_volume, 450)
+
+
+def test_a_flow_negative_during_inspiration_gives_a_warning():
+    raw, _ = synthetic_raw()
+    flow, _ = ventilator_curves(len(raw.frames))
+    raw.aux_signals = {"flow": -flow}  # inspiration recorded as negative
+    recording = preprocess(raw)
+    assert any("flow does not rise" in line for line in recording.log)
+
+
+def test_a_typed_tidal_volume_in_litres_gives_a_warning():
+    recording = preprocess(
+        synthetic_raw()[0], context=RecordingContext(tidal_volume_ml=0.45)
+    )
+    assert any("is it in mL?" in line for line in recording.log)
+    recording = preprocess(
+        synthetic_raw()[0], context=RecordingContext(tidal_volume_ml=450)
+    )
+    assert not any("is it in mL?" in line for line in recording.log)
+
+
+def test_without_volume_or_flow_the_tidal_volume_is_missing():
+    recording = preprocess(synthetic_raw()[0])
+    assert recording.tidal_volume_channel is None
+    assert recording.breaths.tidal_volume.isna().all()
+    assert any("no tidal volume of the breaths" in line for line in recording.log)
+
+
 def test_vendors_other_than_draeger_get_a_warning():
     recording = preprocess(synthetic_raw(vendor="timpel")[0])
     assert any("verified on Draeger" in line for line in recording.log)
@@ -243,4 +372,8 @@ def test_real_recordings_give_the_breaths_of_the_evidence_notebook():
         if name.startswith("patient01"):  # PressurePod connected, no ventilator
             assert "esophageal_pressure_pod" in recording.aux, name
             assert "peep" not in recording.aux, name
+            assert recording.pressure_channel == "airway_pressure_pod", name
+            # 85-100 %: a single missing frame of the PressurePod loses the PEEP of
+            # the breath around it (up to 12 such frames per recording).
+            assert recording.breaths.peep.notna().mean() > 0.8, name
             assert recording.aux.min_max_flag.isin([-1, 0, 1]).all(), name

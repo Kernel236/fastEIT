@@ -1,42 +1,47 @@
 # fastEIT - Segmentation Layer (PEEP trials)
 
 The segmentation layer (layer 2b) takes a preprocessed recording (`EITRecording`) and
-splits it by protocol. For a PEEP trial it finds the PEEP steps, reads the airway
-pressures of each breath and chooses the breaths analysed in each step. It is still
-preparation of the data: the clinical indices (EELI, TIV, compliance, Costa) come in
-layer 3.
+splits it by protocol. For a PEEP trial it finds the PEEP steps from the PEEP of each
+breath, chooses the breaths analysed in each step and gives each step its driving
+pressure and tidal volume. It is still preparation of the data: the clinical indices
+(EELI, TIV, compliance, Costa) come in layer 3 ([`features.md`](features.md)).
 
-The evidence for the pressure readings and the step detection is in
+The PEEP, plateau and tidal volume of each breath are read in layer 2
+([`preprocessing.md`](preprocessing.md), section 3), in cmH2O and mL for every
+vendor. The evidence for the pressure readings and the step detection is in
 `notebooks/06_peep_trial_segmentation.ipynb` (four decremental PEEP trials from two
-patients). The 15 s left out after each change, the 10 (at least 5) breaths analysed and
-the 0.5 mbar tolerance are protocol choices.
+patients). The 15 s left out after each change, the 10 (at least 5) breaths analysed
+and the 0.5 cmH2O tolerance are protocol choices.
 
 1. [Entry point](#1-entry-point)
 2. [Steps](#2-steps)
-3. [Recordings with more than one protocol](#3-recordings-with-more-than-one-protocol)
-4. [Output](#4-output)
-5. [Limits](#5-limits)
+3. [Driving pressure and tidal volume of each step](#3-driving-pressure-and-tidal-volume-of-each-step)
+4. [Recordings with more than one protocol](#4-recordings-with-more-than-one-protocol)
+5. [Output](#5-output)
+6. [Limits](#6-limits)
 
 ---
 
 ## 1. Entry point
 
 ```python
-from fasteit.models import Segment
+from fasteit.models import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 from fasteit.segmentation import segment_peep_trial
 
-recording = preprocess(load_data("peep_trial.bin"))
+context = RecordingContext(protocol="peep_trial", tidal_volume_ml=450)  # Vt optional
+recording = preprocess(load_data("peep_trial.bin"), context=context)
 trial = segment_peep_trial(recording)
 
-trial.steps              # one row per PEEP step: level, breaths, breaths analysed
+trial.steps              # one row per PEEP step: level, breaths, driving pressure, Vt
 trial.analysed_breaths   # the breaths to analyse, with PEEP, plateau, driving pressure
 print("\n".join(trial.log))
 ```
 
-Without a pressure signal the steps are placed by hand, one segment per step with its
-PEEP level:
+Without a pressure signal (or to choose the breaths yourself) the steps are placed by
+hand: for each step, a segment around the breaths to analyse (e.g. the 10 stable breaths
+chosen on the figure), with the PEEP level of the step (cmH2O):
 
 ```python
 steps = [
@@ -46,23 +51,33 @@ steps = [
 trial = segment_peep_trial(recording, peep_steps=steps)
 ```
 
-Steps placed by hand replace the automatic ones; the breaths analysed are then the
-valid breaths inside each segment (a breath cut by the edge of a segment is left out).
-Without a pressure signal the plateau read on the ventilator can be typed with the step,
-`parameters={"peep": 16, "plateau": 28}`, or directly the driving pressure,
-`parameters={"peep": 16, "driving_pressure": 12}` (e.g. in pressure control, where it is
-set). When there is a
-pressure signal, a typed PEEP more than 1 mbar from the measured one gives a warning.
-Parameters are in `SegmentationConfig`.
+Steps placed by hand replace the automatic ones, and a segment is the selection of
+breaths to analyse: every valid breath entirely inside it is analysed, with no time left
+out after the change of PEEP and no limit of 10 (those rules apply only to the steps found
+from the pressure). A breath cut by the edge of the segment, or with a quality flag, is
+left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
+looked for only inside the segment: include its breath, or type the plateau or the
+driving pressure.
+Without a pressure signal the plateau read on the ventilator can be typed with the
+step, `parameters={"peep": 16, "plateau": 28}`, or directly the driving pressure,
+`parameters={"peep": 16, "driving_pressure": 12}` (e.g. in pressure control, where it
+is set), and so can the tidal volume, `parameters={"peep": 16, "tidal_volume": 450}`.
+When there is a pressure signal, a typed PEEP more than 1 cmH2O from the measured one
+gives a warning. Parameters are in `SegmentationConfig`.
 
 ## 2. Steps
 
 | # | Step | Module |
 |---|------|--------|
-| 1 | Airway pressure: the first available of PressurePod, Medibus or Timpel `airway_pressure`; without a waveform, the PEEP and plateau computed by the ventilator (Medibus) | `pipeline` |
-| 2 | Pressures of each breath, all from the same channel: start of inspiration on the pressure curve, PEEP = median pressure in the 0.2 s before it, plateau = median pressure at the end of an end-inspiratory hold of at least 0.5 s, driving pressure = plateau - PEEP | `breath_pressures` |
-| 3 | Steps: a new step when 3 breaths in a row are more than 1 mbar (half of the step of the protocol) from the current level and within 1 mbar of each other; level = median PEEP. Excluded breaths (maneuvers) do not count | `peep_steps` |
-| 4 | Breaths analysed: the first 15 s after each change are left out; then the last valid breaths whose PEEP is within 0.5 mbar of the step level, up to 10; fewer than 5 give a warning | `peep_steps` |
+| 1 | Breaths of the PEEP trial phase, with the PEEP and plateau of each breath read in layer 2 | `pipeline` |
+| 2 | Steps: a new step when 3 breaths in a row are more than 1 cmH2O (half of the step of the protocol) from the current level and within 1 cmH2O of each other; level = median PEEP. Excluded breaths (maneuvers) do not count | `peep_steps` |
+| 3 | Breaths analysed: the first 15 s after each change are left out; then the last valid breaths whose PEEP is within 0.5 cmH2O of the step level (a breath without a PEEP reading is not analysed), up to 10; fewer than 5 give a warning | `peep_steps` |
+| 4 | Step table: driving pressure and tidal volume of each step | `pipeline` |
+
+The event texts typed on the device are not used to cut the steps: in the trials of the
+notebook they were written from 2 s after to 14 s before the change of pressure.
+
+## 3. Driving pressure and tidal volume of each step
 
 The driving pressure of each step (the input of compliance in layer 3) works with the
 usual protocols:
@@ -74,10 +89,23 @@ usual protocols:
 | Pressure control | the flat inspiratory pressure is read as plateau (`"breaths"`), valid if the flow is zero at the end of inspiration |
 | No pressure signal | typed with the step placed by hand (`"typed"`) |
 
-The event texts typed on the device are not used to cut the steps: in the trials of the
-notebook they were written from 2 s after to 14 s before the change of pressure.
+The tidal volume of each step turns compliance into mL/cmH2O and EELI changes into
+mL. In order (`tidal_volume_source`):
 
-## 3. Recordings with more than one protocol
+| Source | How | `tidal_volume_source` |
+|--------|-----|-----------------------|
+| Typed for each step | in the segment of a step placed by hand, or `segment_peep_trial(recording, tidal_volumes=[450, 460, None, ...])`, one per step in time order (e.g. the mean of each step on the case report form) | `"typed"` |
+| Typed for the recording | `RecordingContext(tidal_volume_ml=450)`: the volume set in volume control, only when it is the same in every step (in pressure control it changes with PEEP: type it per step) | `"typed_recording"` |
+| Measured | median of the analysed breaths, from the volume or flow curve of the ventilator (layer 2) | `"breaths"` |
+
+Without any of them the tidal volume is missing and compliance stays in EIT units. A
+typed volume outside 100-1500 mL, or more than 15 % from the one measured on the
+analysed breaths of the step, gives a warning: a typing
+error, or one volume typed for a trial in pressure control. How the tidal volume is
+used in layer 3, and the assumptions of each use (compliance of the respiratory
+system, volume of a region, change of EELI in mL), are in [`features.md`](features.md).
+
+## 4. Recordings with more than one protocol
 
 A recording can contain, for example, a tidal baseline and then a PEEP trial. Each part
 is a **phase** with its own protocol, and the segmentation is limited to the PEEP trial
@@ -93,41 +121,30 @@ analysed. A part with no planned analysis (for example an airway opening pressur
 maneuver) is simply an exclusion of `preprocess()`: its breaths are never analysed and do
 not count when the steps are found. Without a phase the whole recording is segmented.
 
-## 4. Output
+## 5. Output
 
 `PeepTrial` fields:
 
 | Field | Content |
 |-------|---------|
 | `recording`, `config` | the preprocessed recording and the parameters used |
-| `pressure_channel`, `pressure_unit` | column of `recording.aux` the pressures were read from (None if none), and its unit |
 | `source` | `"pressure"` or `"manual"` |
-| `steps` | `step`, `peep` (level), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure` |
-| `breaths` | the breath table of the recording plus `peep`, `plateau`, `driving_pressure`, `peep_step`, `analysed` |
+| `steps` | `step`, `peep` (level), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume`, `tidal_volume_source` |
+| `breaths` | the breath table of the recording (with `peep`, `plateau`, `driving_pressure`, `tidal_volume`) plus `peep_step`, `analysed` |
 | `log` | what the segmentation did, with warnings |
 
-Pressures are in the units of the recording: mbar for Dräger (1 mbar = 1.02 cmH2O),
-cmH2O for Timpel.
+Pressures are in cmH2O and volumes in mL for every vendor (`preprocess()` converts the
+Dräger mbar, 1 mbar = 1.02 cmH2O). The channels they come from are
+`recording.pressure_channel` and `recording.tidal_volume_channel`.
 
-## 5. Limits
+## 6. Limits
 
-- Tested on four decremental trials from two patients, in volume control with an
-  end-inspiratory pause, with the Dräger PressurePod; Timpel and Medibus pressures are
-  tested on synthetic data only. Medibus values are updated once per ventilator breath:
-  at a change of step they can lag by one breath.
-- The PEEP is the end-expiratory pressure at the airway opening: it does not include
-  intrinsic PEEP, so it is a lower bound of the total PEEP (in one trial it read 0.2-0.5
-  mbar above the set value, 1 mbar at PEEP 0, at 19 breaths/min).
-- The plateau needs at least 0.5 s of hold (volume control) or of flat inspiratory
-  pressure (pressure control, valid only if the flow is zero at the end of
-  inspiration); otherwise it is missing, and the peak pressure is never used instead.
-  Inspiratory holds and pressure control are tested on synthetic data only. The plateau and its detection were not validated against the
-  ventilator plateau or a manual hold.
-- The driving pressure is that of the respiratory system: the oesophageal and
-  transpulmonary pressures of the PressurePod are not used. Compliance from the airway
-  pressure is valid only in passive patients, and without a tidal volume it is in EIT
-  units per mbar.
-- Short steps at a low rate leave few breaths after the first 15 s (4-9 in the trials at
-  11-13 breaths/min with 40 s steps): the warning reports it.
+- Tested on four decremental trials from two patients (volume control with an
+  end-inspiratory pause, Dräger PressurePod); Timpel and Medibus pressures, holds, pressure
+  control and the measured tidal volume on synthetic data only. Limits of the pressures and
+  tidal volume of each breath: [`preprocessing.md`](preprocessing.md), section 6.
+- Thresholds chosen in mbar (notebook 06), applied in cmH2O (2 % apart).
+- Short steps at a low rate leave few breaths after the first 15 s (4-9 at 11-13
+  breaths/min with 40 s steps): a warning reports it.
 
 *Research use only - not a medical device.*

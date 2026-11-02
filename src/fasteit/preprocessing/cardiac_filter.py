@@ -20,6 +20,26 @@ from scipy import ndimage, signal
 
 SECONDS_PER_MINUTE = 60.0
 
+# Details of the methods, not meant to be tuned.
+# Respiratory rate: range searched in the spectrum (adult limits) and Welch window, as
+# eitprocessing ``RateDetection`` (v1.8.8; Somhorst et al., JOSS 2026,
+# DOI: 10.21105/joss.08179); not valid for neonates or high-frequency oscillation.
+RESPIRATORY_RATE_MIN_BPM = 6.0
+RESPIRATORY_RATE_MAX_BPM = 60.0
+SPECTRUM_WINDOW_SECONDS = 30.0
+# MDN: half width of each band-stop around a cardiac harmonic, highest frequency
+# filtered, Butterworth order (eitprocessing ``MDNFilter`` defaults; Wisse et al.,
+# Physiol Meas 2024, DOI: 10.1088/1361-6579/ad46e3).
+MDN_NOTCH_HALF_WIDTH_BPM = 10.0
+MDN_UPPER_LIMIT_BPM = 220.0
+MDN_ORDER = 10
+# A heart rate entered outside 40-200/min (adult range of ``RateDetection``), or closer
+# than 12/min to 1, 2 or 3 times the respiratory rate (notch half width + 2/min), gives
+# a warning (notebooks/05_preprocessing_choices.ipynb, section 5b).
+HEART_RATE_WARNING_LOW_BPM = 40.0
+HEART_RATE_WARNING_HIGH_BPM = 200.0
+HEART_RATE_WARNING_MARGIN_BPM = 12.0
+
 
 def _check_sampling_frequency(fs: float) -> None:
     if not fs > 0:

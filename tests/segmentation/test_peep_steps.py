@@ -6,6 +6,7 @@ import pytest
 from fasteit.config import SegmentationConfig
 from fasteit.models.eit_recording import Segment
 from fasteit.segmentation.peep_steps import (
+    STEP_MIN_BREATHS,
     analysed_breaths,
     find_steps,
     step_of_each_breath,
@@ -19,8 +20,8 @@ def steps(peep):
     return find_steps(
         np.asarray(peep, dtype=float),
         CFG.step_threshold,
-        CFG.step_min_breaths,
-        CFG.step_agreement,
+        STEP_MIN_BREATHS,
+        CFG.step_threshold,
     )
 
 
@@ -87,11 +88,11 @@ def peep_step(start, end, peep):
 
 def test_steps_placed_by_hand_take_the_breaths_inside_them():
     starts = np.arange(0, 60, 4.0)
-    step, levels, plateaus = steps_from_segments(
+    step, levels, plateaus, volumes = steps_from_segments(
         starts, starts + 4, [peep_step(30, 50, 8), peep_step(4, 21, 10)]
     )
     assert levels.tolist() == [10.0, 8.0]  # numbered in time order
-    assert np.isnan(plateaus).all()  # no plateau typed
+    assert np.isnan(plateaus).all() and np.isnan(volumes).all()  # nothing typed
     assert np.flatnonzero(step == 0).tolist() == [1, 2, 3, 4]  # breaths 4-8 ... 16-20
     assert np.flatnonzero(step == 1).tolist() == [8, 9, 10, 11]
     assert (step[[0, 5, 6, 7, 12, 13, 14]] == -1).all()
@@ -101,10 +102,23 @@ def test_a_plateau_can_be_typed_with_the_step():
     segment = Segment(
         0, 20, category="peep_step", parameters={"peep": 10, "plateau": 24}
     )
-    _, _, plateaus = steps_from_segments(
+    _, _, plateaus, _ = steps_from_segments(
         np.arange(0, 20, 4.0), np.arange(4, 24, 4.0), [segment]
     )
     assert plateaus.tolist() == [24.0]
+
+
+def test_a_tidal_volume_can_be_typed_with_the_step():
+    segments = [
+        Segment(
+            0, 20, category="peep_step", parameters={"peep": 10, "tidal_volume": 450}
+        ),
+        Segment(20, 40, category="peep_step", parameters={"peep": 8}),
+    ]
+    _, _, _, volumes = steps_from_segments(
+        np.arange(0, 40, 4.0), np.arange(4, 44, 4.0), segments
+    )
+    assert volumes[0] == 450.0 and np.isnan(volumes[1])
 
 
 @pytest.mark.parametrize(

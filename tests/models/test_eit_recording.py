@@ -52,6 +52,13 @@ def test_recording_context_defaults():
     assert ctx.position is None
 
 
+def test_recording_context_tidal_volume_must_be_positive():
+    assert RecordingContext(tidal_volume_ml=450).tidal_volume_ml == 450
+    for wrong in (0, -450, float("inf"), float("nan")):
+        with pytest.raises(ValueError, match="positive"):
+            RecordingContext(tidal_volume_ml=wrong)
+
+
 def test_segments_are_hashable_and_parameters_not_shared():
     a, b = Segment(0.0, 1.0), Segment(2.0, 3.0)
     assert len({a, b, Segment(0.0, 1.0)}) == 2
@@ -81,6 +88,9 @@ def small_recording():
         roi_masks={"ventral": np.ones((2, 2), dtype=bool)},
         roi_signals=pd.DataFrame({"ventral": np.zeros(4)}),
         aux=pd.DataFrame({"airway_pressure": np.zeros(4)}),
+        aux_units={"airway_pressure": "cmH2O"},
+        pressure_channel="airway_pressure",
+        tidal_volume_channel=None,
         log=("done",),
     )
 

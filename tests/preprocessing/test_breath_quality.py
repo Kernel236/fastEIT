@@ -9,11 +9,20 @@ import pytest
 from fasteit.config import PreprocessingConfig
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing.breath_quality import (
+    LOCAL_MIN_BREATHS,
     breath_measures,
     quality_flags,
     ratio_to_local_median,
 )
-from fasteit.preprocessing.breaths import detect_breaths
+from fasteit.preprocessing.breaths import (
+    BASELINE_SECONDS,
+    INVALID_DATA_MULTIPLIER,
+    INVALID_DATA_PERCENTILE,
+    INVALID_MARGIN_SECONDS,
+    LOW_AMPLITUDE_FRACTION,
+    MIN_DURATION_SECONDS,
+    detect_breaths,
+)
 from fasteit.preprocessing.cardiac_filter import moving_average
 
 CFG = PreprocessingConfig()
@@ -74,7 +83,7 @@ def flags(signal, fs, breaths, near_invalid=None):
         ti_ratio_low=CFG.ti_ratio_low,
         ti_ratio_high=CFG.ti_ratio_high,
         window_breaths=CFG.local_window_breaths,
-        min_breaths=CFG.local_min_breaths,
+        min_breaths=LOCAL_MIN_BREATHS,
         amplitude_ratio_low=CFG.amplitude_ratio_low,
         amplitude_ratio_high=CFG.amplitude_ratio_high,
         duration_ratio_high=CFG.duration_ratio_high,
@@ -219,12 +228,12 @@ def test_flag_counts_match_the_evidence_notebook(name):
     breaths, near_invalid = detect_breaths(
         signal,
         data.fs,
-        invalid_percentile=CFG.invalid_data_percentile,
-        invalid_multiplier=CFG.invalid_data_multiplier,
-        baseline_seconds=CFG.breath_baseline_seconds,
-        min_duration_seconds=CFG.breath_min_duration_seconds,
-        low_amplitude_fraction=CFG.breath_low_amplitude_fraction,
-        invalid_margin_seconds=CFG.invalid_data_margin_seconds,
+        invalid_percentile=INVALID_DATA_PERCENTILE,
+        invalid_multiplier=INVALID_DATA_MULTIPLIER,
+        baseline_seconds=BASELINE_SECONDS,
+        min_duration_seconds=MIN_DURATION_SECONDS,
+        low_amplitude_fraction=LOW_AMPLITUDE_FRACTION,
+        invalid_margin_seconds=INVALID_MARGIN_SECONDS,
     )
     result = flags(signal, data.fs, breaths, near_invalid)
     counts = (

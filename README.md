@@ -60,7 +60,10 @@ print(data.pixels.shape)            # (9000, 32, 32)
 
 `preprocess()` turns a recording with pixels (Dräger `.bin`, Timpel) into an
 `EITRecording` ready for breath-by-breath analysis: cardiac filter, breaths with
-quality flags, exclusions, lung mask, regions of interest and regional signals.
+quality flags, exclusions, lung mask, regions of interest and regional signals, and
+the ventilator values of each breath (PEEP, plateau, driving pressure, tidal volume).
+Auxiliary signals get the same units for every vendor: pressures in cmH2O, flow in
+L/s, volumes in mL.
 
 ```python
 from fasteit.config import PreprocessingConfig
@@ -75,10 +78,11 @@ recording = preprocess(
     exclusions=[Segment(120, 180, label="cough")],  # optional: parts to exclude
     context=RecordingContext(patient_id="PZ01", position="supine"),
 )
-recording.breaths            # one row per breath: times, quality flags, is_valid
+recording.breaths            # one row per breath: times, quality flags, is_valid,
+                             # PEEP, plateau, driving pressure, tidal volume
 recording.lung_mask          # (32, 32) ventilated lung
 recording.roi_signals        # ventral/dorsal, layers, right/left, quadrants
-recording.aux                # pressures, flow, device markers ("no data" as NaN)
+recording.aux                # pressures, flow, volume, device markers ("no data" as NaN)
 print("\n".join(recording.log))  # what each step did, with warnings
 ```
 
@@ -90,24 +94,48 @@ against it; the evidence for every choice is in
 
 ## PEEP trial segmentation
 
-`segment_peep_trial()` splits a preprocessed PEEP trial into PEEP steps, from the airway
-pressure (PressurePod, Medibus, Timpel) or from steps placed by hand, and chooses the
-stable breaths to analyse in each step, with their PEEP, plateau and driving pressure.
+`segment_peep_trial()` splits a preprocessed PEEP trial into PEEP steps, from the PEEP
+of each breath (PressurePod, Medibus, Timpel) or from steps placed by hand, chooses the
+stable breaths to analyse in each step and gives each step its driving pressure and
+tidal volume (measured, or typed by hand).
 
 ```python
 from fasteit.segmentation import segment_peep_trial
 
 trial = segment_peep_trial(recording)
-trial.steps              # PEEP level and breaths analysed in each step
+trial.steps              # PEEP level, breaths analysed, driving pressure, tidal volume
 trial.analysed_breaths   # breaths to analyse, with PEEP, plateau, driving pressure
 ```
 
 See [`docs/segmentation.md`](docs/segmentation.md); evidence in
 `notebooks/06_peep_trial_segmentation.ipynb`.
 
+## Clinical indices
+
+`tidal_features()` and `peep_trial_features()` compute the clinical indices as tables ready
+for a database or R: EELI, TIV, share of ventilation by region, global inhomogeneity,
+centre of ventilation, durations, compliance (in EIT units and, with a tidal volume, in
+mL/cmH2O), and for a PEEP trial the indices of each step, Costa collapse and
+overdistension, the crossing PEEP, the changes between steps and the
+recruitment-to-inflation ratio (global and by region).
+
+```python
+from fasteit.features import peep_trial_features, tidal_features
+
+tidal = tidal_features(recording)
+tidal.breaths, tidal.regions, tidal.summary   # per breath, per breath and region, summary
+
+features = peep_trial_features(trial)
+features.steps, features.step_regions, features.summary
+```
+
+See [`docs/features.md`](docs/features.md); evidence in
+`notebooks/07_clinical_indices.ipynb`.
+
 ## Project status
 
-Pre-alpha. Data model, parsing, preprocessing and PEEP trial segmentation implemented.
+Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation and clinical indices
+implemented.
 
 **Data model** (`models/`):
 
@@ -116,8 +144,9 @@ Pre-alpha. Data model, parsing, preprocessing and PEEP trial segmentation implem
 | `ReconstructedFrameData` | 32×32 pixel matrices + synchronized signals | Dräger `.bin`, Timpel `.csv`/`.txt`/`.asc` |
 | `ContinuousSignalData` | Signal table, one row per frame | `.asc` |
 | `RawImpedanceData` | Calibrated transimpedances + aux signals for pyEIT | `.eit` |
-| `EITRecording` | Preprocessed recording: breaths, lung mask, regions, log | `preprocess()` |
-| `PeepTrial` | PEEP steps, breath pressures and breaths analysed | `segment_peep_trial()` |
+| `EITRecording` | Preprocessed recording: breaths with their ventilator values, lung mask, regions, log | `preprocess()` |
+| `PeepTrial` | PEEP steps, breaths analysed, driving pressure and tidal volume of each step | `segment_peep_trial()` |
+| `TidalFeatures`, `PeepTrialFeatures` | Clinical indices per breath, region and step, and a summary | `tidal_features()`, `peep_trial_features()` |
 
 **Parsers** (`parsers/`):
 
@@ -147,11 +176,12 @@ images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
 
 ## Documentation
 
-- [`docs/data_model.md`](docs/data_model.md) - data container field specifications
+- [`docs/data_model.md`](docs/data_model.md) - data containers of every layer, and where each value is stored
 - [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
 - [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
-- [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, outputs, logs and limits
-- [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, phases
+- [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, ventilator values of each breath, units, outputs, logs and limits
+- [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, driving pressure and tidal volume, phases
+- [`docs/features.md`](docs/features.md) - clinical indices: definitions, tables and limits
 
 ## Contributing
 
