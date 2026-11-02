@@ -360,18 +360,17 @@ def test_the_tidal_volume_of_the_breaths_when_none_is_typed():
             [450],
             "one place",
         ),
+        (
+            [Segment(20, 56, category="peep_step",
+                     parameters={"peep": 12, "tidal_volume": -450})],
+            None,
+            "positive",
+        ),
     ],
 )  # fmt: skip
 def test_unusable_typed_tidal_volumes_are_rejected(recording, steps, volumes, message):
     with pytest.raises(ValueError, match=message):
         segment_peep_trial(recording, peep_steps=steps, tidal_volumes=volumes)
-
-
-def test_a_negative_tidal_volume_typed_in_a_segment_is_rejected(recording):
-    steps = [Segment(20, 56, category="peep_step",
-                     parameters={"peep": 12, "tidal_volume": -450})]  # fmt: skip
-    with pytest.raises(ValueError, match="positive"):
-        segment_peep_trial(recording, peep_steps=steps)
 
 
 def test_a_tidal_volume_of_none_in_a_segment_is_not_typed(recording):

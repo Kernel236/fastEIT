@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 from scipy import signal as scipy_signal
 
-from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.cardiac_filter import (
     HEART_RATE_WARNING_HIGH_BPM,
     HEART_RATE_WARNING_LOW_BPM,
@@ -26,8 +25,6 @@ from fasteit.preprocessing.cardiac_filter import (
     moving_average_window,
     respiratory_rate,
 )
-
-CFG = PreprocessingConfig()
 
 
 def sine(frequency_hz, fs, seconds=60.0, amplitude=1.0):
@@ -62,20 +59,6 @@ def power_near(x, fs, f0, half_width=0.05):
     return power[np.abs(frequencies - f0) < half_width].sum()
 
 
-# ── config defaults ────────────────────────────────────────────────────────────
-
-
-def test_config_defaults():
-    assert CFG.moving_average_seconds == 0.1
-    assert CFG.heart_rate_bpm is None
-    assert (RESPIRATORY_RATE_MIN_BPM, RESPIRATORY_RATE_MAX_BPM) == (6.0, 60.0)
-
-
-def test_config_rejects_a_non_positive_heart_rate():
-    with pytest.raises(ValueError, match="positive"):
-        PreprocessingConfig(heart_rate_bpm=0)
-
-
 # ── moving average ─────────────────────────────────────────────────────────────
 
 
@@ -92,7 +75,7 @@ def test_window_rejects_non_positive_fs():
 
 def test_moving_average_exact_values_inside_the_signal():
     x = np.arange(20, dtype=float) ** 2
-    smoothed = moving_average(x, fs=50, seconds=CFG.moving_average_seconds)
+    smoothed = moving_average(x, fs=50, seconds=0.1)
     expected = np.convolve(x, np.ones(5) / 5, mode="valid")
     np.testing.assert_allclose(smoothed[2:-2], expected)
 
@@ -104,13 +87,13 @@ def test_moving_average_keeps_a_constant_signal_unchanged_at_the_edges():
 
 def test_breathing_passes_almost_untouched():
     breathing = sine(0.5, fs=50)  # 30 breaths/min
-    smoothed = moving_average(breathing, fs=50, seconds=CFG.moving_average_seconds)
+    smoothed = moving_average(breathing, fs=50, seconds=0.1)
     assert np.ptp(smoothed) / np.ptp(breathing) > 0.99
 
 
 def test_fast_noise_is_removed():
     noise = sine(10.0, fs=50)  # 5-sample window: 10 Hz is cancelled
-    smoothed = moving_average(noise, fs=50, seconds=CFG.moving_average_seconds)
+    smoothed = moving_average(noise, fs=50, seconds=0.1)
     assert np.ptp(smoothed[10:-10]) < 0.05
 
 

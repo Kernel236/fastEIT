@@ -37,6 +37,7 @@ def test_preprocessing_config_is_frozen():
 
 def test_preprocessing_config_rejects_impossible_values():
     for wrong in [
+        {"heart_rate_bpm": 0},
         {"lung_mask_threshold_fraction": 1.5},
         {"exclusion_margin_seconds": -1},
         {"ti_ratio_low": 0.7},

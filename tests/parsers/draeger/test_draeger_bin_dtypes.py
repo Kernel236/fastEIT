@@ -1,6 +1,7 @@
-"""Tests for FRAME_BASE_DTYPE and FRAME_EXT_DTYPE (Task 1.2.1)."""
+"""Layout of the Draeger .bin frames and of the Medibus fields."""
 
 import numpy as np
+import pytest
 
 from fasteit.parsers.draeger.bin.draeger_dtypes import (
     FRAME_BASE_DTYPE,
@@ -11,147 +12,64 @@ from fasteit.parsers.draeger.bin.draeger_dtypes import (
     MEDIBUS_EXT_INDEX,
 )
 
-# ── itemsize ──────────────────────────────────────────────────────────────────
+# Fields shared by both frame formats: (name, numpy type, shape).
+FRAME_FIELDS = [
+    ("ts", "<f8", ()),  # time as a fraction of the day
+    ("dummy", "<f4", ()),
+    ("pixels", "<f4", (32, 32)),
+    ("min_max_flag", "<i4", ()),
+    ("event_marker", "<i4", ()),
+    ("event_text", "S30", ()),
+    ("timing_error", "<i4", ()),
+]
 
 
-def test_frame_base_itemsize():
-    assert FRAME_BASE_DTYPE.itemsize == 4358
+@pytest.mark.parametrize(
+    "dtype, frame_bytes, n_medibus",
+    [(FRAME_BASE_DTYPE, 4358, 52), (FRAME_EXT_DTYPE, 4382, 58)],
+)
+def test_frame_layout(dtype, frame_bytes, n_medibus):
+    assert dtype.itemsize == frame_bytes
+    for name, numpy_type, shape in FRAME_FIELDS:
+        assert dtype[name].base == np.dtype(numpy_type), name
+        assert dtype[name].shape == shape, name
+    assert dtype["medibus_data"].base == np.dtype("<f4")
+    assert dtype["medibus_data"].shape == (n_medibus,)
+    # A zero-filled buffer of one frame parses as one frame.
+    frame = np.frombuffer(bytes(frame_bytes), dtype=dtype)
+    assert frame.shape == (1,) and frame["medibus_data"].shape == (1, n_medibus)
 
 
-def test_frame_ext_itemsize():
-    assert FRAME_EXT_DTYPE.itemsize == 4382
-
-
-# ── field types and shapes ────────────────────────────────────────────────────
-
-
-def test_ts_is_float64():
-    assert FRAME_BASE_DTYPE["ts"].itemsize == 8
-    assert FRAME_BASE_DTYPE["ts"].base == np.dtype("<f8")
-
-
-def test_pixels_shape():
-    assert FRAME_BASE_DTYPE["pixels"].shape == (32, 32)
-    assert FRAME_EXT_DTYPE["pixels"].shape == (32, 32)
-
-
-def test_pixels_dtype():
-    assert FRAME_BASE_DTYPE["pixels"].base == np.dtype("<f4")
-
-
-def test_min_max_flag_is_int32():
-    assert FRAME_BASE_DTYPE["min_max_flag"].base == np.dtype("<i4")
-
-
-def test_event_marker_is_int32():
-    assert FRAME_BASE_DTYPE["event_marker"].base == np.dtype("<i4")
-
-
-def test_event_text_length():
-    assert FRAME_BASE_DTYPE["event_text"].itemsize == 30
-
-
-def test_medibus_base_shape():
-    assert FRAME_BASE_DTYPE["medibus_data"].shape == (52,)
-
-
-def test_medibus_ext_shape():
-    assert FRAME_EXT_DTYPE["medibus_data"].shape == (58,)
-
-
-def test_medibus_dtype():
-    assert FRAME_BASE_DTYPE["medibus_data"].base == np.dtype("<f4")
-
-
-# ── Medibus field lists ───────────────────────────────────────────────────────
-
-
-def test_medibus_fields_count():
-    assert len(MEDIBUS_BASE_FIELDS) == 52
-
-
-def test_medibus_ext_fields_count():
-    assert len(MEDIBUS_EXT_FIELDS) == 58
-
-
-def test_medibus_fields_structure():
+def test_medibus_fields():
+    assert (len(MEDIBUS_BASE_FIELDS), len(MEDIBUS_EXT_FIELDS)) == (52, 58)
     for name, unit, is_continuous in MEDIBUS_BASE_FIELDS:
         assert isinstance(name, str) and name
-        assert isinstance(unit, str)
-        assert isinstance(is_continuous, bool)
+        assert isinstance(unit, str) and isinstance(is_continuous, bool)
+    # The first 6 fields are waveforms, the next 46 values computed once per breath.
+    continuous = [is_continuous for _, _, is_continuous in MEDIBUS_BASE_FIELDS]
+    assert continuous == [True] * 6 + [False] * 46
 
 
-def test_medibus_index_lookup():
-    assert MEDIBUS_BASE_INDEX["airway_pressure"] == 0
-    assert MEDIBUS_BASE_INDEX["flow"] == 1
-    assert MEDIBUS_BASE_INDEX["volume"] == 2
-    assert MEDIBUS_BASE_INDEX["peep"] == 14
-    assert (
-        MEDIBUS_BASE_INDEX["time_at_low_pressure"] == 51
-    )  # Tlow - last field in BASE format
-    assert (
-        MEDIBUS_EXT_INDEX["high_pressure"] == 51
-    )  # PHigh BiLevel - first EXT-specific field
-    assert MEDIBUS_EXT_INDEX["low_pressure"] == 52  # Plow BiLevel
-    assert MEDIBUS_EXT_INDEX["time_at_low_pressure"] == 53  # Tlow shifts 51→53 in EXT
+@pytest.mark.parametrize(
+    "index, name, position",
+    [
+        (MEDIBUS_BASE_INDEX, "airway_pressure", 0),
+        (MEDIBUS_BASE_INDEX, "flow", 1),
+        (MEDIBUS_BASE_INDEX, "volume", 2),
+        (MEDIBUS_BASE_INDEX, "peep", 14),
+        (MEDIBUS_BASE_INDEX, "time_at_low_pressure", 51),  # last field of the base
+        (MEDIBUS_EXT_INDEX, "airway_pressure", 0),
+        (MEDIBUS_EXT_INDEX, "peep", 14),
+        (MEDIBUS_EXT_INDEX, "high_pressure", 51),  # first field of the extended format
+        (MEDIBUS_EXT_INDEX, "low_pressure", 52),
+        (MEDIBUS_EXT_INDEX, "time_at_low_pressure", 53),  # shifted from 51
+    ],
+)
+def test_medibus_index(index, name, position):
+    assert index[name] == position
 
 
-def test_medibus_ext_index_includes_base():
-    assert MEDIBUS_EXT_INDEX["airway_pressure"] == 0
-    assert MEDIBUS_EXT_INDEX["peep"] == 14
-
-
-def test_medibus_ext_pod_fields_present():
-    assert "airway_pressure_pod" in MEDIBUS_EXT_INDEX
-    assert "esophageal_pressure_pod" in MEDIBUS_EXT_INDEX
-    assert "transpulmonary_pressure_pod" in MEDIBUS_EXT_INDEX
-    assert "gastric_pressure_pod" in MEDIBUS_EXT_INDEX
-
-
-def test_continuous_fields_at_start():
-    """First 6 Medibus fields must be continuous waveforms."""
-    for i in range(6):
-        name, unit, is_continuous = MEDIBUS_BASE_FIELDS[i]
-        assert is_continuous, f"Field {i} ({name}) expected continuous=True"
-
-
-def test_non_continuous_fields_after_index_5():
-    """Fields 6-51 must all be non-continuous (breath-averaged)."""
-    for i in range(6, 52):
-        name, unit, is_continuous = MEDIBUS_BASE_FIELDS[i]
-        assert not is_continuous, f"Field {i} ({name}) expected continuous=False"
-
-
-# ── round-trip with frombuffer ─────────────────────────────────────────────────
-
-
-def test_frombuffer_base_dtype():
-    """A zero-filled buffer of 4358 bytes must parse as one base frame."""
-    buf = bytes(4358)
-    arr = np.frombuffer(buf, dtype=FRAME_BASE_DTYPE)
-    assert arr.shape == (1,)
-    assert arr["pixels"].shape == (1, 32, 32)
-    assert arr["medibus_data"].shape == (1, 52)
-
-
-def test_frombuffer_ext_dtype():
-    """A zero-filled buffer of 4382 bytes must parse as one extended frame."""
-    buf = bytes(4382)
-    arr = np.frombuffer(buf, dtype=FRAME_EXT_DTYPE)
-    assert arr.shape == (1,)
-    assert arr["medibus_data"].shape == (1, 58)
-
-
-def test_frame_base_dtype_consistent_with_ext():
-    """Base and extended dtypes share the same first 7 fields."""
-    shared = [
-        "ts",
-        "dummy",
-        "pixels",
-        "min_max_flag",
-        "event_marker",
-        "event_text",
-        "timing_error",
-    ]
-    for field in shared:
-        assert FRAME_BASE_DTYPE[field] == FRAME_EXT_DTYPE[field]
+def test_the_extended_format_has_the_pressurepod_channels():
+    for name in ["airway_pressure_pod", "esophageal_pressure_pod",
+                 "transpulmonary_pressure_pod", "gastric_pressure_pod"]:  # fmt: skip
+        assert name in MEDIBUS_EXT_INDEX

@@ -75,18 +75,6 @@ def test_breaths_mask_and_regions_of_a_regular_recording():
     assert recording.rates["heart_rate_hz"] is None
 
 
-def test_without_heart_rate_the_log_says_the_heart_is_not_removed():
-    recording = preprocess(synthetic_raw()[0])
-    assert any("cardiac component NOT removed" in line for line in recording.log)
-
-
-def test_with_heart_rate_the_mdn_filter_is_used():
-    config = PreprocessingConfig(heart_rate_bpm=80)
-    recording = preprocess(synthetic_raw()[0], config)
-    assert any("MDN cardiac filter" in line for line in recording.log)
-    assert recording.rates["heart_rate_hz"] == pytest.approx(80 / 60)
-
-
 def test_an_implausible_heart_rate_is_used_with_a_warning():
     recording = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=250))
     assert any(line.startswith("WARNING: Heart rate 250") for line in recording.log)
@@ -136,9 +124,13 @@ def test_data_without_frames_is_an_error():
 
 
 def test_the_cardiac_filter_applied_is_recorded():
-    assert preprocess(synthetic_raw()[0]).cardiac_filter == "moving_average"
-    config = PreprocessingConfig(heart_rate_bpm=80)
-    assert preprocess(synthetic_raw()[0], config).cardiac_filter == "mdn"
+    without = preprocess(synthetic_raw()[0])
+    assert without.cardiac_filter == "moving_average"
+    assert any("cardiac component NOT removed" in line for line in without.log)
+    with_heart = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=80))
+    assert with_heart.cardiac_filter == "mdn"
+    assert any("MDN cardiac filter" in line for line in with_heart.log)
+    assert with_heart.rates["heart_rate_hz"] == pytest.approx(80 / 60)
     # A heart rate below the respiratory rate cannot be filtered: fallback, logged.
     slow_heart = preprocess(synthetic_raw()[0], PreprocessingConfig(heart_rate_bpm=10))
     assert slow_heart.cardiac_filter == "moving_average"
