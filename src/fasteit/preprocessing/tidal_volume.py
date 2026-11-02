@@ -35,7 +35,9 @@ def inspiration_windows(
     inspirations before and after it, also after a long inspiratory hold.
 
     Args:
-        starts, peaks, ends: Frames of start, peak and end of each breath.
+        starts:   Frame of the start of each breath.
+        peaks:    Frame of the peak of each breath.
+        ends:     Frame of the end of each breath.
         n_frames: Number of frames of the recording.
 
     Returns:
@@ -67,8 +69,9 @@ def volumes_from_volume_curve(
     added: the lowest value is then the end of that expiration.
 
     Args:
-        volume: Volume curve in mL, one value per frame.
-        first, after_last: Window of each breath (``inspiration_windows``).
+        volume:     Volume curve in mL, one value per frame.
+        first:      First frame of the window of each breath (``inspiration_windows``).
+        after_last: Frame after the last of each window.
 
     Returns:
         One volume per breath; NaN if the volume is missing in the window.
@@ -95,9 +98,10 @@ def volumes_from_flow_curve(
     duration of the inspiration (e.g. 0.01 L/s over 1 s = 10 mL).
 
     Args:
-        flow:  Flow curve in L/s, one value per frame, inspiration positive.
-        fs:    Sampling frequency in Hz.
-        first, after_last: Window of each breath (``inspiration_windows``).
+        flow:       Flow curve in L/s, one value per frame, inspiration positive.
+        fs:         Sampling frequency in Hz.
+        first:      First frame of the window of each breath (``inspiration_windows``).
+        after_last: Frame after the last of each window.
 
     Returns:
         One volume per breath; NaN if the flow is missing in the window, 0 if it is

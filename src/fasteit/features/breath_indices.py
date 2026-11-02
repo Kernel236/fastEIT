@@ -19,7 +19,8 @@ def tidal_images(
 
     Args:
         pixels:    (N, rows, cols) images after the cardiac step.
-        starts, peaks: Frame of start and peak of each breath.
+        starts:    Frame of the start of each breath.
+        peaks:     Frame of the peak of each breath.
         lung_mask: (rows, cols) bool, the ventilated lung.
 
     Returns:

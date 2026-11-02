@@ -101,7 +101,8 @@ def steps_from_segments(
     of the step (e.g. its mean on the case report form).
 
     Args:
-        breath_starts, breath_ends: Start and end time of each breath, in seconds.
+        breath_starts: Start time of each breath, in seconds.
+        breath_ends:   End time of each breath, in seconds.
         segments: Segments with ``category="peep_step"``, the PEEP level in
             ``parameters["peep"]`` (cmH2O) and optionally ``parameters["plateau"]`` or
             ``parameters["driving_pressure"]`` (the plateau wins if both are given) and
