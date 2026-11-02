@@ -205,6 +205,7 @@ and one for `dev`. The same guides in the repository:
 - [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, driving pressure and tidal volume, phases
 - [`docs/features.md`](docs/features.md) - clinical indices: definitions, tables and limits
 - [`docs/export.md`](docs/export.md) - export: keys, tables, column names, CSV files for R and SPSS
+- [`docs/review.md`](docs/review.md) - review figures: segments before preprocessing, breaths used after
 
 ## Contributing
 

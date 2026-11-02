@@ -44,6 +44,7 @@ nav:
       - PEEP trial segmentation (layer 2b): segmentation.md
       - Clinical indices (layer 3): features.md
       - Export (layer 4): export.md
+      - Review figures: review.md
   - API reference:
       - api/index.md
       - Parsers: api/parsers.md
@@ -52,6 +53,7 @@ nav:
       - Segmentation: api/segmentation.md
       - Clinical indices: api/features.md
       - Export: api/export.md
+      - Review figures: api/plotting.md
       - Configuration: api/config.md
   - Development:
       - Parsing layer architecture: parsing_layer.md

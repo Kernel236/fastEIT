@@ -70,6 +70,16 @@ write_csv(tables, "results/")   # recordings.csv, breaths.csv, steps.csv, settin
 Every row starts with `patient_id`, `label` (the recording) and `phase`; see
 [export](export.md).
 
+## Look at the breaths used
+
+```python
+from fasteit.plotting import plot_breaths
+
+plot_breaths(trial)   # breaths used, flagged, excluded; steps; lung mask
+```
+
+See [review figures](review.md).
+
 ## Where the values are
 
 Each value is stored once, in the table of the layer that produces it, and the tables are
