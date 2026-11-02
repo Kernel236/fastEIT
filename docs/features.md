@@ -46,8 +46,9 @@ each step, breaths analysed), `features.trial.breaths` (step of each breath),
 `features.trial.recording.breaths` (times, quality flags, PEEP, plateau, driving
 pressure, measured tidal volume). Each value is stored once: the tables of layer 3 have
 the keys (`breath_id`, `step`, `peep`, `region`) and what layer 3 computes, and are
-joined on the keys with the tables before them. The flat export with everything in one
-table per breath and per step belongs to the next layer (database and export).
+joined on the keys with the tables before them. The flat tables with everything in one
+row per breath and per step, for R, SPSS and databases, are made by layer 4
+([`export.md`](export.md)).
 
 ## 2. Indices of a breath
 

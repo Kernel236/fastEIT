@@ -43,6 +43,7 @@ nav:
       - Preprocessing (layer 2): preprocessing.md
       - PEEP trial segmentation (layer 2b): segmentation.md
       - Clinical indices (layer 3): features.md
+      - Export (layer 4): export.md
   - API reference:
       - api/index.md
       - Parsers: api/parsers.md
@@ -50,6 +51,7 @@ nav:
       - Preprocessing: api/preprocessing.md
       - Segmentation: api/segmentation.md
       - Clinical indices: api/features.md
+      - Export: api/export.md
       - Configuration: api/config.md
   - Development:
       - Parsing layer architecture: parsing_layer.md

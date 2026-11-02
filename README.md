@@ -133,10 +133,27 @@ features.steps, features.step_regions, features.summary
 See [`docs/features.md`](docs/features.md); evidence in
 `notebooks/07_clinical_indices.ipynb`.
 
+## Export
+
+`recording_tables()` turns the indices of one analysis (one phase of a recording) into
+flat tables, one row per recording, breath and PEEP step, each row keyed by
+`patient_id`, `label` (the recording, e.g. a time point) and `phase`;
+`combine_tables()` puts a whole study together and `write_csv()` writes files that R,
+SPSS and Excel read without options.
+
+```python
+from fasteit.export import combine_tables, recording_tables, write_csv
+
+tables = combine_tables([recording_tables(tidal), recording_tables(features)])
+write_csv(tables, "results/")   # recordings, breaths, steps, settings, log
+```
+
+See [`docs/export.md`](docs/export.md).
+
 ## Project status
 
-Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation and clinical indices
-implemented.
+Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation, clinical indices
+and export implemented.
 
 **Data model** (`models/`):
 
@@ -187,6 +204,7 @@ and one for `dev`. The same guides in the repository:
 - [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, ventilator values of each breath, units, outputs, logs and limits
 - [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, driving pressure and tidal volume, phases
 - [`docs/features.md`](docs/features.md) - clinical indices: definitions, tables and limits
+- [`docs/export.md`](docs/export.md) - export: keys, tables, column names, CSV files for R and SPSS
 
 ## Contributing
 

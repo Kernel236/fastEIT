@@ -19,6 +19,7 @@ file .bin / .eit / .asc / Timpel
           ├─ tidal_features() ───────► TidalFeatures       layer 3: indices
           └─ segment_peep_trial() ───► PeepTrial           layer 2b: PEEP steps
                └─ peep_trial_features() ► PeepTrialFeatures  layer 3: indices
+                    └─ recording_tables() ► tables, CSV        layer 4: export
 ```
 
 | Layer | What it does | Guide |
@@ -27,6 +28,7 @@ file .bin / .eit / .asc / Timpel
 | 2. Preprocessing | cardiac filter, breaths with quality flags, exclusions, lung mask, regions; auxiliary signals in cmH2O, L/s, mL; PEEP, plateau, driving pressure and tidal volume of each breath | [Preprocessing](preprocessing.md) |
 | 2b. Segmentation | PEEP steps from the pressure or placed by hand, breaths analysed, driving pressure and tidal volume of each step | [Segmentation](segmentation.md) |
 | 3. Clinical indices | EELI, TIV, share by region, GI, centre of ventilation, compliance, Costa collapse and overdistension, changes between steps, recruitment-to-inflation ratio | [Clinical indices](features.md) |
+| 4. Export | one row per recording, breath and PEEP step, keyed by patient, recording and phase; a whole study at once; CSV for R, SPSS and Excel | [Export](export.md) |
 
 Every method states its source (paper and DOI, or the evidence notebook) and the
 reimplemented steps are checked against [eitprocessing](https://github.com/EIT-ALIVE/eitprocessing).
