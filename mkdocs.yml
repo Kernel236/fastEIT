@@ -1,0 +1,115 @@
+site_name: fastEIT
+site_description: Parsing, preprocessing and clinical indices of electrical impedance tomography recordings
+site_url: https://kernel236.github.io/fastEIT/
+repo_url: https://github.com/Kernel236/fastEIT
+repo_name: Kernel236/fastEIT
+edit_uri: edit/dev/docs/
+copyright: Research use only - not a medical device
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+nav:
+  - Home: index.md
+  - Getting started: getting_started.md
+  - User guide:
+      - Data model: data_model.md
+      - Parsers: parsers.md
+      - Preprocessing (layer 2): preprocessing.md
+      - PEEP trial segmentation (layer 2b): segmentation.md
+      - Clinical indices (layer 3): features.md
+  - API reference:
+      - api/index.md
+      - Parsers: api/parsers.md
+      - Models: api/models.md
+      - Preprocessing: api/preprocessing.md
+      - Segmentation: api/segmentation.md
+      - Clinical indices: api/features.md
+      - Configuration: api/config.md
+  - Development:
+      - Parsing layer architecture: parsing_layer.md
+      - Contributing: contributing.md
+      - License: license.md
+
+# A broken link or anchor fails ``mkdocs build --strict``.
+validation:
+  links:
+    anchors: warn
+
+# Reverse engineering notebooks stay in the repository, not on the site.
+exclude_docs: |
+  reverse_eng/
+
+plugins:
+  - search
+  # Versions of the site (dev, 0.5, ...), deployed by .github/workflows/docs.yml.
+  - mike:
+      alias_type: symlink
+      canonical_version: latest
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+            - https://pandas.pydata.org/docs/objects.inv
+          options:
+            docstring_style: google
+            members_order: source
+            filters: ["!^_"]
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            heading_level: 2
+            separate_signature: true
+            show_signature_annotations: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+      # Anchors as on GitHub (accented letters kept), so links work in both places.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      default_lang: python
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+
+extra:
+  version:
+    provider: mike
+    default: latest
+    alias: true
