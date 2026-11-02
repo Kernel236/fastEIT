@@ -125,7 +125,8 @@ def test_the_recording_row_has_the_summary_in_wide_format(composite, tables):
 
 def test_a_level_met_twice_gets_a_second_column():
     up_and_down = [12] * 12 + [10] * 12 + [12] * 12 + [10] * 14
-    trial = segment_peep_trial(trial_recording(up_and_down))
+    levels = SegmentationConfig(peep_levels=(12, 10))
+    trial = segment_peep_trial(trial_recording(up_and_down), levels)
     row = recording_tables(peep_trial_features(trial))["recordings"]
     assert {"collapse__peep12", "collapse__peep12_2", "collapse__peep10_2"} <= set(
         row.columns

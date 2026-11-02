@@ -124,6 +124,6 @@ and Python. Files with the same name in the folder are replaced.
 - The images (pixels, lung mask, tidal maps) are not exported.
 - `file` is the name of the source file: if it holds names or dates, rename the files
   before sharing the tables.
-- `peep_set` needs the levels of the protocol (`SegmentationConfig.peep_levels`);
-  without them it is the nearest whole number of cmH2O
+- `peep_set`, and with it the columns by PEEP level, needs the levels of the protocol
+  (`SegmentationConfig.peep_levels`); without them it is empty
   ([`segmentation.md`](segmentation.md)).

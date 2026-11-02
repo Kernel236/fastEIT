@@ -277,7 +277,13 @@ def _steps_table(
     """One row per step, with its level of the protocol, plateau, driving pressure and
     tidal volume."""
     peep_set = protocol_levels(levels, config.peep_levels, config.step_threshold)
-    log.info(f"PEEP level of the protocol of each step: {peep_set.tolist()}.")
+    if config.peep_levels is None:
+        log.info(
+            "No PEEP levels of the protocol (SegmentationConfig.peep_levels): "
+            "peep_set is empty."
+        )
+    else:
+        log.info(f"PEEP level of the protocol of each step: {peep_set.tolist()}.")
     rows = []
     for k, level in enumerate(levels):
         in_step = breaths[breaths.peep_step == k]
@@ -293,7 +299,7 @@ def _steps_table(
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
             *driving, *volume,
         ])  # fmt: skip
-        if np.isnan(peep_set[k]):
+        if config.peep_levels is not None and np.isnan(peep_set[k]):
             log.warning(
                 f"Step {k} (PEEP {level:.1f}): no PEEP level of the protocol within "
                 f"{config.step_threshold:g} cmH2O."

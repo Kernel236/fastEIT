@@ -89,8 +89,17 @@ def test_a_step_far_from_the_protocol_has_no_level():
     assert levels[0] == 16 and np.isnan(levels[1])
 
 
-def test_without_the_protocol_the_level_is_the_nearest_whole_number():
-    np.testing.assert_array_equal(protocol_levels([16.3, 9.8], None, 1), [16, 10])
+def test_an_offset_common_to_every_step_is_removed_first():
+    # Patient B supine (notebook 06): +0.6 cmH2O in every step, 1.06 at PEEP 0.
+    measured = [16.62, 14.69, 12.75, 10.62, 8.67, 6.62, 4.57, 2.67, 1.06]
+    np.testing.assert_array_equal(
+        protocol_levels(measured, [16, 14, 12, 10, 8, 6, 4, 2, 0], tolerance=1),
+        [16, 14, 12, 10, 8, 6, 4, 2, 0],
+    )
+
+
+def test_without_the_protocol_there_is_no_level():
+    assert np.isnan(protocol_levels([16.3, 9.8], None, 1)).all()
 
 
 def test_step_of_each_breath():

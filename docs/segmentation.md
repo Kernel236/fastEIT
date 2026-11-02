@@ -77,9 +77,11 @@ gives a warning. Parameters are in `SegmentationConfig`.
 **Level of the protocol** (`peep_set`). The PEEP trial follows the protocol, the same for
 every patient, while the measured level is noisy and in cmH2O (10 mbar set on a Dräger
 ventilator is 10.2 cmH2O). Each step gets the nearest PEEP level of the protocol, given
-as `SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))`, or the nearest
-whole number without it. A step more than `step_threshold` (half of the step of the
-protocol) from every level gets none, with a warning. `peep_set` is the level to compare
+as `SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))`, after removing the
+offset common to all steps (in a trial of notebook 06 every step read 0.6 cmH2O above the
+set level, and 1.1 cmH2O at PEEP 0, nearer to 2 than to 0). A step more than
+`step_threshold` (half of the step of the protocol) from every level gets none, with a
+warning; without the levels of the protocol `peep_set` is empty. `peep_set` is the level to compare
 and average steps between patients; `peep` stays the measured one.
 
 The event texts typed on the device are not used to cut the steps: in the trials of the
