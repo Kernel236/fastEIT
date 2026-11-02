@@ -38,6 +38,7 @@ def test_steps_and_pressures_found_from_the_pressure(recording):
     assert trial.source == "pressure"
     assert trial.recording.pressure_channel == "airway_pressure_pod"
     np.testing.assert_allclose(trial.steps.peep, [12, 10, 8, 6], atol=0.1)
+    assert trial.steps.peep_set.tolist() == [12, 10, 8, 6]
     driving = trial.analysed_breaths.driving_pressure
     np.testing.assert_allclose(driving, 12, atol=0.2)
 
@@ -65,6 +66,14 @@ def test_breaths_analysed_follow_the_rule(recording):
         len(trial.analysed_breaths[trial.analysed_breaths.peep_step == k])
         for k in range(4)
     ]
+
+
+def test_a_step_outside_the_levels_of_the_protocol_gives_a_warning(recording):
+    config = SegmentationConfig(peep_levels=(12, 10, 8))
+    trial = segment_peep_trial(recording, config)
+    assert trial.steps.peep_set.tolist()[:3] == [12, 10, 8]
+    assert np.isnan(trial.steps.peep_set.iloc[3])
+    assert any("no PEEP level of the protocol" in m for m in trial.log)
 
 
 def test_a_breath_at_an_intermediate_peep_is_not_analysed():

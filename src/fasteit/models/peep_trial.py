@@ -23,7 +23,8 @@ class PeepTrial:
         config:           Parameters used.
         source:           Where the steps come from: ``"pressure"`` or ``"manual"``.
         steps:            One row per step: ``step``, ``peep`` (level, as measured or as
-                          typed, cmH2O), ``start_time``, ``end_time``, ``n_breaths``,
+                          typed, cmH2O), ``peep_set`` (the nearest PEEP level of the
+                          protocol, ``SegmentationConfig.peep_levels``), ``start_time``, ``end_time``, ``n_breaths``,
                           ``n_analysed``, ``enough`` (at least the minimum), ``plateau``
                           and ``driving_pressure`` with ``driving_pressure_source``:
                           ``"breaths"`` (median of the analysed breaths, continuous

@@ -89,6 +89,33 @@ def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
     return np.searchsorted(step_starts, breaths, side="right") - 1
 
 
+def protocol_levels(
+    levels: np.ndarray, protocol: Sequence[float] | None, tolerance: float
+) -> np.ndarray:
+    """PEEP level of the protocol of each step: the nearest one.
+
+    Without the levels of the protocol, the nearest whole number. A step further than
+    ``tolerance`` from every level of the protocol (a level that is not in the
+    protocol) gets NaN.
+
+    Args:
+        levels:    PEEP of each step, measured or typed (cmH2O).
+        protocol:  PEEP levels of the protocol, or None.
+        tolerance: Largest distance from a level of the protocol (cmH2O).
+
+    Returns:
+        One level per step, NaN where no level of the protocol is near enough.
+    """
+    levels = np.asarray(levels, dtype=float)
+    if protocol is None:
+        return np.round(levels)
+    candidates = np.asarray(protocol, dtype=float)
+    # Distance of each step (rows) from each level of the protocol (columns).
+    distance = np.abs(levels[:, None] - candidates[None, :])
+    nearest = candidates[np.argmin(distance, axis=1)]
+    return np.where(distance.min(axis=1) <= tolerance, nearest, np.nan)
+
+
 def steps_from_segments(
     breath_starts: np.ndarray, breath_ends: np.ndarray, segments: Sequence[Segment]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

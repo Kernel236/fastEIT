@@ -72,7 +72,15 @@ gives a warning. Parameters are in `SegmentationConfig`.
 | 1 | Breaths of the PEEP trial phase, with the PEEP and plateau of each breath read in layer 2 | `pipeline` |
 | 2 | Steps: a new step when 3 breaths in a row are more than 1 cmH2O (half of the step of the protocol) from the current level and within 1 cmH2O of each other; level = median PEEP. Excluded breaths (maneuvers) do not count | `peep_steps` |
 | 3 | Breaths analysed: the first 15 s after each change are left out; then the last valid breaths whose PEEP is within 0.5 cmH2O of the step level (a breath without a PEEP reading is not analysed), up to 10; fewer than 5 give a warning | `peep_steps` |
-| 4 | Step table: driving pressure and tidal volume of each step | `pipeline` |
+| 4 | Step table: level of the protocol, driving pressure and tidal volume of each step | `pipeline` |
+
+**Level of the protocol** (`peep_set`). The PEEP trial follows the protocol, the same for
+every patient, while the measured level is noisy and in cmH2O (10 mbar set on a Dräger
+ventilator is 10.2 cmH2O). Each step gets the nearest PEEP level of the protocol, given
+as `SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))`, or the nearest
+whole number without it. A step more than `step_threshold` (half of the step of the
+protocol) from every level gets none, with a warning. `peep_set` is the level to compare
+and average steps between patients; `peep` stays the measured one.
 
 The event texts typed on the device are not used to cut the steps: in the trials of the
 notebook they were written from 2 s after to 14 s before the change of pressure.
@@ -129,7 +137,7 @@ not count when the steps are found. Without a phase the whole recording is segme
 |-------|---------|
 | `recording`, `config` | the preprocessed recording and the parameters used |
 | `source` | `"pressure"` or `"manual"` |
-| `steps` | `step`, `peep` (level), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume`, `tidal_volume_source` |
+| `steps` | `step`, `peep` (level), `peep_set` (level of the protocol), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume`, `tidal_volume_source` |
 | `breaths` | the breath table of the recording (with `peep`, `plateau`, `driving_pressure`, `tidal_volume`) plus `peep_step`, `analysed` |
 | `log` | what the segmentation did, with warnings |
 

@@ -21,6 +21,7 @@ Usage:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 
@@ -120,12 +121,17 @@ class SegmentationConfig:
         analysis_max_breaths, analysis_min_breaths: Then the last valid breaths of the
             step are analysed, up to ``analysis_max_breaths``; fewer than
             ``analysis_min_breaths`` give a warning (section 5).
+        peep_levels: PEEP levels of the protocol, e.g. ``(16, 14, ..., 0)``. Each step
+            gets the nearest one as ``peep_set``, so that steps can be compared between
+            patients (the measured PEEP is noisy, and 10 mbar set on a Dräger
+            ventilator is 10.2 cmH2O). None: the nearest whole number.
     """
 
     step_threshold: float = 1.0
     analysis_skip_seconds: float = 15.0
     analysis_max_breaths: int = 10
     analysis_min_breaths: int = 5
+    peep_levels: tuple[float, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.step_threshold > 0:
@@ -136,6 +142,12 @@ class SegmentationConfig:
             )
         if self.analysis_skip_seconds < 0:
             raise ValueError("analysis_skip_seconds must not be negative.")
+        if self.peep_levels is not None:
+            levels = tuple(float(level) for level in self.peep_levels)
+            if not levels or not all(math.isfinite(level) for level in levels):
+                raise ValueError("peep_levels must be finite numbers.")
+            # A list given by the user is stored as a tuple: the config stays immutable.
+            object.__setattr__(self, "peep_levels", levels)
 
 
 @dataclass(frozen=True)

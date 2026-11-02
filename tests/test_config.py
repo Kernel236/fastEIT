@@ -50,6 +50,12 @@ def test_segmentation_config_defaults_follow_notebook_06():
     cfg = SegmentationConfig()
     assert (cfg.step_threshold, cfg.analysis_skip_seconds) == (1.0, 15.0)
     assert (cfg.analysis_min_breaths, cfg.analysis_max_breaths) == (5, 10)
+    assert cfg.peep_levels is None
+
+
+def test_segmentation_config_keeps_the_protocol_levels_as_a_tuple():
+    cfg = SegmentationConfig(peep_levels=[16, 14, 12])
+    assert cfg.peep_levels == (16.0, 14.0, 12.0)
 
 
 def test_segmentation_config_rejects_impossible_values():
@@ -58,6 +64,8 @@ def test_segmentation_config_rejects_impossible_values():
         {"step_threshold": 0},
         {"analysis_min_breaths": 12},
         {"analysis_skip_seconds": -1},
+        {"peep_levels": []},
+        {"peep_levels": [16, float("nan")]},
     ]:
         with pytest.raises(ValueError):
             SegmentationConfig(**wrong)
