@@ -3,14 +3,13 @@
 import numpy as np
 import pytest
 
-from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.breath_pressures import (
+    PEEP_SECONDS,
+    PLATEAU_WINDOW_SECONDS,
     inspiration_onsets,
     plateau_pressures,
     pressure_before,
 )
-
-CFG = PreprocessingConfig()
 
 
 def vcv_pressure(
@@ -54,8 +53,8 @@ def test_inspiration_onsets_are_the_start_of_the_pressure_rise():
 def test_peep_and_plateau_are_read_on_the_curve():
     paw, starts = vcv_pressure([12, 12, 12, 10, 10, 10])
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
-    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
+    plateau = plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     np.testing.assert_allclose(peep[1:], [12, 12, 10, 10, 10], atol=0.05)
     # Plateau = PEEP of the breath + 12; the last breath has no next breath.
     np.testing.assert_allclose(plateau[1:-1], [24, 24, 22, 22], atol=0.05)
@@ -65,9 +64,9 @@ def test_peep_and_plateau_are_read_on_the_curve():
 def test_without_an_end_inspiratory_pause_there_is_no_plateau():
     paw, starts = vcv_pressure([10] * 5, pause=0.0)
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
     assert np.isnan(
-        plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+        plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     ).all()
 
 
@@ -75,7 +74,7 @@ def test_missing_pressure_gives_nan_for_that_breath_only():
     paw, starts = vcv_pressure([10] * 5)
     paw[starts[2] - 10 : starts[2] + 10] = np.nan
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
     assert onsets[2] == -1 and np.isnan(peep[2])
     assert np.isfinite(peep[[1, 3, 4]]).all()
 
@@ -84,7 +83,7 @@ def test_missing_pressure_gives_nan_for_that_breath_only():
 def test_both_draeger_sampling_rates(fs):
     paw, starts = vcv_pressure([8] * 5, fs=fs)
     onsets = inspiration_onsets(paw, fs, starts)
-    peep = pressure_before(paw, fs, onsets, CFG.peep_seconds)
+    peep = pressure_before(paw, fs, onsets, PEEP_SECONDS)
     np.testing.assert_allclose(peep[1:], 8, atol=0.05)
 
 
@@ -92,18 +91,18 @@ def test_a_short_hold_gives_no_plateau():
     # A 0.3 s hold is too short: the reading would fall on the relaxation after the peak.
     paw, starts = vcv_pressure([10] * 5, pause=0.3)
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
     assert np.isnan(
-        plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+        plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     ).all()
 
 
 def test_missing_pressure_in_the_breath_gives_no_plateau():
     paw, starts = vcv_pressure([10] * 5)
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
     paw[starts[2] + 60] = np.nan  # during the hold of breath 2
-    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    plateau = plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     assert np.isnan(plateau[2]) and np.isfinite(plateau[[1, 3]]).all()
 
 
@@ -143,16 +142,16 @@ def pcv_pressure(peeps, fs=50, period=4.0, inspiration=1.2, above_peep=15.0):
 def test_pressure_control_reads_the_flat_inspiratory_pressure():
     paw, starts = pcv_pressure([10, 10, 10, 8, 8, 8])
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
-    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
+    plateau = plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     np.testing.assert_allclose(plateau[1:-1] - peep[1:-1], 15, atol=0.2)
 
 
 def test_one_inspiratory_hold_among_breaths_without_pause():
     paw, starts = vcv_pressure([10] * 6, pause=[0, 0, 1.5, 0, 0, 0])
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
-    plateau = plateau_pressures(paw, 50, onsets, peep, CFG.plateau_window_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
+    plateau = plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     assert np.flatnonzero(np.isfinite(plateau)).tolist() == [2]
     assert plateau[2] == pytest.approx(22, abs=0.05)
 
@@ -160,7 +159,7 @@ def test_one_inspiratory_hold_among_breaths_without_pause():
 def test_a_reading_window_longer_than_the_hold_starts_at_the_highest_part():
     paw, starts = vcv_pressure([10] * 5, pause=0.8)
     onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, CFG.peep_seconds)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
     plateau = plateau_pressures(paw, 50, onsets, peep, (3.0, 0.05))  # 3 s > 0.8 s hold
     # Not read on the ramp and the PEEP before it (that would give 16.2).
     np.testing.assert_allclose(plateau[1:-1], 22, atol=0.05)

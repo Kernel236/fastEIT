@@ -14,6 +14,10 @@ import pandas as pd
 
 from fasteit.models.eit_recording import PEEP_STEP, Segment
 
+# Breaths in a row needed to open a step, so that a single odd breath (a maneuver)
+# cannot (notebooks/06_peep_trial_segmentation.ipynb, section 3).
+STEP_MIN_BREATHS = 3
+
 
 def find_steps(
     peep: np.ndarray, threshold: float, min_breaths: int, agreement: float

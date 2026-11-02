@@ -34,6 +34,11 @@ TOP_MARGIN = 1.0
 # A plateau needs an end-inspiratory hold of at least 0.5 s (0.9-1.3 s in the trials of
 # notebook 06; 5 of 606 breaths were shorter).
 MIN_PAUSE_SECONDS = 0.5
+# PEEP = median pressure in the 0.2 s before the start of inspiration (section 2).
+PEEP_SECONDS = 0.2
+# Plateau = median pressure from 0.25 to 0.05 s before the start of expiration
+# (section 4).
+PLATEAU_WINDOW_SECONDS = (0.25, 0.05)
 
 
 def _samples(seconds: float, fs: float) -> int:

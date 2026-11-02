@@ -94,7 +94,7 @@ mL. In order (`tidal_volume_source`):
 
 Without any of them the tidal volume is missing and compliance stays in EIT units. A
 typed volume outside 100-1500 mL, or more than 15 % from the one measured on the
-analysed breaths of the step (`tidal_volume_agreement`), gives a warning: a typing
+analysed breaths of the step, gives a warning: a typing
 error, or one volume typed for a trial in pressure control. How the tidal volume is
 used in layer 3, and the assumptions of each use (compliance of the respiratory
 system, volume of a region, change of EELI in mL), are in [`features.md`](features.md).

@@ -38,20 +38,11 @@ def test_preprocessing_config_is_frozen():
 def test_preprocessing_config_rejects_impossible_values():
     for wrong in [
         {"lung_mask_threshold_fraction": 1.5},
-        {"lung_mask_min_region_pixels": 0},
         {"exclusion_margin_seconds": -1},
         {"ti_ratio_low": 0.7},
-        {"plateau_window_seconds": (0.05, 0.25)},
-        {"peep_seconds": 0},
     ]:
         with pytest.raises(ValueError):
             PreprocessingConfig(**wrong)
-
-
-def test_preprocessing_config_pressure_defaults_follow_notebook_06():
-    cfg = PreprocessingConfig()
-    assert cfg.pressure_channels[0] == "airway_pressure_pod"
-    assert (cfg.peep_seconds, cfg.plateau_window_seconds) == (0.2, (0.25, 0.05))
 
 
 def test_segmentation_config_defaults_follow_notebook_06():
@@ -61,12 +52,11 @@ def test_segmentation_config_defaults_follow_notebook_06():
 
 
 def test_segmentation_config_rejects_impossible_values():
+    assert SegmentationConfig(step_threshold=0.5).step_threshold == 0.5  # 1 cmH2O steps
     for wrong in [
         {"step_threshold": 0},
-        {"step_min_breaths": 0},
         {"analysis_min_breaths": 12},
         {"analysis_skip_seconds": -1},
-        {"step_threshold": 0.5},  # tolerance 0.5 would then be above half of it
     ]:
         with pytest.raises(ValueError):
             SegmentationConfig(**wrong)

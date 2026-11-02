@@ -35,14 +35,33 @@ from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.draeger.bin.bin_utils import replace_draeger_sentinels
 from fasteit.preprocessing.auxiliary import auxiliary_signals
 from fasteit.preprocessing.breath_pressures import (
+    PEEP_SECONDS,
+    PLATEAU_WINDOW_SECONDS,
     inspiration_onsets,
     plateau_pressures,
     pressure_before,
 )
-from fasteit.preprocessing.breath_quality import quality_flags
-from fasteit.preprocessing.breaths import detect_breaths
+from fasteit.preprocessing.breath_quality import LOCAL_MIN_BREATHS, quality_flags
+from fasteit.preprocessing.breaths import (
+    BASELINE_SECONDS,
+    INVALID_DATA_MULTIPLIER,
+    INVALID_DATA_PERCENTILE,
+    INVALID_MARGIN_SECONDS,
+    LOW_AMPLITUDE_FRACTION,
+    MIN_DURATION_SECONDS,
+    detect_breaths,
+)
 from fasteit.preprocessing.cardiac_filter import (
+    HEART_RATE_WARNING_HIGH_BPM,
+    HEART_RATE_WARNING_LOW_BPM,
+    HEART_RATE_WARNING_MARGIN_BPM,
+    MDN_NOTCH_HALF_WIDTH_BPM,
+    MDN_ORDER,
+    MDN_UPPER_LIMIT_BPM,
+    RESPIRATORY_RATE_MAX_BPM,
+    RESPIRATORY_RATE_MIN_BPM,
     SECONDS_PER_MINUTE,
+    SPECTRUM_WINDOW_SECONDS,
     heart_rate_warnings,
     mdn_filter,
     moving_average,
@@ -56,9 +75,14 @@ from fasteit.preprocessing.exclusions import (
     missing_frames,
     widen,
 )
-from fasteit.preprocessing.lung_mask import remove_small_regions, watershed_mask
+from fasteit.preprocessing.lung_mask import (
+    MIN_REGION_PIXELS,
+    remove_small_regions,
+    watershed_mask,
+)
 from fasteit.preprocessing.regions import lung_regions
 from fasteit.preprocessing.tidal_volume import (
+    TYPED_VOLUME_RANGE_ML,
     inspiration_windows,
     volumes_from_flow_curve,
     volumes_from_volume_curve,
@@ -68,6 +92,22 @@ from fasteit.run_log import RunLog
 logger = logging.getLogger(__name__)
 
 SECONDS_PER_DAY = 86400.0
+# Auxiliary channels read for the ventilator values of each breath (names given by the
+# parsers), in order of preference (notebooks/06_peep_trial_segmentation.ipynb):
+# airway pressure waveform (PressurePod, then Medibus or Timpel); without it the PEEP and
+# plateau computed by the ventilator (Medibus); volume curve, then flow curve; without
+# them the tidal volume of the ventilator, inspiratory values first (the generic
+# Medibus "tidal volume" may be expiratory).
+PRESSURE_CHANNELS = ("airway_pressure_pod", "airway_pressure")
+PEEP_VALUE_CHANNEL = "peep"
+PLATEAU_VALUE_CHANNEL = "plateau_pressure"
+VOLUME_CHANNEL = "volume"
+FLOW_CHANNEL = "flow"
+TIDAL_VOLUME_VALUE_CHANNELS = (
+    "mandatory_inspiratory_tidal_volume",
+    "spontaneous_inspiratory_tidal_volume",
+    "tidal_volume",
+)
 NOT_REMOVED = (
     "cardiac component NOT removed (moving average of {seconds} s only); "
     "pixel-level results and small tidal volumes may be affected."
@@ -160,16 +200,20 @@ def _respiratory_rate(
         rr_hz = respiratory_rate(
             np.nansum(pixels, axis=(1, 2)),
             fs,
-            min_bpm=config.respiratory_rate_min_bpm,
-            max_bpm=config.respiratory_rate_max_bpm,
-            window_seconds=config.spectrum_window_seconds,
+            min_bpm=RESPIRATORY_RATE_MIN_BPM,
+            max_bpm=RESPIRATORY_RATE_MAX_BPM,
+            window_seconds=SPECTRUM_WINDOW_SECONDS,
         )
     except ValueError as error:
         log.warning(f"Respiratory rate not estimated: {error}")
         return None
     rr_bpm = rr_hz * SECONDS_PER_MINUTE
     log.info(f"Respiratory rate from the spectrum: {rr_bpm:.1f}/min.")
-    if rr_bpm in (config.respiratory_rate_min_bpm, config.respiratory_rate_max_bpm):
+    range_edges = (
+        RESPIRATORY_RATE_MIN_BPM,
+        RESPIRATORY_RATE_MAX_BPM,
+    )
+    if rr_bpm in range_edges:
         log.warning(
             "Respiratory rate on the edge of the searched range: probably a slow drift "
             "of the signal, not the breathing."
@@ -199,9 +243,9 @@ def _cardiac_step(
         for message in heart_rate_warnings(
             hr_bpm,
             rr_hz * SECONDS_PER_MINUTE,
-            low_bpm=config.heart_rate_warning_low_bpm,
-            high_bpm=config.heart_rate_warning_high_bpm,
-            margin_bpm=config.heart_rate_warning_margin_bpm,
+            low_bpm=HEART_RATE_WARNING_LOW_BPM,
+            high_bpm=HEART_RATE_WARNING_HIGH_BPM,
+            margin_bpm=HEART_RATE_WARNING_MARGIN_BPM,
         ):
             log.warning(message)
         try:
@@ -210,10 +254,9 @@ def _cardiac_step(
                 fs,
                 rr_hz,
                 hr_bpm / SECONDS_PER_MINUTE,
-                notch_half_width_hz=config.mdn_notch_half_width_bpm
-                / SECONDS_PER_MINUTE,
-                upper_limit_hz=config.mdn_upper_limit_bpm / SECONDS_PER_MINUTE,
-                order=config.mdn_order,
+                notch_half_width_hz=MDN_NOTCH_HALF_WIDTH_BPM / SECONDS_PER_MINUTE,
+                upper_limit_hz=MDN_UPPER_LIMIT_BPM / SECONDS_PER_MINUTE,
+                order=MDN_ORDER,
             )
             log.info(
                 f"MDN cardiac filter with heart rate {hr_bpm:.0f}/min (as entered, "
@@ -265,7 +308,7 @@ def _breath_pressures(
 ) -> tuple[str | None, np.ndarray, np.ndarray]:
     """PEEP and plateau of each breath, and the channel they come from.
 
-    From the first airway pressure waveform of ``config.pressure_channels``; without
+    From the first airway pressure waveform of ``PRESSURE_CHANNELS``; without
     one, the PEEP and plateau computed by the ventilator (Medibus), median over each
     breath; otherwise NaN.
 
@@ -276,32 +319,30 @@ def _breath_pressures(
         config: Parameters.
         log:    Run log.
     """
-    channel = next((c for c in config.pressure_channels if _has_data(aux, c)), None)
+    channel = next((c for c in PRESSURE_CHANNELS if _has_data(aux, c)), None)
     if channel is not None:
         paw = aux[channel].to_numpy(dtype=float)
         # The valley that closes the last breath is one more start of inspiration, so
         # that the last breath also has a plateau.
         valleys = np.append(starts, ends[-1])
         onsets = inspiration_onsets(paw, fs, valleys)
-        peep = pressure_before(paw, fs, onsets, config.peep_seconds)
-        plateau = plateau_pressures(
-            paw, fs, onsets, peep, config.plateau_window_seconds
-        )
+        peep = pressure_before(paw, fs, onsets, PEEP_SECONDS)
+        plateau = plateau_pressures(paw, fs, onsets, peep, PLATEAU_WINDOW_SECONDS)
         log.info(f"PEEP and plateau of each breath read on {channel}.")
         return channel, peep[:-1], plateau[:-1]
 
-    if _has_data(aux, config.peep_value_channel):
-        values = aux[config.peep_value_channel].to_numpy(dtype=float)
+    if _has_data(aux, PEEP_VALUE_CHANNEL):
+        values = aux[PEEP_VALUE_CHANNEL].to_numpy(dtype=float)
         peep = _median_over_breaths(values, starts, ends)
         plateau = np.full(len(starts), np.nan)
-        if _has_data(aux, config.plateau_value_channel):
-            values = aux[config.plateau_value_channel].to_numpy(dtype=float)
+        if _has_data(aux, PLATEAU_VALUE_CHANNEL):
+            values = aux[PLATEAU_VALUE_CHANNEL].to_numpy(dtype=float)
             plateau = _median_over_breaths(values, starts, ends)
         log.info(
             "No airway pressure waveform: PEEP (and plateau, if there) computed by the "
-            f"ventilator, median over each breath ({config.peep_value_channel})."
+            f"ventilator, median over each breath ({PEEP_VALUE_CHANNEL})."
         )
-        return config.peep_value_channel, peep, plateau
+        return PEEP_VALUE_CHANNEL, peep, plateau
 
     log.info("No airway pressure: no PEEP, plateau or driving pressure of the breaths.")
     nothing = np.full(len(starts), np.nan)
@@ -341,7 +382,7 @@ def _tidal_volumes(
 
     From the volume curve; without it, from the integral of the inspiratory flow;
     without both, the tidal volume computed by the ventilator (Medibus, the first of
-    ``config.tidal_volume_value_channels`` with data), median over each breath;
+    ``TIDAL_VOLUME_VALUE_CHANNELS`` with data), median over each breath;
     otherwise NaN.
     """
     starts, peaks, ends = (
@@ -349,8 +390,8 @@ def _tidal_volumes(
     )
     first, after_last = inspiration_windows(starts, peaks, ends, len(aux))
     for channel, is_flow in (
-        (config.volume_channel, False),
-        (config.flow_channel, True),
+        (VOLUME_CHANNEL, False),
+        (FLOW_CHANNEL, True),
     ):
         if not _has_data(aux, channel):
             continue
@@ -365,9 +406,7 @@ def _tidal_volumes(
         log.info(f"Tidal volume of each breath read on {channel}.")
         return channel, volumes_from_volume_curve(values, first, after_last)
 
-    channel = next(
-        (c for c in config.tidal_volume_value_channels if _has_data(aux, c)), None
-    )
+    channel = next((c for c in TIDAL_VOLUME_VALUE_CHANNELS if _has_data(aux, c)), None)
     if channel is not None:
         values = aux[channel].to_numpy(dtype=float)
         log.info(
@@ -457,12 +496,12 @@ def preprocess(
     breaths, near_invalid = detect_breaths(
         detection_signal,
         fs,
-        invalid_percentile=config.invalid_data_percentile,
-        invalid_multiplier=config.invalid_data_multiplier,
-        baseline_seconds=config.breath_baseline_seconds,
-        min_duration_seconds=config.breath_min_duration_seconds,
-        low_amplitude_fraction=config.breath_low_amplitude_fraction,
-        invalid_margin_seconds=config.invalid_data_margin_seconds,
+        invalid_percentile=INVALID_DATA_PERCENTILE,
+        invalid_multiplier=INVALID_DATA_MULTIPLIER,
+        baseline_seconds=BASELINE_SECONDS,
+        min_duration_seconds=MIN_DURATION_SECONDS,
+        low_amplitude_fraction=LOW_AMPLITUDE_FRACTION,
+        invalid_margin_seconds=INVALID_MARGIN_SECONDS,
     )
     if len(breaths) == 0:
         raise ValueError("No breaths found: the recording cannot be preprocessed.")
@@ -478,7 +517,7 @@ def preprocess(
         ti_ratio_low=config.ti_ratio_low,
         ti_ratio_high=config.ti_ratio_high,
         window_breaths=config.local_window_breaths,
-        min_breaths=config.local_min_breaths,
+        min_breaths=LOCAL_MIN_BREATHS,
         amplitude_ratio_low=config.amplitude_ratio_low,
         amplitude_ratio_high=config.amplitude_ratio_high,
         duration_ratio_high=config.duration_ratio_high,
@@ -507,7 +546,7 @@ def preprocess(
         table.is_valid.to_numpy(),
         config.lung_mask_threshold_fraction,
     )
-    mask = remove_small_regions(mask, config.lung_mask_min_region_pixels)
+    mask = remove_small_regions(mask, MIN_REGION_PIXELS)
     log.info(
         f"Lung mask: {mask.sum()} pixels (watershed at "
         f"{config.lung_mask_threshold_fraction:.0%} of the maximum TIV, from the "
@@ -541,15 +580,11 @@ def preprocess(
         log.info(
             f"Tidal volume typed for the recording: {context.tidal_volume_ml:g} mL."
         )
-        if not (
-            config.tidal_volume_warning_low_ml
-            <= context.tidal_volume_ml
-            <= config.tidal_volume_warning_high_ml
-        ):
+        low, high = TYPED_VOLUME_RANGE_ML
+        if not low <= context.tidal_volume_ml <= high:
             log.warning(
                 f"Typed tidal volume {context.tidal_volume_ml:g} mL is outside "
-                f"{config.tidal_volume_warning_low_ml:g}-"
-                f"{config.tidal_volume_warning_high_ml:g} mL: is it in mL?"
+                f"{low:g}-{high:g} mL: is it in mL?"
             )
 
     return EITRecording(

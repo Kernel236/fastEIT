@@ -6,6 +6,7 @@ import pytest
 from fasteit.config import SegmentationConfig
 from fasteit.models.eit_recording import Segment
 from fasteit.segmentation.peep_steps import (
+    STEP_MIN_BREATHS,
     analysed_breaths,
     find_steps,
     step_of_each_breath,
@@ -19,8 +20,8 @@ def steps(peep):
     return find_steps(
         np.asarray(peep, dtype=float),
         CFG.step_threshold,
-        CFG.step_min_breaths,
-        CFG.step_agreement,
+        STEP_MIN_BREATHS,
+        CFG.step_threshold,
     )
 
 

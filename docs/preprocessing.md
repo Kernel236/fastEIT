@@ -35,7 +35,7 @@ from fasteit.preprocessing import preprocess
 raw = load_data("patient01.bin")
 recording = preprocess(
     raw,                                             # never modified
-    config=PreprocessingConfig(heart_rate_bpm=85),   # every parameter, with its source
+    config=PreprocessingConfig(heart_rate_bpm=85),   # the choices of a study, with their source
     exclusions=[Segment(120, 180, label="cough")],   # parts chosen by the user
     context=RecordingContext(
         patient_id="PZ01",
@@ -48,7 +48,10 @@ recording = preprocess(
 The same inputs always give the same output, so an application only needs to store
 the inputs (file, config, exclusions, context) and can recompute the rest.
 `PreprocessingConfig` is frozen: to change a parameter make a new one, e.g.
-`dataclasses.replace(config, heart_rate_bpm=80)`.
+`dataclasses.replace(config, heart_rate_bpm=80)`. It holds the choices a study may change
+(heart rate, quality flags, lung mask threshold, exclusion margin); the details of the
+methods taken from eitprocessing or fixed by the evidence are constants of their modules,
+with their source.
 
 ## 2. Steps
 
@@ -198,7 +201,7 @@ There are two kinds of record, kept apart on purpose:
 
 ```
 src/fasteit/
-├── config.py                  PreprocessingConfig: every parameter, with its source
+├── config.py                  PreprocessingConfig: the choices of a study, with their source
 ├── models/eit_recording.py    Segment, RecordingContext, EITRecording
 └── preprocessing/
     ├── cardiac_filter.py      respiratory rate, MDN, moving average, heart rate warnings

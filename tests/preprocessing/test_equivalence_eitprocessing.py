@@ -11,8 +11,22 @@ import numpy as np
 import pytest
 
 from fasteit.config import PreprocessingConfig
+from fasteit.preprocessing.breaths import (
+    BASELINE_SECONDS,
+    INVALID_DATA_MULTIPLIER,
+    INVALID_DATA_PERCENTILE,
+    INVALID_MARGIN_SECONDS,
+    LOW_AMPLITUDE_FRACTION,
+    MIN_DURATION_SECONDS,
+)
 from fasteit.preprocessing.cardiac_filter import (
+    MDN_NOTCH_HALF_WIDTH_BPM,
+    MDN_ORDER,
+    MDN_UPPER_LIMIT_BPM,
+    RESPIRATORY_RATE_MAX_BPM,
+    RESPIRATORY_RATE_MIN_BPM,
     SECONDS_PER_MINUTE,
+    SPECTRUM_WINDOW_SECONDS,
     mdn_filter,
     respiratory_rate,
 )
@@ -38,15 +52,14 @@ def test_mdn_filter_matches_eitprocessing(fs, respiratory_hz, heart_hz):
     reference = MDNFilter(respiratory_rate=respiratory_hz, heart_rate=heart_hz).apply(
         pixels, sample_frequency=fs, axis=0
     )
-    cfg = PreprocessingConfig()
     ours = mdn_filter(
         pixels,
         fs,
         respiratory_hz,
         heart_hz,
-        notch_half_width_hz=cfg.mdn_notch_half_width_bpm / SECONDS_PER_MINUTE,
-        upper_limit_hz=cfg.mdn_upper_limit_bpm / SECONDS_PER_MINUTE,
-        order=cfg.mdn_order,
+        notch_half_width_hz=MDN_NOTCH_HALF_WIDTH_BPM / SECONDS_PER_MINUTE,
+        upper_limit_hz=MDN_UPPER_LIMIT_BPM / SECONDS_PER_MINUTE,
+        order=MDN_ORDER,
     )
     np.testing.assert_allclose(ours, reference, atol=1e-10)
 
@@ -59,13 +72,12 @@ def test_respiratory_rate_matches_eitprocessing_on_real_recordings():
             eit, suppress_length_warnings=True, suppress_edge_case_warning=True
         )
         global_signal = np.nansum(np.asarray(eit.pixel_impedance, float), axis=(1, 2))
-        cfg = PreprocessingConfig()
         ours = respiratory_rate(
             global_signal,
             eit.sample_frequency,
-            min_bpm=cfg.respiratory_rate_min_bpm,
-            max_bpm=cfg.respiratory_rate_max_bpm,
-            window_seconds=cfg.spectrum_window_seconds,
+            min_bpm=RESPIRATORY_RATE_MIN_BPM,
+            max_bpm=RESPIRATORY_RATE_MAX_BPM,
+            window_seconds=SPECTRUM_WINDOW_SECONDS,
         )
         assert ours == pytest.approx(reference, abs=1e-6), path.name
 
@@ -73,16 +85,15 @@ def test_respiratory_rate_matches_eitprocessing_on_real_recordings():
 def detect_like_fasteit(eit, pixels):
     from fasteit.preprocessing.breaths import detect_breaths
 
-    cfg = PreprocessingConfig()
     return detect_breaths(
         pixels.sum(axis=(1, 2)),
         eit.sample_frequency,
-        invalid_percentile=cfg.invalid_data_percentile,
-        invalid_multiplier=cfg.invalid_data_multiplier,
-        baseline_seconds=cfg.breath_baseline_seconds,
-        min_duration_seconds=cfg.breath_min_duration_seconds,
-        low_amplitude_fraction=cfg.breath_low_amplitude_fraction,
-        invalid_margin_seconds=cfg.invalid_data_margin_seconds,
+        invalid_percentile=INVALID_DATA_PERCENTILE,
+        invalid_multiplier=INVALID_DATA_MULTIPLIER,
+        baseline_seconds=BASELINE_SECONDS,
+        min_duration_seconds=MIN_DURATION_SECONDS,
+        low_amplitude_fraction=LOW_AMPLITUDE_FRACTION,
+        invalid_margin_seconds=INVALID_MARGIN_SECONDS,
     )
 
 
@@ -136,16 +147,15 @@ def test_breaths_match_eitprocessing_on_a_synthetic_signal(case):
     )
     reference = BreathDetection().find_breaths(global_signal).values
 
-    cfg = PreprocessingConfig()
     ours, near_invalid = detect_breaths(
         x,
         fs,
-        invalid_percentile=cfg.invalid_data_percentile,
-        invalid_multiplier=cfg.invalid_data_multiplier,
-        baseline_seconds=cfg.breath_baseline_seconds,
-        min_duration_seconds=cfg.breath_min_duration_seconds,
-        low_amplitude_fraction=cfg.breath_low_amplitude_fraction,
-        invalid_margin_seconds=cfg.invalid_data_margin_seconds,
+        invalid_percentile=INVALID_DATA_PERCENTILE,
+        invalid_multiplier=INVALID_DATA_MULTIPLIER,
+        baseline_seconds=BASELINE_SECONDS,
+        min_duration_seconds=MIN_DURATION_SECONDS,
+        low_amplitude_fraction=LOW_AMPLITUDE_FRACTION,
+        invalid_margin_seconds=INVALID_MARGIN_SECONDS,
     )
     assert near_invalid.any() == (case == "spike")
     np.testing.assert_array_equal(ours[~near_invalid], breaths_as_frames(reference, t))

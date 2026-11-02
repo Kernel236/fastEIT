@@ -18,8 +18,10 @@ import pandas as pd
 from fasteit.config import SegmentationConfig
 from fasteit.models.eit_recording import PHASE, EITRecording, Segment
 from fasteit.models.peep_trial import PeepTrial
+from fasteit.preprocessing.tidal_volume import TYPED_VOLUME_RANGE_ML
 from fasteit.run_log import RunLog
 from fasteit.segmentation.peep_steps import (
+    STEP_MIN_BREATHS,
     analysed_breaths,
     find_steps,
     step_of_each_breath,
@@ -31,6 +33,10 @@ logger = logging.getLogger(__name__)
 PEEP_TRIAL = "peep_trial"  # label of the PEEP trial phase
 # Below this fraction of breaths with a reading, a warning is given.
 MIN_FRACTION_READ = 0.5
+# A typed tidal volume more than 15 % from the one measured on the analysed breaths of
+# the step gives a warning (a typing error, or one volume typed for a trial in pressure
+# control, where it changes with PEEP): a plausibility check, not a measured accuracy.
+TIDAL_VOLUME_AGREEMENT = 0.15
 STEP_COLUMNS = [
     "step", "peep", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
     "plateau", "driving_pressure", "driving_pressure_source", "n_driving_pressure",
@@ -102,8 +108,8 @@ def _automatic_steps(
         step_starts = find_steps(
             usable_peep[phase_breaths],
             config.step_threshold,
-            config.step_min_breaths,
-            config.step_agreement,
+            STEP_MIN_BREATHS,
+            config.step_threshold,  # the breaths that open a step agree within it
         )
     except ValueError as error:
         raise ValueError(f"{error} Place the PEEP steps by hand.") from error
@@ -120,7 +126,10 @@ def _automatic_steps(
     level_of_breath = np.full(len(peep), np.nan)
     in_a_step = step >= 0
     level_of_breath[in_a_step] = levels[step[in_a_step]]
-    at_level = np.abs(peep - level_of_breath) <= config.analysis_peep_tolerance
+    # Half of the threshold, so that a breath halfway between two steps is never
+    # analysed.
+    tolerance = config.step_threshold / 2
+    at_level = np.abs(peep - level_of_breath) <= tolerance
 
     analysed = analysed_breaths(
         breath_starts,
@@ -228,7 +237,7 @@ def _check_typed_volumes(
         in_step = breaths[(breaths.peep_step == step.step) & breaths.analysed]
         measured = in_step.tidal_volume.dropna()
         if len(measured) and abs(step.tidal_volume - measured.median()) > (
-            config.tidal_volume_agreement * measured.median()
+            TIDAL_VOLUME_AGREEMENT * measured.median()
         ):
             log.warning(
                 f"Step {step.step}: tidal volume typed {step.tidal_volume:g} mL, "
@@ -399,10 +408,7 @@ def segment_peep_trial(
         config,
         log,
     )
-    plausible = (
-        recording.config.tidal_volume_warning_low_ml,
-        recording.config.tidal_volume_warning_high_ml,
-    )
+    plausible = TYPED_VOLUME_RANGE_ML
     _check_typed_volumes(steps, breaths, plausible, config, log)
 
     return PeepTrial(

@@ -17,6 +17,10 @@ import numpy as np
 
 from fasteit.preprocessing.auxiliary import ML_PER_L
 
+# A tidal volume typed by the user outside this range gives a warning: a plausibility
+# check for adults (e.g. litres typed instead of mL), not a clinical limit.
+TYPED_VOLUME_RANGE_ML = (100.0, 1500.0)
+
 
 def inspiration_windows(
     starts: np.ndarray, peaks: np.ndarray, ends: np.ndarray, n_frames: int

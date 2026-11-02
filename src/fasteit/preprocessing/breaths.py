@@ -31,6 +31,22 @@ import math
 import numpy as np
 from scipy.signal import find_peaks
 
+# Defaults of eitprocessing ``BreathDetection`` (v1.8.8), not meant to be tuned
+# (notebooks/05_preprocessing_choices.ipynb, section 8):
+# - a sample is invalid beyond mean ± 4 x (distance between the mean and the 5th / 95th
+#   percentile);
+# - 15 s Blackman moving average as local threshold (it follows slow EELI drift; below
+#   about 8 breaths/min it starts to follow the breathing);
+# - peaks and valleys at least 2/3 s apart (at most 90 breaths/min);
+# - peaks below 25 % of the median amplitude merged into the breath around them;
+# - a breath within 0.5 s of invalid data is flagged (eitprocessing removes it).
+INVALID_DATA_PERCENTILE = 5.0
+INVALID_DATA_MULTIPLIER = 4.0
+BASELINE_SECONDS = 15.0
+MIN_DURATION_SECONDS = 2 / 3
+LOW_AMPLITUDE_FRACTION = 0.25
+INVALID_MARGIN_SECONDS = 0.5
+
 
 def invalid_samples(
     signal: np.ndarray, percentile: float, multiplier: float

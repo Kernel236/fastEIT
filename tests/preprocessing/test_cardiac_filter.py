@@ -10,7 +10,16 @@ from scipy import signal as scipy_signal
 
 from fasteit.config import PreprocessingConfig
 from fasteit.preprocessing.cardiac_filter import (
+    HEART_RATE_WARNING_HIGH_BPM,
+    HEART_RATE_WARNING_LOW_BPM,
+    HEART_RATE_WARNING_MARGIN_BPM,
+    MDN_NOTCH_HALF_WIDTH_BPM,
+    MDN_ORDER,
+    MDN_UPPER_LIMIT_BPM,
+    RESPIRATORY_RATE_MAX_BPM,
+    RESPIRATORY_RATE_MIN_BPM,
     SECONDS_PER_MINUTE,
+    SPECTRUM_WINDOW_SECONDS,
     heart_rate_warnings,
     mdn_filter,
     moving_average,
@@ -30,9 +39,9 @@ def rate(x, fs):
     return respiratory_rate(
         x,
         fs,
-        min_bpm=CFG.respiratory_rate_min_bpm,
-        max_bpm=CFG.respiratory_rate_max_bpm,
-        window_seconds=CFG.spectrum_window_seconds,
+        min_bpm=RESPIRATORY_RATE_MIN_BPM,
+        max_bpm=RESPIRATORY_RATE_MAX_BPM,
+        window_seconds=SPECTRUM_WINDOW_SECONDS,
     )
 
 
@@ -42,9 +51,9 @@ def mdn(x, fs, respiratory_hz, heart_hz):
         fs,
         respiratory_hz,
         heart_hz,
-        notch_half_width_hz=CFG.mdn_notch_half_width_bpm / SECONDS_PER_MINUTE,
-        upper_limit_hz=CFG.mdn_upper_limit_bpm / SECONDS_PER_MINUTE,
-        order=CFG.mdn_order,
+        notch_half_width_hz=MDN_NOTCH_HALF_WIDTH_BPM / SECONDS_PER_MINUTE,
+        upper_limit_hz=MDN_UPPER_LIMIT_BPM / SECONDS_PER_MINUTE,
+        order=MDN_ORDER,
     )
 
 
@@ -59,7 +68,7 @@ def power_near(x, fs, f0, half_width=0.05):
 def test_config_defaults():
     assert CFG.moving_average_seconds == 0.1
     assert CFG.heart_rate_bpm is None
-    assert (CFG.respiratory_rate_min_bpm, CFG.respiratory_rate_max_bpm) == (6.0, 60.0)
+    assert (RESPIRATORY_RATE_MIN_BPM, RESPIRATORY_RATE_MAX_BPM) == (6.0, 60.0)
 
 
 def test_config_rejects_a_non_positive_heart_rate():
@@ -155,7 +164,7 @@ def test_respiratory_rate_works_on_a_signal_shorter_than_the_window():
 
 def test_respiratory_rate_peak_on_the_range_edge_is_returned_unrefined():
     drift = np.linspace(0, 1, 50 * 120)  # slow drift, no breathing
-    assert rate(drift, fs=50) * 60 == pytest.approx(CFG.respiratory_rate_min_bpm)
+    assert rate(drift, fs=50) * 60 == pytest.approx(RESPIRATORY_RATE_MIN_BPM)
 
 
 @pytest.mark.parametrize(
@@ -237,9 +246,9 @@ def hr_warnings(heart_bpm, respiratory_bpm):
     return heart_rate_warnings(
         heart_bpm,
         respiratory_bpm,
-        low_bpm=CFG.heart_rate_warning_low_bpm,
-        high_bpm=CFG.heart_rate_warning_high_bpm,
-        margin_bpm=CFG.heart_rate_warning_margin_bpm,
+        low_bpm=HEART_RATE_WARNING_LOW_BPM,
+        high_bpm=HEART_RATE_WARNING_HIGH_BPM,
+        margin_bpm=HEART_RATE_WARNING_MARGIN_BPM,
     )
 
 

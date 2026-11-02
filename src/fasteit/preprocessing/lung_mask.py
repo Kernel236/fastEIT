@@ -37,6 +37,9 @@ from skimage import feature, segmentation
 # Constants of eitprocessing PixelBreath (v1.8.8), not meant to be tuned.
 MAX_LAG_BREATHS = 1  # pixel delay searched within ± one mean breath duration
 MAX_SKIPPED_FRACTION = 0.25  # a pixel losing more breaths than this is dropped
+# Islands of the mask smaller than this are removed (eitprocessing ``FilterROIBySize``
+# default; notebooks/05_preprocessing_choices.ipynb, section 9).
+MIN_REGION_PIXELS = 10
 
 
 def tiv_per_breath(pixels: np.ndarray, breaths: np.ndarray) -> np.ndarray:
