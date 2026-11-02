@@ -205,6 +205,7 @@ def test_the_phase_limits_the_steps_to_the_peep_trial():
         10,
     ]  # baseline as a step
     trial = segment_peep_trial(recording, phase=TRIAL_PHASE)
+    assert trial.phase == TRIAL_PHASE and whole.phase is None
     assert trial.steps.peep.round().tolist() == [16, 14, 12, 10]
     before = trial.breaths[trial.breaths.end_time <= 40]
     assert (before.peep_step == -1).all() and not before.analysed.any()

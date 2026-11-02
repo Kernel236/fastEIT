@@ -137,6 +137,7 @@ not count when the steps are found. Without a phase the whole recording is segme
 |-------|---------|
 | `recording`, `config` | the preprocessed recording and the parameters used |
 | `source` | `"pressure"` or `"manual"` |
+| `phase` | the PEEP trial part of the recording, or None for the whole recording |
 | `steps` | `step`, `peep` (level), `peep_set` (level of the protocol), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume`, `tidal_volume_source` |
 | `breaths` | the breath table of the recording (with `peep`, `plateau`, `driving_pressure`, `tidal_volume`) plus `peep_step`, `analysed` |
 | `log` | what the segmentation did, with warnings |

@@ -284,6 +284,7 @@ def test_ri_between_the_steps_of_the_config_globally_and_by_region():
     trial = segment_peep_trial(recording)
     config = AnalysisConfig(ri_peep_high=12, ri_peep_low=6, ri_min_peep_drop=6)
     features = peep_trial_features(trial, config)
+    assert features.config == config  # kept with the results
     assert value(features, "ri_peep_high") == pytest.approx(12, abs=0.1)
     assert value(features, "ri_peep_low") == pytest.approx(6, abs=0.1)
     # The synthetic EELI does not follow the PEEP: no volume is lost, R/I = -1.

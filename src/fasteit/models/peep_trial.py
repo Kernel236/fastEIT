@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from fasteit.config import SegmentationConfig
-from fasteit.models.eit_recording import EITRecording
+from fasteit.models.eit_recording import EITRecording, Segment
 
 
 # eq=False: two trials are compared by identity, not table by table.
@@ -22,6 +22,8 @@ class PeepTrial:
         recording:        The preprocessed recording (layer 2).
         config:           Parameters used.
         source:           Where the steps come from: ``"pressure"`` or ``"manual"``.
+        phase:            The PEEP trial part of the recording, or None for the whole
+                          recording.
         steps:            One row per step: ``step``, ``peep`` (level, as measured or as
                           typed, cmH2O), ``peep_set`` (the nearest PEEP level of the
                           protocol, ``SegmentationConfig.peep_levels``), ``start_time``, ``end_time``, ``n_breaths``,
@@ -45,6 +47,7 @@ class PeepTrial:
     recording: EITRecording
     config: SegmentationConfig
     source: str
+    phase: Segment | None
     steps: pd.DataFrame
     breaths: pd.DataFrame
     log: tuple[str, ...]

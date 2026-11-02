@@ -424,6 +424,7 @@ def segment_peep_trial(
         recording=recording,
         config=config,
         source=source,
+        phase=phase,
         steps=steps,
         breaths=breaths,
         log=tuple(log.messages),

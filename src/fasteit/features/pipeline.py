@@ -606,6 +606,7 @@ def peep_trial_features(
 
     return PeepTrialFeatures(
         trial=trial,
+        config=config,
         breaths=breaths,
         regions=regions,
         steps=steps,
