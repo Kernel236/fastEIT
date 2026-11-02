@@ -38,7 +38,7 @@ trial = segment_peep_trial(preprocess(load_data("peep_trial.bin"), context=conte
 features = peep_trial_features(trial)
 features.steps          # one row per PEEP step
 features.step_regions   # one row per step and region
-features.summary        # crossing PEEP, best PEEP
+features.summary        # crossing PEEP, best PEEP, R/I (global and by region)
 ```
 
 The object holds everything: `features.trial.steps` (driving pressure and tidal volume of
@@ -105,15 +105,41 @@ curves.
 | `compliance_ml` | tidal volume / driving pressure of the step (it needs no EIT data, so it exists also for a step without analysed breaths) |
 | `compliance_pct_of_best`, `compliance_ml_pct_of_best` | as % of the best step |
 | `collapse`, `overdistension` | Costa method (%), from the median tidal image of the step: pixel compliance, loss as % of the best of each pixel, weighted by the best compliance (Costa 2009, DOI: 10.1007/s00134-009-1447-y; formulas as in Shono and Kotani 2019, DOI: 10.1186/s40560-019-0358-4) |
-| `d_eeli_tiv_vs_previous`, `d_eeli_tiv_vs_first` | change of EELI in tidal volumes: change / TIV of the reference step |
-| `d_eeli_ml_vs_previous`, `d_eeli_ml_vs_first` | the same in mL: × tidal volume of the reference step |
-| `d_compliance_pct_of_best_vs_...`, `d_compliance_ml_pct_of_best_vs_...`, `d_collapse_vs_...`, `d_overdistension_vs_...` | changes vs the previous and the first step, in points |
+| `d_eeli_tiv_vs_previous`, `d_eeli_tiv_vs_first` | change of EELI in tidal volumes: change / TIV of the step at the lower PEEP of the two (Wang 2020, DOI: 10.12659/MSM.922609) |
+| `d_eeli_ml_vs_previous`, `d_eeli_ml_vs_first` | the same in mL: × tidal volume of that step |
+| `d_compliance_pct_of_best_vs_...`, `d_compliance_ml_pct_of_best_vs_...` | changes of compliance vs the previous and the first step, in points of % of the best |
+
+Collapse and overdistension are read on their curves (one value per step); a change between
+two PEEP levels is the difference of two values of the curve.
 
 `step_regions` has, for each step and region, the medians of `eeli`, `tiv` and `share` of
-the analysed breaths, and `tiv_ml`, `compliance` and `compliance_ml` of the step. The
-summary gives the crossing PEEP of collapse and overdistension (linear interpolation; the
-lowest if the curves cross more than once) and the PEEP of the best global compliance in
-EIT units and in mL/cmH2O. Steps with fewer analysed breaths than the minimum of layer 2b
+the analysed breaths, and `tiv_ml`, `compliance` and `compliance_ml` of the step.
+
+The summary is a long table (`region`, `feature`, `value`):
+
+| Feature | Region | Definition |
+|---------|--------|------------|
+| `crossing_peep` | global | PEEP where collapse and overdistension cross (linear interpolation; the lowest if they cross more than once) |
+| `best_peep_compliance`, `best_peep_compliance_ml` | global | PEEP of the best global compliance, in EIT units and in mL/cmH2O |
+| `ri_peep_high`, `ri_peep_low` | global | PEEP of the two steps used for R/I |
+| `ri` | global and each region | recruitment-to-inflation ratio |
+| `recruited_volume_ml` | global and each region | recruited volume (mL, with a tidal volume) |
+
+**Recruitment-to-inflation ratio** (Chen et al., Am J Respir Crit Care Med 2020, DOI:
+10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
+PEEP 5 at least 10 below it (`AnalysisConfig`):
+
+```
+dEELV = (EELI_high - EELI_low) x Vt_low / TIV_low        (Wang 2020)
+recruited volume = dEELV - C_low x dPEEP                 C_low = Vt_low / driving_low
+R/I = (recruited volume / dPEEP) / C_low = (EELI_high - EELI_low) / (C_EIT,low x dPEEP) - 1
+```
+
+The tidal volume cancels in R/I, which needs only EIT and the driving pressure; a region
+uses its own EELI and compliance. The original method reads one expiration after the drop
+of PEEP; here each level is the equilibrium EELI of a step, as in Wang 2020.
+
+Steps with fewer analysed breaths than the minimum of layer 2b
 (`enough` false) are kept, with a warning: filter them in the analysis if needed. If the
 first step has no analysed breaths, the changes vs the first step are NaN.
 
@@ -136,6 +162,11 @@ first step has no analysed breaths, the changes vs the first step are NaN.
   tested: patients are comparable with the same range and steps.
 - Costa: an error common to a step (its driving pressure, the share of the tidal volume
   seen by the slice) appears as collapse or overdistension.
+- R/I mixes recruitment and overdistension (Zhao et al., Crit Care 2023, DOI:
+  10.1186/s13054-023-04520-8); the recruited volume from EIT agreed with the flow-derived
+  one with limits of -182 to +144 mL in pigs (Wang 2020). A region that is almost
+  collapsed at the low PEEP has a small compliance there, and its R/I becomes large: read
+  it with its recruited volume.
 - One lung mask for the whole recording (in the four trials the pixels ventilated at some
   step but outside it carry at most 1-3 % of the TIV); GI not comparable with cut-offs
   computed on other masks.

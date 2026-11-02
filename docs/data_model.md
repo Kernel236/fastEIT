@@ -154,7 +154,7 @@ on `breath_id`, `step` (with `peep`) and `region`.
 | `PeepTrialFeatures.steps` | step | medians of the analysed breaths, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step |
 | `PeepTrialFeatures.step_regions` | step and region | the regional values of each step |
 | `TidalFeatures.summary` | region and index | median and quartiles over the valid breaths |
-| `PeepTrialFeatures.summary` | trial | crossing PEEP, best PEEP |
+| `PeepTrialFeatures.summary` | region and feature | crossing PEEP, best PEEP, R/I and recruited volume (global and by region) |
 
 The flat export, with everything in one table per breath and per step, belongs to the
 next layer (database and export). Details: [`preprocessing.md`](preprocessing.md),

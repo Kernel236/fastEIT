@@ -116,7 +116,8 @@ See [`docs/segmentation.md`](docs/segmentation.md); evidence in
 for a database or R: EELI, TIV, share of ventilation by region, global inhomogeneity,
 centre of ventilation, durations, compliance (in EIT units and, with a tidal volume, in
 mL/cmH2O), and for a PEEP trial the indices of each step, Costa collapse and
-overdistension, the crossing PEEP and the changes between steps.
+overdistension, the crossing PEEP, the changes between steps and the
+recruitment-to-inflation ratio (global and by region).
 
 ```python
 from fasteit.features import peep_trial_features, tidal_features
