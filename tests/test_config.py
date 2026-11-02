@@ -70,3 +70,15 @@ def test_segmentation_config_rejects_impossible_values():
     ]:
         with pytest.raises(ValueError):
             SegmentationConfig(**wrong)
+
+
+def test_analysis_config_ri_levels_of_the_original_method():
+    cfg = AnalysisConfig()
+    assert (cfg.ri_peep_high, cfg.ri_peep_low, cfg.ri_min_peep_drop) == (
+        15.0,
+        5.0,
+        10.0,
+    )
+    for wrong in [{"ri_min_peep_drop": 0}, {"ri_peep_high": 5, "ri_peep_low": 15}]:
+        with pytest.raises(ValueError):
+            AnalysisConfig(**wrong)

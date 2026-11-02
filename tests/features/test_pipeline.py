@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from fasteit.config import AnalysisConfig
 from fasteit.features import peep_trial_features, tidal_features
 from fasteit.features.pipeline import _add_changes
 from fasteit.models import RecordingContext, Segment
@@ -127,22 +128,30 @@ def test_a_phase_without_valid_breaths_keeps_every_region_in_the_summary():
 
 def test_changes_between_steps_with_a_known_answer():
     steps = pd.DataFrame({
-        "eeli": [100.0, 80.0, 50.0], "tiv": [20.0, 25.0, 20.0],
+        "peep": [16.0, 14.0, 12.0], "eeli": [100.0, 80.0, 50.0], "tiv": [20.0, 25.0, 20.0],
         "compliance_pct_of_best": [90.0, 100.0, 80.0],
         "compliance_ml_pct_of_best": [90.0, 100.0, 80.0],
-        "collapse": [0.0, 5.0, 20.0], "overdistension": [30.0, 10.0, 0.0],
     })  # fmt: skip
     c = _add_changes(steps, tidal_volume=np.array([500.0, 500.0, 400.0]))
-    np.testing.assert_allclose(c.d_eeli_tiv_vs_previous, [np.nan, -1.0, -1.2])
-    np.testing.assert_allclose(c.d_eeli_tiv_vs_first, [0.0, -1.0, -2.5])
-    np.testing.assert_allclose(c.d_eeli_ml_vs_previous, [np.nan, -500.0, -600.0])
-    np.testing.assert_allclose(c.d_eeli_ml_vs_first, [0.0, -500.0, -1250.0])
+    # Converted with the TIV and tidal volume of the step at the lower PEEP (each step).
+    np.testing.assert_allclose(c.d_eeli_tiv_vs_previous, [np.nan, -20 / 25, -30 / 20])
+    np.testing.assert_allclose(c.d_eeli_tiv_vs_first, [0.0, -20 / 25, -50 / 20])
+    np.testing.assert_allclose(c.d_eeli_ml_vs_previous, [np.nan, -400.0, -600.0])
+    np.testing.assert_allclose(c.d_eeli_ml_vs_first, [0.0, -400.0, -1000.0])
     np.testing.assert_allclose(
         c.d_compliance_pct_of_best_vs_previous, [np.nan, 10, -20]
     )
     np.testing.assert_allclose(c.d_compliance_pct_of_best_vs_first, [0, 10, -10])
-    np.testing.assert_allclose(c.d_collapse_vs_first, [0, 5, 20])
-    np.testing.assert_allclose(c.d_overdistension_vs_previous, [np.nan, -20, -10])
+
+
+def test_in_an_incremental_trial_the_lower_step_is_the_reference():
+    steps = pd.DataFrame({
+        "peep": [6.0, 8.0], "eeli": [50.0, 80.0], "tiv": [20.0, 25.0],
+        "compliance_pct_of_best": [90.0, 100.0], "compliance_ml_pct_of_best": [90.0, 100.0],
+    })  # fmt: skip
+    c = _add_changes(steps, tidal_volume=np.array([400.0, 500.0]))
+    assert c.d_eeli_tiv_vs_previous[1] == pytest.approx(30 / 20)
+    assert c.d_eeli_ml_vs_previous[1] == pytest.approx(30 / 20 * 400)
 
 
 @pytest.fixture(scope="module")
@@ -170,8 +179,11 @@ def test_step_regions_and_summary(trial_features):
     halves = r[r.region.isin(["ventral", "dorsal"])].groupby("step")
     np.testing.assert_allclose(halves.share.sum(), 1, atol=0.02)
     np.testing.assert_allclose(halves.tiv_ml.sum(), 450, rtol=0.02)
-    summary = trial_features.summary.iloc[0]
-    assert summary.n_steps == 4
+    summary = trial_features.summary
+    assert set(summary.columns) == {"region", "feature", "value"}
+    # Steps at PEEP 12-6: no pair near 15 and 5 with a drop of 10, so no R/I.
+    assert "ri" not in set(summary.feature)
+    assert any("no R/I" in line for line in trial_features.log)
 
 
 def test_layer_3_tables_do_not_copy_what_layers_2_and_2b_measured(trial_features):
@@ -227,12 +239,19 @@ def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
 # --- real PEEP trials (notebook 07, sections 3-4) ---
 
 SET_VT = {"A": 550, "B": 400}
-NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, change of EELI in mL at the end
-    "A_park_bench": (4.7, 6.2, -1734),
-    "A_supine": (6.6, 6.2, -2419),
-    "B_park_bench": (9.9, 8.5, -1441),
-    "B_supine": (12.9, 12.7, -910),
+NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, EELI change in mL at the end, R/I
+    "A_park_bench": (4.7, 6.2, -1928, 0.73),
+    "A_supine": (6.6, 6.2, -2484, 0.91),
+    "B_park_bench": (9.9, 8.5, -1469, 1.42),
+    "B_supine": (12.9, 12.7, -1141, 1.31),
 }
+
+
+def value(features, feature, region="global"):
+    """A value of the summary of a PEEP trial."""
+    summary = features.summary
+    rows = summary[(summary.region == region) & (summary.feature == feature)]
+    return rows.value.iloc[0]
 
 
 @pytest.mark.slow  # about 25 s
@@ -241,7 +260,7 @@ NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, change of EELI in m
     reason="real PEEP trials not available",
 )
 def test_real_peep_trials_give_the_indices_of_notebook_07():
-    for name, (crossing, best_ml, eeli_ml) in NOTEBOOK_07.items():
+    for name, (crossing, best_ml, eeli_ml, ri) in NOTEBOOK_07.items():
         context = RecordingContext(
             protocol="peep_trial", tidal_volume_ml=SET_VT[name[0]]
         )
@@ -249,8 +268,26 @@ def test_real_peep_trials_give_the_indices_of_notebook_07():
             load_data(TEST_FILES / f"PEEP_trial_{name}.bin"), context=context
         )
         features = peep_trial_features(segment_peep_trial(recording))
-        summary = features.summary.iloc[0]
-        assert summary.crossing_peep == pytest.approx(crossing, abs=0.05), name
-        assert summary.best_peep_compliance_ml == pytest.approx(best_ml, abs=0.05), name
+        assert value(features, "crossing_peep") == pytest.approx(crossing, abs=0.05), (
+            name
+        )
+        assert value(features, "best_peep_compliance_ml") == pytest.approx(
+            best_ml, abs=0.05
+        ), name
+        assert value(features, "ri") == pytest.approx(ri, abs=0.01), name
         last = features.steps.d_eeli_ml_vs_first.iloc[-1]
         assert last == pytest.approx(eeli_ml, abs=1), name
+
+
+def test_ri_between_the_steps_of_the_config_globally_and_by_region():
+    recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
+    trial = segment_peep_trial(recording)
+    config = AnalysisConfig(ri_peep_high=12, ri_peep_low=6, ri_min_peep_drop=6)
+    features = peep_trial_features(trial, config)
+    assert value(features, "ri_peep_high") == pytest.approx(12, abs=0.1)
+    assert value(features, "ri_peep_low") == pytest.approx(6, abs=0.1)
+    # The synthetic EELI does not follow the PEEP: no volume is lost, R/I = -1.
+    assert value(features, "ri") == pytest.approx(-1, abs=0.05)
+    volumes = features.summary[features.summary.feature == "recruited_volume_ml"]
+    halves = volumes[volumes.region.isin(["ventral", "dorsal"])].value.sum()
+    assert halves == pytest.approx(value(features, "recruited_volume_ml"), rel=0.02)

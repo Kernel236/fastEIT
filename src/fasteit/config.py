@@ -7,7 +7,7 @@ Structure:
     PreprocessingConfig - layer 2: cardiac filter, breaths, lung mask, regions, pressures
                           and tidal volume of each breath
     SegmentationConfig  - layer 2b: PEEP steps of a PEEP trial and the breaths analysed
-    AnalysisConfig      - layer 3: clinical indices (no parameters yet)
+    AnalysisConfig      - layer 3: clinical indices (recruitment-to-inflation ratio)
     Config              - top-level container for pipeline sections
 
 Rates and frequencies are given per minute here, as read on a monitor; the
@@ -284,13 +284,26 @@ class SegmentationConfig:
 class AnalysisConfig:
     """Parameters of layer 3 (clinical indices).
 
-    Empty: the indices of the first version have no parameter to tune, their
-    definitions are fixed in ``notebooks/07_clinical_indices.ipynb``. New indices with
-    a parameter (e.g. the threshold of silent spaces) will add it here, with its
-    source.
+    The definitions of the indices are fixed in ``notebooks/07_clinical_indices.ipynb``;
+    only the recruitment-to-inflation ratio has parameters.
+
+    Attributes:
+        ri_peep_high, ri_peep_low, ri_min_peep_drop: The R/I of a PEEP trial compares the
+            step nearest to ``ri_peep_high`` with the step nearest to ``ri_peep_low``
+            among those at least ``ri_min_peep_drop`` below it (cmH2O). 15 and 5 are the
+            levels of the original method (Chen et al., Am J Respir Crit Care Med
+            2020;201:178-187, DOI: 10.1164/rccm.201902-0334OC).
     """
 
-    pass
+    ri_peep_high: float = 15.0
+    ri_peep_low: float = 5.0
+    ri_min_peep_drop: float = 10.0
+
+    def __post_init__(self) -> None:
+        if not self.ri_min_peep_drop > 0:
+            raise ValueError("ri_min_peep_drop must be positive.")
+        if not self.ri_peep_high > self.ri_peep_low:
+            raise ValueError("ri_peep_high must be above ri_peep_low.")
 
 
 @dataclass

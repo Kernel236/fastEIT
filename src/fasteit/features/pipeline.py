@@ -12,7 +12,8 @@ Definitions and evidence: notebooks/07_clinical_indices.ipynb (section 5):
 - tidal recording: median and quartiles over the valid breaths;
 - PEEP trial: per step, medians of the analysed breaths, compliance (also as % of the
   best step), Costa collapse and overdistension, changes vs the previous and the
-  first step (EELI in tidal volumes and in mL).
+  first step (EELI in tidal volumes and in mL, compliance); for the trial, the crossing
+  PEEP, the best PEEP and the recruitment-to-inflation ratio, global and by region.
 
 The tables hold the keys (``breath_id``, ``step``, ``peep``, ``region``) and what this
 layer computes; what layers 2 and 2b measured stays in ``recording.breaths``,
@@ -26,12 +27,14 @@ import logging
 import numpy as np
 import pandas as pd
 
+from fasteit.config import AnalysisConfig
 from fasteit.features.breath_indices import (
     centre_of_ventilation,
     global_inhomogeneity,
     tidal_images,
 )
 from fasteit.features.costa import collapse_and_overdistension, crossing_peep
+from fasteit.features.recruitment import recruitment_to_inflation, ri_steps
 from fasteit.models.eit_recording import PHASE, EITRecording, Segment
 from fasteit.models.features import PeepTrialFeatures, TidalFeatures
 from fasteit.models.peep_trial import PeepTrial
@@ -50,10 +53,9 @@ GLOBAL_INDICES = [
 REGIONAL_INDICES = ["eeli", "tiv", "share", "tiv_ml", "compliance", "compliance_ml"]
 # Indices of a PEEP step: the median of its analysed breaths.
 STEP_MEDIANS = ["respiratory_rate", "eeli", "tiv", "gi", "cov_vd", "cov_rl"]
-# Changes between steps, in points (the EELI change is computed apart).
-STEP_CHANGES = [
-    "compliance_pct_of_best", "compliance_ml_pct_of_best", "collapse", "overdistension",
-]  # fmt: skip
+# Changes between steps of the compliance, in points of % of the best step (the EELI
+# change is computed apart).
+STEP_CHANGES = ["compliance_pct_of_best", "compliance_ml_pct_of_best"]
 
 
 # --- small helpers ---
@@ -400,34 +402,105 @@ def _step_pixel_compliance(trial: PeepTrial) -> np.ndarray:
     return np.array(per_step)
 
 
+def _eeli_change(
+    steps: pd.DataFrame,
+    reference: pd.DataFrame | pd.Series,
+    volume: pd.Series,
+    reference_volume: pd.Series | float,
+) -> tuple[pd.Series, pd.Series]:
+    """Change of EELI of each step from a reference step, in tidal volumes and in mL.
+
+    Converted with the TIV and the tidal volume of the step at the lower PEEP of the two,
+    as in Wang et al., Med Sci Monit 2020;26:e922609, DOI: 10.12659/MSM.922609.
+    """
+    this_step_is_lower = steps.peep <= reference.peep
+    tiv_low = steps.tiv.where(this_step_is_lower, reference.tiv)
+    volume_low = volume.where(this_step_is_lower, reference_volume)
+    in_tidal_volumes = (steps.eeli - reference.eeli) / tiv_low
+    return in_tidal_volumes, in_tidal_volumes * volume_low
+
+
 def _add_changes(steps: pd.DataFrame, tidal_volume: np.ndarray) -> pd.DataFrame:
     """Changes vs the previous step and vs the first step.
 
-    EELI in tidal volumes (change of EELI / TIV of the reference step) and in mL (x the
-    tidal volume of the same reference step); compliance in points of % of the best
-    step; collapse and overdistension in points of %.
+    EELI in tidal volumes and in mL (``_eeli_change``); compliance in points of % of the
+    best step.
 
     Args:
-        steps:        One row per step, with ``eeli``, ``tiv`` and the indices.
+        steps:        One row per step, with ``peep``, ``eeli``, ``tiv`` and the indices.
         tidal_volume: Tidal volume of each step (mL), NaN if none.
     """
     previous = steps.shift(1)  # the row of the step before (NaN for the first step)
     first = steps.iloc[0]
     volume = pd.Series(tidal_volume, index=steps.index)
-    volume_previous = volume.shift(1)
 
-    eeli_in_tiv_vs_previous = (steps.eeli - previous.eeli) / previous.tiv
-    eeli_in_tiv_vs_first = (steps.eeli - first.eeli) / first.tiv
+    tiv_vs_previous, ml_vs_previous = _eeli_change(
+        steps, previous, volume, volume.shift(1)
+    )
+    tiv_vs_first, ml_vs_first = _eeli_change(steps, first, volume, volume.iloc[0])
     changes = {
-        "d_eeli_tiv_vs_previous": eeli_in_tiv_vs_previous,
-        "d_eeli_tiv_vs_first": eeli_in_tiv_vs_first,
-        "d_eeli_ml_vs_previous": eeli_in_tiv_vs_previous * volume_previous,
-        "d_eeli_ml_vs_first": eeli_in_tiv_vs_first * volume.iloc[0],
+        "d_eeli_tiv_vs_previous": tiv_vs_previous,
+        "d_eeli_tiv_vs_first": tiv_vs_first,
+        "d_eeli_ml_vs_previous": ml_vs_previous,
+        "d_eeli_ml_vs_first": ml_vs_first,
     }
     for index in STEP_CHANGES:
         changes[f"d_{index}_vs_previous"] = steps[index] - previous[index]
         changes[f"d_{index}_vs_first"] = steps[index] - first[index]
     return pd.concat([steps, pd.DataFrame(changes)], axis=1)
+
+
+def _recruitment_rows(
+    trial: PeepTrial,
+    steps: pd.DataFrame,
+    step_regions: pd.DataFrame,
+    config: AnalysisConfig,
+    log: RunLog,
+) -> list[dict]:
+    """R/I and recruited volume between the steps nearest to the two PEEP levels of the
+    config, globally and for each region (rows of the summary)."""
+    pair = ri_steps(
+        steps.peep.to_numpy(),
+        config.ri_peep_high,
+        config.ri_peep_low,
+        config.ri_min_peep_drop,
+    )
+    if pair is None:
+        log.warning(
+            f"No two steps near PEEP {config.ri_peep_high:g} and {config.ri_peep_low:g} "
+            f"with a drop of at least {config.ri_min_peep_drop:g}: no R/I."
+        )
+        return []
+    high, low = pair
+    peep_high, peep_low = steps.peep[high], steps.peep[low]
+    driving_low = trial.steps.driving_pressure[low]
+    volume_low = trial.steps.tidal_volume[low]
+    log.info(f"R/I between the steps at PEEP {peep_high:.1f} and {peep_low:.1f}.")
+
+    rows = [
+        {"region": "global", "feature": "ri_peep_high", "value": peep_high},
+        {"region": "global", "feature": "ri_peep_low", "value": peep_low},
+    ]
+    ri, recruited = recruitment_to_inflation(
+        steps.eeli[high], steps.eeli[low], steps.tiv[low], driving_low,
+        peep_high - peep_low, volume_low,
+    )  # fmt: skip
+    rows += [
+        {"region": "global", "feature": "ri", "value": ri},
+        {"region": "global", "feature": "recruited_volume_ml", "value": recruited},
+    ]
+    for region, region_steps in step_regions.groupby("region", sort=False):
+        at_high = region_steps[region_steps.step == steps.step[high]].iloc[0]
+        at_low = region_steps[region_steps.step == steps.step[low]].iloc[0]
+        ri, recruited = recruitment_to_inflation(
+            at_high.eeli, at_low.eeli, at_low.tiv, driving_low,
+            peep_high - peep_low, at_low.share * volume_low,
+        )  # fmt: skip
+        rows += [
+            {"region": region, "feature": "ri", "value": ri},
+            {"region": region, "feature": "recruited_volume_ml", "value": recruited},
+        ]
+    return rows
 
 
 def _best_peep(steps: pd.DataFrame, column: str) -> float:
@@ -472,21 +545,27 @@ def _check_steps(
         log.info("No tidal volume: no values in mL.")
 
 
-def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
+def peep_trial_features(
+    trial: PeepTrial, config: AnalysisConfig | None = None
+) -> PeepTrialFeatures:
     """Clinical indices of each breath and of each PEEP step of a PEEP trial.
 
     The indices of a step come from its analysed breaths (``segment_peep_trial()``):
     medians of the breath indices; compliance in EIT units = median TIV / driving
     pressure of the step, in mL/cmH2O = tidal volume / driving pressure of the step
     (both kept: the EIT compliance also sees what changes in the slice); Costa
-    collapse and overdistension from the median tidal image of each step.
+    collapse and overdistension from the median tidal image of each step; the
+    recruitment-to-inflation ratio between the steps nearest to the PEEP levels of the
+    config, globally and by region.
 
     Args:
-        trial: Output of ``segment_peep_trial()``.
+        trial:  Output of ``segment_peep_trial()``.
+        config: Parameters; defaults of ``AnalysisConfig`` if None.
 
     Returns:
         The breath, region, step, step-region and summary tables.
     """
+    config = config if config is not None else AnalysisConfig()
     log = RunLog(logger)
     recording = trial.recording
     if len(trial.breaths) != len(recording.breaths):
@@ -512,17 +591,18 @@ def peep_trial_features(trial: PeepTrial) -> PeepTrialFeatures:
     # 4. Changes between steps, and the summary of the trial.
     steps = _add_changes(steps, trial.steps.tidal_volume.to_numpy(dtype=float))
     crossing = crossing_peep(steps.peep, steps.collapse, steps.overdistension)
-    summary = pd.DataFrame(
-        [
-            {
-                "n_steps": len(steps),
-                "crossing_peep": crossing,
-                "best_peep_compliance": _best_peep(steps, "compliance"),
-                "best_peep_compliance_ml": _best_peep(steps, "compliance_ml"),
-            }
-        ]
-    )
+    summary_rows = [
+        {"region": "global", "feature": "crossing_peep", "value": crossing},
+        {"region": "global", "feature": "best_peep_compliance",
+         "value": _best_peep(steps, "compliance")},
+        {"region": "global", "feature": "best_peep_compliance_ml",
+         "value": _best_peep(steps, "compliance_ml")},
+    ]  # fmt: skip
     _check_steps(steps, trial, crossing, log)
+
+    # 5. Recruitment-to-inflation ratio, globally and by region.
+    summary_rows += _recruitment_rows(trial, steps, step_regions, config, log)
+    summary = pd.DataFrame(summary_rows)
 
     return PeepTrialFeatures(
         trial=trial,
