@@ -1,0 +1,69 @@
+# Documentation site (MkDocs + mike on GitHub Pages, branch gh-pages)
+# https://github.com/jimporter/mike
+#
+# - pull request: build with --strict (a broken link or docstring fails it);
+# - push to dev: deploy the site of dev as version "dev";
+# - tag v*: deploy the release as version major.minor, alias "latest", the default.
+
+name: docs
+
+on:
+  pull_request:
+    branches: ["dev", "main"]
+  push:
+    branches: ["dev"]
+    tags: ["v*"]
+
+# One deploy at a time: each one commits to gh-pages.
+concurrency:
+  group: docs-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  cancel-in-progress: false
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # mike commits to the gh-pages branch
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
+
+      - name: Install package and docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+
+      - name: Build
+        run: mkdocs build --strict
+
+      - name: Configure git
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy dev
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        run: |
+          mike deploy --push dev
+          # Before the first release the root of the site opens dev.
+          if ! mike list latest > /dev/null 2>&1; then
+            mike set-default --push dev
+          fi
+
+      - name: Deploy release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"                    # e.g. 0.5.0a1
+          VERSION="$(echo "$TAG" | cut -d. -f1,2)"      # e.g. 0.5
+          mike deploy --push --update-aliases --title "$TAG" "$VERSION" latest
+          mike set-default --push latest
