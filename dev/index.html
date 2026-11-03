@@ -1295,14 +1295,18 @@ clinical decisions.</p>
 </div>
 <h2 id="from-a-file-to-the-clinical-indices">From a file to the clinical indices<a class="headerlink" href="#from-a-file-to-the-clinical-indices" title="Permanent link">&para;</a></h2>
 <p>Each layer returns one object that holds the object of the layer before it:</p>
-<div class="highlight"><pre><span></span><code><span class="n">file</span> <span class="o">.</span><span class="n">bin</span> <span class="o">/</span> <span class="o">.</span><span class="n">eit</span> <span class="o">/</span> <span class="o">.</span><span class="n">asc</span> <span class="o">/</span> <span class="n">Timpel</span>
- <span class="err">└─</span> <span class="n">load_data</span><span class="p">()</span> <span class="err">───────────►</span> <span class="n">ReconstructedFrameData</span>   <span class="n">layer</span> <span class="mi">1</span><span class="p">:</span> <span class="n">the</span> <span class="n">file</span> <span class="k">as</span> <span class="n">it</span> <span class="ow">is</span>
+<div class="highlight"><pre><span></span><code><span class="n">Dräger</span> <span class="o">.</span><span class="n">bin</span><span class="p">,</span> <span class="n">Timpel</span> <span class="o">.</span><span class="n">csv</span> <span class="o">/</span> <span class="o">.</span><span class="n">txt</span> <span class="o">/</span> <span class="o">.</span><span class="n">asc</span>
+ <span class="err">└─</span> <span class="n">load_data</span><span class="p">()</span> <span class="err">───────────►</span> <span class="n">ReconstructedFrameData</span>   <span class="n">layer</span> <span class="mi">1</span><span class="p">:</span> <span class="n">the</span> <span class="n">file</span> <span class="k">as</span> <span class="n">it</span> <span class="ow">is</span> <span class="p">(</span><span class="mi">32</span><span class="n">x32</span> <span class="n">images</span><span class="p">)</span>
      <span class="err">└─</span> <span class="n">preprocess</span><span class="p">()</span> <span class="err">──────►</span> <span class="n">EITRecording</span>             <span class="n">layer</span> <span class="mi">2</span><span class="p">:</span> <span class="n">the</span> <span class="n">measured</span> <span class="n">breaths</span>
           <span class="err">├─</span> <span class="n">tidal_features</span><span class="p">()</span> <span class="err">───────►</span> <span class="n">TidalFeatures</span>       <span class="n">layer</span> <span class="mi">3</span><span class="p">:</span> <span class="n">indices</span>
           <span class="err">└─</span> <span class="n">segment_peep_trial</span><span class="p">()</span> <span class="err">───►</span> <span class="n">PeepTrial</span>           <span class="n">layer</span> <span class="mi">2</span><span class="n">b</span><span class="p">:</span> <span class="n">PEEP</span> <span class="n">steps</span>
                <span class="err">└─</span> <span class="n">peep_trial_features</span><span class="p">()</span> <span class="err">►</span> <span class="n">PeepTrialFeatures</span>  <span class="n">layer</span> <span class="mi">3</span><span class="p">:</span> <span class="n">indices</span>
                     <span class="err">└─</span> <span class="n">recording_tables</span><span class="p">()</span> <span class="err">►</span> <span class="n">tables</span><span class="p">,</span> <span class="n">CSV</span>        <span class="n">layer</span> <span class="mi">4</span><span class="p">:</span> <span class="n">export</span>
 </code></pre></div>
+<p>The pipeline starts from reconstructed images. A Dräger <code>.eit</code> file holds the raw
+measurements (<code>RawImpedanceData</code>, 208 transimpedances per frame) and needs a
+reconstruction first; a Dräger <code>.asc</code> export holds signals only (<code>ContinuousSignalData</code>)
+and has no images (<a href="parsers/">parsers</a>).</p>
 <table>
 <thead>
 <tr>

@@ -1424,8 +1424,10 @@
 
 
 <h1 id="fasteit---preprocessing-layer">fastEIT - Preprocessing Layer<a class="headerlink" href="#fasteit---preprocessing-layer" title="Permanent link">&para;</a></h1>
-<p>The preprocessing layer (layer 2) takes one parsed recording with pixels and returns
-an <code>EITRecording</code> ready for breath-by-breath analysis. It is the same for every
+<p>The preprocessing layer (layer 2) takes one parsed recording with pixels
+(<code>ReconstructedFrameData</code>: a Dräger <code>.bin</code> or a Timpel export) and returns an
+<code>EITRecording</code> ready for breath-by-breath analysis. A Dräger <code>.eit</code> (raw measurements)
+needs a reconstruction first; a Dräger <code>.asc</code> has no images. It is the same for every
 protocol (tidal breathing, PEEP trial): each breath gets its EIT timings and quality,
 and its ventilator values (PEEP, plateau, driving pressure, tidal volume). The
 segmentation by protocol and the clinical indices (EELI, TIV, GI, CoV, compliance)
