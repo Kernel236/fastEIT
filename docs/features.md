@@ -159,30 +159,25 @@ first step has no analysed breaths, the changes vs the first step are NaN.
 
 ## 5. Limits
 
-- Tested on four decremental PEEP trials from two patients (volume control, tidal volume as
-  set) and on synthetic data with a known answer; Costa implemented from its published
-  formulas, not checked against another implementation.
-- EELI is in arbitrary units: only its changes are comparable. The change in mL assumes the
-  same impedance per mL for the tidal and the end-expiratory change (Hinz et al.,
-  Intensive Care Med 2003, DOI: 10.1007/s00134-002-1555-4, show the linear relation of the
-  changes); in the four trials it is 1.6-2.3 times compliance × change of PEEP, cause
-  unknown: exploratory, not a measurement of lung volume.
-- The mL of a region are the tidal volume shared as in the imaged slice (they sum to the
-  tidal volume): a distribution, not independent measurements.
-- Compliance from the airway pressure is that of the respiratory system, in passive
-  patients; regional compliance is a partial compliance with the same driving pressure
-  for every region.
+- Tested on four decremental PEEP trials from two patients and on synthetic data with a
+  known answer; Costa is implemented from its published formulas, not checked against
+  another implementation.
+- EELI is in arbitrary units: only its changes count. Its change in mL assumes the same
+  impedance per mL for the tidal and the end-expiratory change (Hinz et al., Intensive
+  Care Med 2003, DOI: 10.1007/s00134-002-1555-4); in the four trials it was 1.6-2.3
+  times compliance × change of PEEP, cause unknown, so it is exploratory.
+- The mL of a region share the tidal volume as seen in the imaged slice: a distribution,
+  not independent measurements.
+- Compliance is that of the respiratory system, in a passive patient; regional compliance
+  uses the same driving pressure for every region.
 - % of the best step, Costa and the changes vs the first step depend on the PEEP range
-  tested: patients are comparable with the same range and steps.
-- Costa: an error common to a step (its driving pressure, the share of the tidal volume
-  seen by the slice) appears as collapse or overdistension.
+  tested: compare patients with the same steps.
+- Costa reads an error common to a step (its driving pressure, the share of the tidal
+  volume seen by the slice) as collapse or overdistension.
 - R/I mixes recruitment and overdistension (Zhao et al., Crit Care 2023, DOI:
-  10.1186/s13054-023-04520-8); the recruited volume from EIT agreed with the flow-derived
-  one with limits of -182 to +144 mL in pigs (Wang 2020). A region that is almost
-  collapsed at the low PEEP has a small compliance there, and its R/I becomes large: read
-  it with its recruited volume.
-- One lung mask for the whole recording (in the four trials the pixels ventilated at some
-  step but outside it carry at most 1-3 % of the TIV); GI not comparable with cut-offs
-  computed on other masks.
+  10.1186/s13054-023-04520-8) and becomes large in a region almost collapsed at the low
+  PEEP.
+- One lung mask for the whole recording: GI is not comparable with cut-offs computed on
+  other masks.
 
 *Research use only - not a medical device.*

@@ -151,11 +151,7 @@ Dräger mbar, 1 mbar = 1.02 cmH2O). The channels they come from are
 ## 6. Limits
 
 - Tested on four decremental trials from two patients (volume control with an
-  end-inspiratory pause, Dräger PressurePod); Timpel and Medibus pressures, holds, pressure
-  control and the measured tidal volume on synthetic data only. Limits of the pressures and
-  tidal volume of each breath: [`preprocessing.md`](preprocessing.md), section 6.
-- Thresholds chosen in mbar (notebook 06), applied in cmH2O (2 % apart).
-- Short steps at a low rate leave few breaths after the first 15 s (4-9 at 11-13
-  breaths/min with 40 s steps): a warning reports it.
+  end-inspiratory pause, Dräger PressurePod); other ventilation modes and pressure
+  sources on synthetic data only.
 
 *Research use only - not a medical device.*

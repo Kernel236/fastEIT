@@ -19,9 +19,7 @@ Limitations (to keep in mind when reading Ti, Te and the respiratory rate):
 - patient-ventilator asynchrony is not detected: an ineffective effort is usually
   not a peak, and two inspirations without a valley between them become one breath;
 - the 15 s baseline follows slow EELI drift, but after a sudden EELI step (PEEP
-  change, recruitment) the breaths within about 15 s of the step are unreliable;
-- without a heart rate the cardiac component is not removed, so small breaths and
-  the exact position of valleys and peaks are less reliable.
+  change, recruitment) the breaths within about 15 s of the step are unreliable.
 """
 
 from __future__ import annotations

@@ -11,7 +11,6 @@ Only recordings that can be analysed (Dräger `.bin`, Timpel) have tables.
 3. [Tables](#3-tables)
 4. [Column names](#4-column-names)
 5. [CSV files](#5-csv-files)
-6. [Limits](#6-limits)
 
 ---
 
@@ -138,17 +137,7 @@ of the file.
 `write_csv(tables, folder)` writes one file per table: UTF-8, comma separated,
 decimal point, an empty cell for a missing value, booleans as 1 / 0. The files are
 read without options by R (`readr::read_csv()`), SPSS (File > Import Data > CSV), Excel
-and Python. Files with the same name in the folder are replaced.
+and Python. Files with the same name in the folder are replaced. The column `file` is the
+name of the source file: rename files whose names hold names or dates before sharing the
+tables.
 
-## 6. Limits
-
-- The tables are built from the results of `tidal_features()` or `peep_trial_features()`:
-  the export does not read the files or run the analysis.
-- The images (pixels, lung mask, tidal maps) are not exported.
-- `file` is the name of the source file: if it holds names or dates, rename the files
-  before sharing the tables.
-- `peep_set` needs the levels of the protocol
-  (`SegmentationConfig.peep_levels`); without them it is empty
-  ([`segmentation.md`](segmentation.md)).
-- Only Dräger `.bin` and Timpel recordings are analysed; `.eit` and `.asc` give no tables
-  ([supported files](getting_started.md#supported-files)).
