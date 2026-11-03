@@ -124,8 +124,11 @@ def test_asc_parser_raises_if_no_waveform_header(tmp_path):
 def _real_draeger_asc() -> Path | None:
     """The first Draeger .asc export in the local test files, whatever its name."""
     for path in sorted(Path("src/fasteit/test_files").glob("*.asc")):
-        if detect_vendor_from_tabular(path) == "draeger":
-            return path
+        try:
+            if detect_vendor_from_tabular(path) == "draeger":
+                return path
+        except ValueError:  # an .asc that is not a known export
+            continue
     return None
 
 
