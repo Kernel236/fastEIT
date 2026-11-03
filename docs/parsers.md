@@ -244,10 +244,7 @@ sourced from PulmoVista 500 IFU SW 1.3n:
 
 **Spatial quality note**: a generic circular mesh does not replicate Dräger's
 proprietary reconstruction. Both algorithms produce correct relative distributions,
-but the vendor `.bin` uses a device-specific mesh and matrix. A data-driven
-reconstruction that learns the Dräger mapping from paired `.eit`/`.bin` recordings
-is being developed on the `feat/ml-reconstruction` branch and is not part of this
-release.
+but the vendor `.bin` uses a device-specific mesh and matrix.
 
 ---
 

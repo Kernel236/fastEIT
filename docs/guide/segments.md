@@ -37,9 +37,17 @@ inside, not the exact sample.
 
 ```python
 from fasteit.features import tidal_features
+from fasteit.models import Segment
+from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 from fasteit.segmentation import segment_peep_trial
 
+raw = load_data("P02_T0.bin")
+segments = [
+    Segment(0, 290, "phase", "tidal"),
+    Segment(300, 1500, "phase", "peep_trial"),
+    Segment(285, 300, label="movement"),
+]
 recording = preprocess(raw, exclusions=[s for s in segments if s.category == "exclusion"])
 baseline = tidal_features(recording, phase=segments[0])
 trial = segment_peep_trial(recording, phase=segments[1])
@@ -47,7 +55,10 @@ trial = segment_peep_trial(recording, phase=segments[1])
 
 Steps placed by hand go to `segment_peep_trial(recording, peep_steps=[...])`, with the
 PEEP of each step and, if known, its plateau or driving pressure and tidal volume in
-`parameters`.
+`parameters`. The levels of the protocol (`SegmentationConfig(peep_levels=...)`) give
+each step its `peep_set`: see [analyse a recording](analyse.md#2-a-peep-trial).
+
+Only Dräger `.bin` and Timpel files (reconstructed images) can be cut and analysed.
 
 ## Rules
 

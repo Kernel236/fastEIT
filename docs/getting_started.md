@@ -27,8 +27,8 @@ The analysis starts from reconstructed images (32x32 pixels per frame):
 | Dräger `.asc` export | `ContinuousSignalData` (signals only) | no: no images |
 
 `load_data(path)` recognises the vendor and the format by itself. Large `.bin` and `.eit`
-files are memory-mapped: loading reads the header only, and the frames are read when
-they are used.
+files are not read into memory at once: loading reads the header only, and the frames
+are read when they are used.
 
 ## The four steps
 
@@ -47,7 +47,9 @@ write_csv(recording_tables(features), "results/")                  # 4. tables f
 
 Each step returns an object that keeps the one before it, with a `log` of what was done.
 A PEEP trial adds one step (`segment_peep_trial`) between 2 and 3. The
-[user guide](guide/analyse.md) goes through both protocols, cutting a recording and
-checking the result with figures.
+user guide goes through the steps: [analyse a recording](guide/analyse.md) (both
+protocols), [cut a recording](guide/segments.md), [review figures](review.md) and
+[export for R and SPSS](export.md). How each layer works is under "How it works"
+([data model](data_model.md)).
 
 *Research use only - not a medical device.*

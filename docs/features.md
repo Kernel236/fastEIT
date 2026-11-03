@@ -11,6 +11,8 @@ The definitions and the evidence are in `notebooks/07_clinical_indices.ipynb` (1
 recordings, four PEEP trials); on the four trials the functions below give the crossing
 PEEP, the best PEEP and the change of EELI in mL of the notebook.
 
+Steps for a user: [analyse a recording](guide/analyse.md).
+
 1. [Entry points](#1-entry-points)
 2. [Indices of a breath](#2-indices-of-a-breath)
 3. [Tidal recordings](#3-tidal-recordings)
@@ -92,7 +94,8 @@ healthy.
 ## 3. Tidal recordings
 
 `tidal_features(recording, phase=None)` gives the indices of every breath, and a summary
-over the **valid breaths** (no quality flag, not excluded) inside the tidal phase: one
+over the **valid breaths** (no quality flag, not excluded) inside the tidal phase (a
+breath is inside when it starts and ends inside it): one
 row per region (`"global"` for the whole lung) and index (`feature`), with `median`, `q1`,
 `q3` and `n_breaths` (breaths with a value). The tidal volume of the breaths is the one
 typed in `RecordingContext.tidal_volume_ml`, otherwise the one measured on the ventilator

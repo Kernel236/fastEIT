@@ -1,4 +1,4 @@
-# fastEIT - Review figures
+# Review figures
 
 Two figures to look at a recording before trusting its numbers (`fasteit.plotting`).
 Colours and markers are the same in every figure.
@@ -7,6 +7,7 @@ Colours and markers are the same in every figure.
 
 ```python
 from fasteit.models import Segment
+from fasteit.parsers.loader import load_data
 from fasteit.plotting import plot_segmentation
 
 segments = [
@@ -30,6 +31,8 @@ from fasteit.plotting import plot_breaths
 plot_breaths(trial)        # also a recording, TidalFeatures or PeepTrialFeatures
 ```
 
+Here `trial` is the result of `segment_peep_trial` ([analyse a recording](guide/analyse.md#2-a-peep-trial)).
+
 Each breath is a marker at its end-inspiratory peak on the signal the breaths were found
 on:
 
@@ -46,4 +49,6 @@ drawn below with the level of each step. On the right, the tidal image inside th
 mask (patient right on the left, ventral on top) and the count of each kind of breath.
 
 Both functions return a matplotlib figure: `fig.savefig("P01_T0_breaths.png")` keeps one
-image per recording next to the exported tables.
+image per recording next to the exported tables ([export](export.md)). The times to
+write in the segments are found as in [cut a recording](guide/segments.md). The figures
+work on reconstructed images only (Dräger `.bin`, Timpel).

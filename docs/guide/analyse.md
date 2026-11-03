@@ -32,7 +32,7 @@ features = tidal_features(recording)
 |------|-------|
 | breaths found, with times, quality flags, PEEP, plateau, driving pressure, tidal volume | `recording.breaths` |
 | EELI, TIV, GI, centre of ventilation, compliance of each breath | `features.breaths` |
-| the same by region (ventral, dorsal, right, left, layers, quadrants) | `features.regions` |
+| the same by region: ventral, dorsal, right, left (the objects also hold layers and quadrants; the exported tables have the four halves only) | `features.regions` |
 | median and quartiles over the valid breaths | `features.summary` |
 | what each step did, with warnings | `recording.log`, `features.log` |
 
@@ -45,6 +45,9 @@ curves) the values in mL stay empty and compliance is in EIT units only.
 ```python
 from fasteit.config import SegmentationConfig
 from fasteit.features import peep_trial_features
+from fasteit.models import RecordingContext
+from fasteit.parsers.loader import load_data
+from fasteit.preprocessing import preprocess
 from fasteit.segmentation import segment_peep_trial
 
 recording = preprocess(
@@ -68,7 +71,9 @@ features = peep_trial_features(trial)
 
 The steps are found on the airway pressure. Without a pressure signal, or to choose the
 breaths yourself, place the steps by hand ([cut a recording](segments.md)). With the
-levels of the protocol, crossing PEEP and best PEEP are given on those levels.
+levels of the protocol (`peep_levels`), each step also gets the level of the protocol
+(`peep_set`), and crossing PEEP and best PEEP are given on those levels. Without
+`peep_levels`, `peep_set` is empty and the measured PEEP is used.
 
 ## 3. A recording with two parts
 
@@ -77,7 +82,11 @@ A baseline at one PEEP and a PEEP trial in the same file: preprocess the whole f
 start of the file; [cut a recording](segments.md) shows how to find them.
 
 ```python
-from fasteit.models import Segment
+from fasteit.features import peep_trial_features, tidal_features
+from fasteit.models import RecordingContext, Segment
+from fasteit.parsers.loader import load_data
+from fasteit.preprocessing import preprocess
+from fasteit.segmentation import segment_peep_trial
 
 recording = preprocess(
     load_data("P02_T0.bin"),
@@ -89,8 +98,10 @@ trial = segment_peep_trial(recording, phase=Segment(300, 1500, "phase", "peep_tr
 trial_features = peep_trial_features(trial)
 ```
 
-Each part is an analysis of its own; in the exported tables they are told apart by the
-name of the phase (section 5).
+Each part is an analysis of its own. A breath belongs to a part when it starts and ends
+inside it. In the exported tables the parts are told apart by the name of the phase
+(section 5). The exclusion is widened by 0.5 s on each side: see
+[cut a recording](segments.md#rules).
 
 ## 4. Check the result
 
@@ -119,4 +130,9 @@ write_csv(tables, "results/study/")
 ```
 
 Every row starts with `patient_id`, `label` and `phase`, so the tables of many recordings
-can be put together and joined with the clinical data ([export](../export.md)).
+can be put together and joined with the clinical data ([export](../export.md)). Only
+Dräger `.bin` and Timpel files can be analysed; `.eit` and `.asc` are read but not
+analysed ([supported files](../getting_started.md#supported-files)).
+
+How each step works: [preprocessing](../preprocessing.md),
+[segmentation](../segmentation.md), [clinical indices](../features.md).
