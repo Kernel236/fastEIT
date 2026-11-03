@@ -10,6 +10,7 @@ from fasteit.parsers.draeger import DragerBinParser
 from fasteit.parsers.draeger.bin.draeger_dtypes import (
     FRAME_BASE_DTYPE,
     FRAME_EXT_DTYPE,
+    MEDIBUS_BASE_FIELDS,
     MEDIBUS_EXT_FIELDS,
 )
 
@@ -223,3 +224,24 @@ def test_a_pod_channel_with_values_means_a_pressure_pod(tmp_path):
 def test_base_frames_have_no_pressure_pod(tmp_path):
     data = DragerBinParser().parse(_write_bin(tmp_path, FRAME_BASE_DTYPE))
     assert data.metadata["has_pressure_pod"] is False
+
+
+# ── Medibus values read as written ───────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "dtype, fields",
+    [(FRAME_BASE_DTYPE, MEDIBUS_BASE_FIELDS), (FRAME_EXT_DTYPE, MEDIBUS_EXT_FIELDS)],
+)
+def test_medibus_values_are_read_as_written(tmp_path, dtype, fields):
+    path = _write_bin(tmp_path, dtype, n_frames=6)
+    frames = np.fromfile(path, dtype=dtype)
+    # A different value for every channel and frame: a shifted or swapped channel fails.
+    written = (
+        np.arange(len(fields))[None, :] * 1.5 + np.arange(6)[:, None] * 0.25
+    ).astype("<f4")
+    frames["medibus_data"] = written
+    frames.tofile(path)
+    data = DragerBinParser().parse(path)
+    for index, (name, _unit, _continuous) in enumerate(fields):
+        np.testing.assert_array_equal(data.aux_signals[name], written[:, index])
