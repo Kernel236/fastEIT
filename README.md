@@ -2,223 +2,80 @@
 
 | | |
 |:---|:---|
-| **Status** | ![Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-orange) |
+| **Status** | ![Alpha](https://img.shields.io/badge/Status-Alpha-orange) |
 | **License** | ![Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg) |
 | **Python** | ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue) |
 | **Docs** | [![Docs](https://github.com/Kernel236/fastEIT/actions/workflows/docs.yml/badge.svg)](https://kernel236.github.io/fastEIT/) |
 | **Coverage** | [![codecov](https://codecov.io/gh/Kernel236/fastEIT/branch/dev/graph/badge.svg)](https://codecov.io/gh/Kernel236/fastEIT) |
-| **CI / CD** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) ![deploy](https://img.shields.io/badge/deploy-todo-lightgrey) |
+| **CI** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) |
 
-Python library for parsing and preprocessing Electrical Impedance Tomography (EIT) data
-from the Dräger PulmoVista 500 and from Timpel. Provides structured data containers, a
-breath-by-breath preprocessing, clinical indices of tidal recordings and PEEP trials, and
-tables for R and databases, for research in mechanical ventilation and lung monitoring.
+Python library for Electrical Impedance Tomography (EIT) recordings of the Dräger
+PulmoVista 500 and of Timpel: it reads the files, finds and checks each breath, computes
+the clinical indices of tidal recordings and PEEP trials, and writes them as tables for R,
+SPSS and databases. For research in mechanical ventilation and lung monitoring.
 
-## Installation
+**Documentation: [kernel236.github.io/fastEIT](https://kernel236.github.io/fastEIT/)**
 
-**Users:**
+## Install
 
 ```bash
 pip install git+https://github.com/Kernel236/fastEIT.git
 ```
 
-**Developers:**
-
-```bash
-git clone https://github.com/Kernel236/fastEIT.git
-cd fastEIT
-pip install -e ".[dev]"
-```
-
-## Quick start
+## From a file to the tables
 
 ```python
-from fasteit.parsers.loader import load_data
-
-# Dräger .bin - reconstructed 32×32 frames + Medibus signals
-data = load_data("patient01.bin")
-print(data.n_frames, data.fs)       # e.g. 11500, 50.0
-print(data.pixels.shape)            # (11500, 32, 32)
-print(data.global_signal[:10])      # first 10 frames global EIT signal
-
-# Dräger .eit - raw transimpedances for pyEIT reconstruction
-data = load_data("patient01.eit")
-print(data.n_frames, data.fs)          # e.g. 11500, 50.0
-print(data.measurements.shape)        # (11500, 208) - 208 = 16 inj × 13 meas
-print(list(data.aux_signals.keys()))   # timestamp, trans_A, trans_B, I_real, V_diff, medibus, ...
-
-# Dräger .asc - continuous frame-by-frame signal export
-data = load_data("patient01.asc")
-print(data.n_frames, data.fs)       # e.g. 11500, 50.0
-print(data.table.columns.tolist())  # all available signal columns
-
-# Timpel .csv - reconstructed frames + aux signals
-data = load_data("recording.csv")
-print(data.n_frames, data.fs)       # e.g. 9000, 50.0
-print(data.pixels.shape)            # (9000, 32, 32)
-```
-
-## Preprocessing
-
-`preprocess()` turns a recording with pixels (Dräger `.bin`, Timpel) into an
-`EITRecording` ready for breath-by-breath analysis: cardiac filter, breaths with
-quality flags, exclusions, lung mask, regions of interest and regional signals, and
-the ventilator values of each breath (PEEP, plateau, driving pressure, tidal volume).
-Auxiliary signals get the same units for every vendor: pressures in cmH2O, flow in
-L/s, volumes in mL.
-
-```python
-from fasteit.config import PreprocessingConfig
-from fasteit.models import RecordingContext, Segment
+from fasteit.export import recording_tables, write_csv
+from fasteit.features import tidal_features
+from fasteit.models import RecordingContext
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 
-raw = load_data("patient01.bin")
-recording = preprocess(
-    raw,
-    config=PreprocessingConfig(heart_rate_bpm=85),  # optional: enables the MDN filter
-    exclusions=[Segment(120, 180, label="cough")],  # optional: parts to exclude
-    context=RecordingContext(patient_id="PZ01", position="supine"),
-)
-recording.breaths            # one row per breath: times, quality flags, is_valid,
-                             # PEEP, plateau, driving pressure, tidal volume
-recording.lung_mask          # (32, 32) ventilated lung
-recording.roi_signals        # ventral/dorsal, layers, right/left, quadrants
-recording.aux                # pressures, flow, volume, device markers ("no data" as NaN)
-print("\n".join(recording.log))  # what each step did, with warnings
+raw = load_data("recording.bin")                                   # 1. read the file
+recording = preprocess(raw, context=RecordingContext(patient_id="P01", label="T0"))  # 2. breaths
+features = tidal_features(recording)                               # 3. clinical indices
+write_csv(recording_tables(features), "results/")                  # 4. tables for R and SPSS
 ```
 
-The steps reimplement [eitprocessing](https://github.com/EIT-ALIVE/eitprocessing)
-v1.8.8 (Somhorst et al., *JOSS* 2026, DOI: 10.21105/joss.08179) and are checked
-against it; the evidence for every choice is in
-`notebooks/05_preprocessing_choices.ipynb`. See
-[`docs/preprocessing.md`](docs/preprocessing.md).
+A PEEP trial adds `segment_peep_trial` between steps 2 and 3. The
+[user guide](https://kernel236.github.io/fastEIT/) covers both protocols, cutting a
+recording, the review figures and the export.
 
-## PEEP trial segmentation
+## What it does
 
-`segment_peep_trial()` splits a preprocessed PEEP trial into PEEP steps, from the PEEP
-of each breath (PressurePod, Medibus, Timpel) or from steps placed by hand, chooses the
-stable breaths to analyse in each step and gives each step its driving pressure and
-tidal volume (measured, or typed by hand).
+| Step | |
+|------|---|
+| Files | Dräger `.bin` and Timpel exports (reconstructed images) are analysed; Dräger `.eit` (raw measurements) and `.asc` (signals) are read |
+| Breaths | cardiac filter, breath detection with quality flags, exclusions, lung mask, regions; PEEP, plateau, driving pressure and tidal volume of each breath, in cmH2O and mL |
+| PEEP trials | steps from the airway pressure or placed by hand, at the PEEP levels of the protocol; breaths analysed, driving pressure and tidal volume of each step |
+| Clinical indices | EELI, TIV, share by region, global inhomogeneity, centre of ventilation, compliance; Costa collapse and overdistension, crossing PEEP, best PEEP, recruitment-to-inflation ratio |
+| Tables | one row per recording, breath and PEEP step, keyed by patient, recording and phase; CSV for R, SPSS and Excel |
+| Figures | the segments on the file, and the breaths used for the indices |
 
-```python
-from fasteit.segmentation import segment_peep_trial
+Every method states its source (paper and DOI, or an evidence notebook in `notebooks/`),
+and the steps reimplemented from [eitprocessing](https://github.com/EIT-ALIVE/eitprocessing)
+are checked against it.
 
-trial = segment_peep_trial(recording)
-trial.steps              # PEEP level, breaths analysed, driving pressure, tidal volume
-trial.analysed_breaths   # breaths to analyse, with PEEP, plateau, driving pressure
-```
+## Status
 
-See [`docs/segmentation.md`](docs/segmentation.md); evidence in
-`notebooks/06_peep_trial_segmentation.ipynb`.
+Alpha: the pipeline from a file to the tables is complete and tested; names and tables
+may still change before 1.0.
 
-## Clinical indices
-
-`tidal_features()` and `peep_trial_features()` compute the clinical indices as tables ready
-for a database or R: EELI, TIV, share of ventilation by region, global inhomogeneity,
-centre of ventilation, respiratory rate, compliance (in EIT units and, with a tidal volume, in
-mL/cmH2O), and for a PEEP trial the indices of each step, Costa collapse and
-overdistension, the crossing PEEP, the changes between steps and the
-recruitment-to-inflation ratio (global and by region).
-
-```python
-from fasteit.features import peep_trial_features, tidal_features
-
-tidal = tidal_features(recording)
-tidal.breaths, tidal.regions, tidal.summary   # per breath, per breath and region, summary
-
-features = peep_trial_features(trial)
-features.steps, features.step_regions, features.summary
-```
-
-See [`docs/features.md`](docs/features.md); evidence in
-`notebooks/07_clinical_indices.ipynb`.
-
-## Export
-
-`recording_tables()` turns the indices of one analysis (one phase of a recording) into
-flat tables, one row per recording, breath and PEEP step, each row keyed by
-`patient_id`, `label` (the recording, e.g. a time point) and `phase`;
-`combine_tables()` puts a whole study together and `write_csv()` writes files that R,
-SPSS and Excel read without options.
-
-```python
-from fasteit.export import combine_tables, recording_tables, write_csv
-
-tables = combine_tables([recording_tables(tidal), recording_tables(features)])
-write_csv(tables, "results/")   # recordings, breaths, steps, settings, log
-```
-
-See [`docs/export.md`](docs/export.md).
-
-## Project status
-
-Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation, clinical indices
-and export implemented.
-
-**Data model** (`models/`):
-
-| Class | Content | Produced by |
-|-------|---------|-------------|
-| `ReconstructedFrameData` | 32×32 pixel matrices + synchronized signals | Dräger `.bin`, Timpel `.csv`/`.txt`/`.asc` |
-| `ContinuousSignalData` | Signal table, one row per frame | `.asc` |
-| `RawImpedanceData` | Calibrated transimpedances + aux signals for pyEIT | `.eit` |
-| `EITRecording` | Preprocessed recording: breaths with their ventilator values, lung mask, regions, log | `preprocess()` |
-| `PeepTrial` | PEEP steps, breaths analysed, driving pressure and tidal volume of each step | `segment_peep_trial()` |
-| `TidalFeatures`, `PeepTrialFeatures` | Clinical indices per breath, region and step, and a summary | `tidal_features()`, `peep_trial_features()` |
-
-**Parsers** (`parsers/`):
-
-| Parser | Status | Formats |
-|--------|--------|---------|
-| `DragerBinParser` | Implemented | `.bin` - base frame (4358 b) and PressurePod frame (4382 b); registry-driven, new frame sizes require only a dtype + one entry |
-| `DragerAscParser` | Implemented | `.asc`, `.txt`, `.csv` - continuous waveform export |
-| `DragerEitParser` | Implemented | `.eit` - ASCII header + binary frames (5495 b/frame); 208 calibrated transimpedances + Medibus aux signals |
-| `TimpelTabularParser` | Implemented | `.csv`, `.txt`, `.asc` - reconstructed frame export |
-
-All parsers are accessible via the single entry point `load_data(path)`, which
-auto-detects vendor and format.
-
-`RawImpedanceData` from `.eit` files can be passed to pyEIT through
-`reconstruct_greit()` (optional dependency: `pip install fasteit[pyeit]`; implements
-GREIT - Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03).
-This function is far from reliable: it was written only to show one possible
-application of the `.eit` parser. It uses a generic circular mesh, so the images do
-not match the Dräger reconstruction stored in `.bin` files.
-
-```python
-from fasteit.parsers.draeger.eit.eit_pyeit_bridge import reconstruct_greit
-
-data = load_data("patient01.eit")
-images = reconstruct_greit(data.measurements)  # (N_frames, 32, 32)
-```
-
-## Documentation
-
-The site [kernel236.github.io/fastEIT](https://kernel236.github.io/fastEIT/) gathers the
-guides below and the API reference generated from the docstrings, one version per release
-and one for `dev`. The same guides in the repository:
-
-- [`docs/data_model.md`](docs/data_model.md) - data containers of every layer, and where each value is stored
-- [`docs/parsers.md`](docs/parsers.md) - parser reference: formats, calibration, GREIT bridge, loader utilities
-- [`docs/parsing_layer.md`](docs/parsing_layer.md) - architecture and extension recipes
-- [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, ventilator values of each breath, units, outputs, logs and limits
-- [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, driving pressure and tidal volume, phases
-- [`docs/features.md`](docs/features.md) - clinical indices: definitions, tables and limits
-- [`docs/export.md`](docs/export.md) - export: keys, tables, column names, CSV files for R and SPSS
-- [`docs/review.md`](docs/review.md) - review figures: segments before preprocessing, breaths used after
+`.eit` files can be reconstructed with pyEIT through `reconstruct_greit()` (optional:
+`pip install "fasteit[pyeit] @ git+https://github.com/Kernel236/fastEIT.git"`; GREIT,
+Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03). This bridge is
+experimental: it uses a generic circular mesh, and its images do not match the Dräger
+reconstruction stored in `.bin` files.
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to
-report bugs, request features, and submit pull requests.
-
-This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md) code of conduct.
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). This project follows the
+[Contributor Covenant](CODE_OF_CONDUCT.md) code of conduct.
 
 ## Disclaimer
 
 This software is for **research purposes only**. It is not a medical device and has not been
-validated for clinical decision-making. Use in clinical settings requires independent validation.
+validated for clinical decision-making.
 
 ## License
 
