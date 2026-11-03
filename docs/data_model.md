@@ -131,14 +131,19 @@ Each layer returns one object that holds the object of the layer before it, so t
 one holds everything:
 
 ```
-file .bin / .csv
- └─ load_data() ───────────► ReconstructedFrameData   layer 1: the file as it is
+Dräger .bin, Timpel .csv / .txt / .asc
+ └─ load_data() ───────────► ReconstructedFrameData   layer 1: the file as it is (32x32 images)
      └─ preprocess() ──────► EITRecording             layer 2: the measured breaths
           ├─ tidal_features() ───────► TidalFeatures       layer 3: indices
           └─ segment_peep_trial() ───► PeepTrial           layer 2b: PEEP steps
                └─ peep_trial_features() ► PeepTrialFeatures  layer 3: indices
                     └─ recording_tables() ► tables, CSV        layer 4: export
 ```
+
+The pipeline starts from reconstructed images. A Dräger `.eit` file holds the raw
+measurements (`RawImpedanceData`, 208 transimpedances per frame) and needs a
+reconstruction first; a Dräger `.asc` export holds signals only (`ContinuousSignalData`)
+and has no images ([parsers](parsers.md)).
 
 Each value is stored once, in the table of the layer that produces it; tables are joined
 on `breath_id`, `step` (with `peep`) and `region`.

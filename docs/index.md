@@ -13,14 +13,19 @@ clinical indices of tidal recordings and PEEP trials, as tables ready for a data
 Each layer returns one object that holds the object of the layer before it:
 
 ```
-file .bin / .eit / .asc / Timpel
- └─ load_data() ───────────► ReconstructedFrameData   layer 1: the file as it is
+Dräger .bin, Timpel .csv / .txt / .asc
+ └─ load_data() ───────────► ReconstructedFrameData   layer 1: the file as it is (32x32 images)
      └─ preprocess() ──────► EITRecording             layer 2: the measured breaths
           ├─ tidal_features() ───────► TidalFeatures       layer 3: indices
           └─ segment_peep_trial() ───► PeepTrial           layer 2b: PEEP steps
                └─ peep_trial_features() ► PeepTrialFeatures  layer 3: indices
                     └─ recording_tables() ► tables, CSV        layer 4: export
 ```
+
+The pipeline starts from reconstructed images. A Dräger `.eit` file holds the raw
+measurements (`RawImpedanceData`, 208 transimpedances per frame) and needs a
+reconstruction first; a Dräger `.asc` export holds signals only (`ContinuousSignalData`)
+and has no images ([parsers](parsers.md)).
 
 | Layer | What it does | Guide |
 |-------|--------------|-------|

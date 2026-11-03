@@ -1,7 +1,9 @@
 # fastEIT - Preprocessing Layer
 
-The preprocessing layer (layer 2) takes one parsed recording with pixels and returns
-an `EITRecording` ready for breath-by-breath analysis. It is the same for every
+The preprocessing layer (layer 2) takes one parsed recording with pixels
+(`ReconstructedFrameData`: a Dräger `.bin` or a Timpel export) and returns an
+`EITRecording` ready for breath-by-breath analysis. A Dräger `.eit` (raw measurements)
+needs a reconstruction first; a Dräger `.asc` has no images. It is the same for every
 protocol (tidal breathing, PEEP trial): each breath gets its EIT timings and quality,
 and its ventilator values (PEEP, plateau, driving pressure, tidal volume). The
 segmentation by protocol and the clinical indices (EELI, TIV, GI, CoV, compliance)
