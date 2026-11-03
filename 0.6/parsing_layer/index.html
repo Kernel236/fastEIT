@@ -1,0 +1,2465 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Parsing, preprocessing and clinical indices of electrical impedance tomography recordings">
+      
+      
+      
+        <link rel="canonical" href="https://kernel236.github.io/fastEIT/latest/parsing_layer/">
+      
+      
+        <link rel="prev" href="../api/config/">
+      
+      
+        <link rel="next" href="../contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Parsing layer architecture - fastEIT</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#fasteit---parsing-layer-how-it-works-and-how-to-extend-it" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="fastEIT" class="md-header__button md-logo" aria-label="fastEIT" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            fastEIT
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Parsing layer architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Kernel236/fastEIT" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kernel236/fastEIT
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting_started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../data_model/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  How it works
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="fastEIT" class="md-nav__button md-logo" aria-label="fastEIT" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    fastEIT
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Kernel236/fastEIT" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Kernel236/fastEIT
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install and supported files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/analyse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analyse a recording
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cut a recording
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export for R and SPSS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How it works
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parsers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsers (layer 1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing (layer 2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PEEP trial segmentation (layer 2b)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical indices (layer 3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/parsers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsing layer architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parsing layer architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-how-the-parsing-layer-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. How the parsing layer works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. How the parsing layer works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-single-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The single entry point
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detection-parsersdetectionpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection (parsers/detection.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser-registry-parsersloaderpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser registry (parsers/loader.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baseparser-and-parse_safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseParser and parse_safe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-flow-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data flow summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-file-loaders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-file loaders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-add-a-new-dräger-bin-frame-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Add a new Dräger .bin frame size
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Add a new Dräger .bin frame size">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1---define-the-dtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Define the dtype
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2---register-the-format-spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Register the format spec
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-add-a-new-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Add a new parser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Add a new parser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1---detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2---schema-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Schema definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3---parser-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - Parser class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4---register-in-loader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - Register in loader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5---export-from-package-__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 - Export from package __init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#note-same-extension-different-vendors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Note: same extension, different vendors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-testing-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Testing checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. File layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../license/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    License
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-how-the-parsing-layer-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. How the parsing layer works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. How the parsing layer works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-single-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The single entry point
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detection-parsersdetectionpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection (parsers/detection.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser-registry-parsersloaderpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser registry (parsers/loader.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baseparser-and-parse_safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseParser and parse_safe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-flow-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data flow summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-file-loaders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-file loaders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-add-a-new-dräger-bin-frame-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Add a new Dräger .bin frame size
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Add a new Dräger .bin frame size">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1---define-the-dtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Define the dtype
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2---register-the-format-spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Register the format spec
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-add-a-new-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Add a new parser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Add a new parser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1---detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2---schema-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Schema definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3---parser-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - Parser class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4---register-in-loader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - Register in loader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5---export-from-package-__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 - Export from package __init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#note-same-extension-different-vendors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Note: same extension, different vendors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-testing-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Testing checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. File layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Kernel236/fastEIT/edit/dev/docs/parsing_layer.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="fasteit---parsing-layer-how-it-works-and-how-to-extend-it">fastEIT - Parsing Layer: How It Works and How to Extend It<a class="headerlink" href="#fasteit---parsing-layer-how-it-works-and-how-to-extend-it" title="Permanent link">&para;</a></h1>
+<p>This document explains the architecture of the parsing layer and provides
+step-by-step recipes for the most common extension tasks:</p>
+<ol>
+<li><a href="#1-how-the-parsing-layer-works">How the parsing layer works</a></li>
+<li><a href="#2-add-a-new-dräger-bin-frame-size">Add a new Dräger <code>.bin</code> frame size</a></li>
+<li><a href="#3-add-a-new-parser">Add a new parser</a></li>
+<li><a href="#4-testing-checklist">Testing checklist</a></li>
+<li><a href="#5-file-layout">File layout</a></li>
+</ol>
+<hr />
+<h2 id="1-how-the-parsing-layer-works">1. How the parsing layer works<a class="headerlink" href="#1-how-the-parsing-layer-works" title="Permanent link">&para;</a></h2>
+<h3 id="the-single-entry-point">The single entry point<a class="headerlink" href="#the-single-entry-point" title="Permanent link">&para;</a></h3>
+<p>Everything starts from <code>load_data(path)</code> in <code>parsers/loader.py</code>. You call it
+with a file path; it returns the right data container without you knowing which
+parser was used.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">)</span>   <span class="c1"># → ReconstructedFrameData</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.asc"</span><span class="p">)</span>   <span class="c1"># → ContinuousSignalData</span>
+</code></pre></div>
+<p>Internally it does three things in sequence:</p>
+<div class="highlight"><pre><span></span><code><span class="mf">1.</span> <span class="n">detect_vendor_and_format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>   <span class="err">←</span> <span class="n">What</span> <span class="n">file</span> <span class="ow">is</span> <span class="n">this</span><span class="err">?</span>
+<span class="mf">2.</span> <span class="n">build_parser_from_detection</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="err">←</span> <span class="n">Which</span> <span class="n">parser</span> <span class="n">handles</span> <span class="n">it</span><span class="err">?</span>
+<span class="mf">3.</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_safe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>           <span class="err">←</span> <span class="n">Read</span> <span class="ow">and</span> <span class="k">return</span> <span class="n">data</span>
+</code></pre></div>
+<h3 id="detection-parsersdetectionpy">Detection (<code>parsers/detection.py</code>)<a class="headerlink" href="#detection-parsersdetectionpy" title="Permanent link">&para;</a></h3>
+<p>Detection maps a file to <code>(vendor, extension, optional_bin_format)</code>.
+The strategy depends on the extension:</p>
+<table>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Strategy</th>
+<th>How it works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.bin</code></td>
+<td>size-based</td>
+<td><code>file_size % frame_size == 0</code> for each registered <code>FormatSpec</code></td>
+</tr>
+<tr>
+<td><code>.eit</code></td>
+<td>header-based</td>
+<td>reads first bytes, looks for ASCII magic string for each registered <code>HeaderFormatSpec</code></td>
+</tr>
+<tr>
+<td><code>.asc</code> <code>.txt</code> <code>.csv</code></td>
+<td>content-based</td>
+<td>reads first 40 lines, looks for a vendor keyword; Timpel is also recognised by its 1030-column row</td>
+</tr>
+</tbody>
+</table>
+<p><code>.bin</code> is special: there is no header. The only way to identify the format is
+that the file size must be an exact multiple of the frame size in bytes. The
+<code>BIN_FORMAT_SPECS</code> list in <code>parsers/bin_formats.py</code> holds every known frame
+size. If only one spec matches → that's the format. If zero match → error.
+If more than one match → <code>AmbiguousFormatError</code> (rare, requires two frame
+sizes that divide the same file size).</p>
+<h3 id="parser-registry-parsersloaderpy">Parser registry (<code>parsers/loader.py</code>)<a class="headerlink" href="#parser-registry-parsersloaderpy" title="Permanent link">&para;</a></h3>
+<p><code>default_parser_registry()</code> returns a plain dict:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".bin"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerBinParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".eit"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerEitParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".asc"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerAscParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".txt"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerAscParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".csv"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerAscParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"timpel"</span><span class="p">,</span>  <span class="s2">".csv"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">TimpelTabularParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"timpel"</span><span class="p">,</span>  <span class="s2">".txt"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">TimpelTabularParser</span><span class="p">(),</span>
+    <span class="p">(</span><span class="s2">"timpel"</span><span class="p">,</span>  <span class="s2">".asc"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">TimpelTabularParser</span><span class="p">(),</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Key = <code>(vendor_lowercase, extension_with_dot_lowercase)</code>.
+Value = zero-argument factory that returns a fresh parser instance.</p>
+<h3 id="baseparser-and-parse_safe"><code>BaseParser</code> and <code>parse_safe</code><a class="headerlink" href="#baseparser-and-parse_safe" title="Permanent link">&para;</a></h3>
+<p>Every parser inherits from <code>BaseParser</code> (Template Method pattern):</p>
+<div class="highlight"><pre><span></span><code><span class="n">BaseParser</span>
+  <span class="err">├──</span> <span class="n">validate</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="err">→</span> <span class="nb">bool</span>        <span class="err">←</span> <span class="n">you</span> <span class="n">implement</span> <span class="n">this</span>
+  <span class="err">├──</span> <span class="n">parse</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="err">→</span> <span class="n">BaseData</span>       <span class="err">←</span> <span class="n">you</span> <span class="n">implement</span> <span class="n">this</span>
+  <span class="err">└──</span> <span class="n">parse_safe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="err">→</span> <span class="n">BaseData</span>  <span class="err">←</span> <span class="n">free</span><span class="p">:</span> <span class="n">validates</span> <span class="n">then</span> <span class="n">parses</span>
+</code></pre></div>
+<p><code>parse_safe</code> raises <code>FileNotFoundError</code> if the file is missing and
+<code>ValueError</code> if <code>validate()</code> returns False. Callers always use <code>parse_safe</code>
+(or <code>load_data</code>, which calls it). Direct <code>parse()</code> skips validation and is
+used internally or in tests.</p>
+<h3 id="data-flow-summary">Data flow summary<a class="headerlink" href="#data-flow-summary" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">)</span>
+    <span class="err">│</span>
+    <span class="err">├─</span> <span class="n">detect_vendor_and_format</span><span class="p">()</span>
+    <span class="err">│</span>   <span class="err">└─</span> <span class="n">file_size</span> <span class="mi">4358000</span> <span class="o">%</span> <span class="mi">4358</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="err">│</span>       <span class="err">→</span> <span class="n">FormatSpec</span><span class="p">(</span><span class="s2">"Draeger_base_4358"</span><span class="p">,</span> <span class="n">vendor</span><span class="o">=</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="n">frame_size</span><span class="o">=</span><span class="mi">4358</span><span class="p">)</span>
+    <span class="err">│</span>       <span class="err">→</span> <span class="n">FileDetection</span><span class="p">(</span><span class="n">extension</span><span class="o">=</span><span class="s2">".bin"</span><span class="p">,</span> <span class="n">vendor</span><span class="o">=</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="n">bin_format</span><span class="o">=</span><span class="n">spec</span><span class="p">)</span>
+    <span class="err">│</span>
+    <span class="err">├─</span> <span class="n">build_parser_from_detection</span><span class="p">()</span>
+    <span class="err">│</span>   <span class="err">└─</span> <span class="n">registry</span><span class="p">[(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".bin"</span><span class="p">)]</span> <span class="err">→</span> <span class="n">DragerBinParser</span><span class="p">()</span>
+    <span class="err">│</span>
+    <span class="err">├─</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_safe</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">)</span>
+    <span class="err">│</span>   <span class="err">├─</span> <span class="n">validate</span><span class="p">()</span> <span class="err">→</span> <span class="n">file</span> <span class="n">exists</span><span class="p">,</span> <span class="n">size</span> <span class="n">divisible</span> <span class="n">by</span> <span class="n">known</span> <span class="n">frame</span> <span class="n">size</span> <span class="err">→</span> <span class="kc">True</span>
+    <span class="err">│</span>   <span class="err">└─</span> <span class="n">parse</span><span class="p">()</span>
+    <span class="err">│</span>       <span class="err">├─</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span> <span class="k">with</span> <span class="n">spec</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="err">│</span>       <span class="err">├─</span> <span class="n">fs</span> <span class="n">estimation</span> <span class="kn">from</span><span class="w"> </span><span class="nn">timestamps</span>
+    <span class="err">│</span>       <span class="err">└─</span> <span class="n">ReconstructedFrameData</span><span class="p">(</span><span class="n">frames</span><span class="p">,</span> <span class="n">aux_signals</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+    <span class="err">│</span>
+    <span class="err">└─</span> <span class="n">attach</span> <span class="n">detected</span> <span class="n">vendor</span><span class="o">/</span><span class="n">extension</span> <span class="n">to</span> <span class="n">data</span><span class="o">.</span><span class="n">metadata</span>
+       <span class="k">return</span> <span class="n">ReconstructedFrameData</span>
+</code></pre></div>
+<h3 id="multi-file-loaders">Multi-file loaders<a class="headerlink" href="#multi-file-loaders" title="Permanent link">&para;</a></h3>
+<p>Two convenience wrappers built on top of <code>load_data()</code>:</p>
+<p><strong><code>load_many(paths)</code></strong> - takes an explicit list of paths, returns a list of
+<code>BaseData</code> in the same order. Vendor and format can be mixed freely.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_many</span>
+
+<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_many</span><span class="p">([</span>
+    <span class="s2">"patient01.bin"</span><span class="p">,</span>
+    <span class="s2">"patient02.bin"</span><span class="p">,</span>
+    <span class="s2">"patient01.asc"</span><span class="p">,</span>
+<span class="p">])</span>
+</code></pre></div>
+<p><strong><code>load_folder(folder, pattern="*")</code></strong> - scans a directory (alphabetically),
+parses every file that has a registered parser, and <strong>skips</strong> files that raise
+an error (no registered parser, malformed file, wrong extension). Each skipped
+file prints a one-line message to <code>stderr</code>; the scan is never aborted.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_folder</span>
+
+<span class="c1"># All files in a folder (mixed formats)</span>
+<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_folder</span><span class="p">(</span><span class="s2">"/data/session01/"</span><span class="p">)</span>
+
+<span class="c1"># Only .bin files</span>
+<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_folder</span><span class="p">(</span><span class="s2">"/data/session01/"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">"*.bin"</span><span class="p">)</span>
+
+<span class="c1"># Recursive search</span>
+<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_folder</span><span class="p">(</span><span class="s2">"/data/"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">"**/*.bin"</span><span class="p">)</span>
+</code></pre></div>
+<p>Both functions accept the same optional <code>registry=</code> argument as <code>load_data()</code>,
+making it easy to inject a custom parser registry for testing or for formats
+not yet registered by default.</p>
+<hr />
+<h2 id="2-add-a-new-dräger-bin-frame-size">2. Add a new Dräger <code>.bin</code> frame size<a class="headerlink" href="#2-add-a-new-dräger-bin-frame-size" title="Permanent link">&para;</a></h2>
+<p>If a new PulmoVista firmware introduces a new frame layout (e.g., 4406
+bytes with 6 additional Medibus fields).</p>
+<p><strong>Files to change: 2. Everything else is automatic.</strong></p>
+<h3 id="step-1---define-the-dtype">Step 1 - Define the dtype<a class="headerlink" href="#step-1---define-the-dtype" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/fasteit/parsers/draeger/bin/draeger_dtypes.py</code></p>
+<p>Add the new structured dtype and field list following the existing pattern.
+The layout must sum exactly to the new frame size - verify with a comment.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># New extended frame (4406 bytes) - hypothetical example</span>
+<span class="n">FRAME_NEWEXT_DTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+    <span class="p">(</span><span class="s2">"ts"</span><span class="p">,</span>           <span class="s2">"&lt;f8"</span><span class="p">),</span>          <span class="c1">#   8 bytes</span>
+    <span class="p">(</span><span class="s2">"dummy"</span><span class="p">,</span>        <span class="s2">"&lt;f4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
+    <span class="p">(</span><span class="s2">"pixels"</span><span class="p">,</span>       <span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)),</span><span class="c1"># 4096 bytes</span>
+    <span class="p">(</span><span class="s2">"min_max_flag"</span><span class="p">,</span> <span class="s2">"&lt;i4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
+    <span class="p">(</span><span class="s2">"event_marker"</span><span class="p">,</span> <span class="s2">"&lt;i4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
+    <span class="p">(</span><span class="s2">"event_text"</span><span class="p">,</span>   <span class="s2">"S30"</span><span class="p">),</span>          <span class="c1">#  30 bytes</span>
+    <span class="p">(</span><span class="s2">"timing_error"</span><span class="p">,</span> <span class="s2">"&lt;i4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
+    <span class="p">(</span><span class="s2">"medibus_data"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="p">(</span><span class="mi">64</span><span class="p">,)),</span>   <span class="c1"># 256 bytes  ← was 208 or 232</span>
+<span class="p">])</span>
+<span class="c1"># Total: 8+4+4096+4+4+30+4+256 = 4406 bytes</span>
+
+<span class="n">MEDIBUS_NEWEXT_FIELDS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="n">_MEDIBUS_COMMON</span> <span class="o">+</span> <span class="p">[</span>
+    <span class="c1"># idx 51: first new field</span>
+    <span class="p">(</span><span class="s2">"high_pressure"</span><span class="p">,</span> <span class="s2">"mbar"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+    <span class="c1"># idx 52-63: remaining new fields ...</span>
+<span class="p">]</span>
+
+<span class="n">MEDIBUS_NEWEXT_INDEX</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">MEDIBUS_NEWEXT_FIELDS</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Rule:</strong> the frame layout must be byte-exact. Add the arithmetic comment
+(<code># Total: ...</code>) and verify it matches the new frame size before continuing.</p>
+<h3 id="step-2---register-the-format-spec">Step 2 - Register the format spec<a class="headerlink" href="#step-2---register-the-format-spec" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/fasteit/parsers/bin_formats.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.draeger.bin.draeger_dtypes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FRAME_NEWEXT_DTYPE</span><span class="p">,</span>
+    <span class="n">MEDIBUS_NEWEXT_FIELDS</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">BIN_FORMAT_SPECS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FormatSpec</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">FormatSpec</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"Draeger_base_4358"</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">),</span>
+    <span class="n">FormatSpec</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"Draeger_ext_4382"</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">),</span>
+    <span class="n">FormatSpec</span><span class="p">(</span>                                      <span class="c1"># ← add this</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"Draeger_newext_4406"</span><span class="p">,</span>
+        <span class="n">vendor</span><span class="o">=</span><span class="s2">"draeger"</span><span class="p">,</span>
+        <span class="n">frame_size_bytes</span><span class="o">=</span><span class="mi">4406</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">FRAME_NEWEXT_DTYPE</span><span class="p">,</span>
+        <span class="n">medibus_fields</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">MEDIBUS_NEWEXT_FIELDS</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><strong>That's it.</strong> <code>detect_bin_format_from_size()</code> picks it up automatically.
+<code>DragerBinParser.parse()</code> uses <code>spec.dtype</code> and <code>spec.medibus_fields</code> from
+the spec - no parser changes needed.</p>
+<hr />
+<h2 id="3-add-a-new-parser">3. Add a new parser<a class="headerlink" href="#3-add-a-new-parser" title="Permanent link">&para;</a></h2>
+<p>This recipe covers any combination: new vendor or existing vendor, binary or
+tabular. The five steps are always the same; only the content of steps 1 and 2
+differs by format type.</p>
+<p><strong>Return type by format:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Return type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Binary frame sequence</td>
+<td><code>ReconstructedFrameData</code></td>
+<td>Dräger <code>.bin</code>, AcmEIT <code>.acm</code></td>
+</tr>
+<tr>
+<td>Tabular (CSV / TXT), signals only</td>
+<td><code>ContinuousSignalData</code></td>
+<td>Dräger <code>.asc</code>, Hamilton export, SERVO-U export, capnograph</td>
+</tr>
+<tr>
+<td>Tabular with pixel columns</td>
+<td><code>ReconstructedFrameData</code></td>
+<td>Timpel <code>.csv</code></td>
+</tr>
+</tbody>
+</table>
+<p>Tabular parsers are common for any device that exports to a plain-text table -
+including standalone ventilators (Hamilton, Maquet SERVO, Dräger Evita) that
+export continuous waveforms (Flow, Paw, Volume) and/or breath-averaged
+parameters (TV, RR, PEEP, compliance) in the same file.</p>
+<p><strong>Files to change: 4-5.</strong></p>
+<hr />
+<h3 id="step-1---detection">Step 1 - Detection<a class="headerlink" href="#step-1---detection" title="Permanent link">&para;</a></h3>
+<p>Detection works the same way for all three file families: <strong>register a spec, the
+generic function finds it automatically</strong>. You rarely need to touch <code>detection.py</code>.</p>
+<hr />
+<p><strong><code>.eit</code>-style (header + binary frames, same <code>.eit</code> extension, new vendor)</strong></p>
+<p>File: <code>src/fasteit/parsers/header_formats.py</code></p>
+<p>Just add a <code>HeaderFormatSpec</code> and append it to <code>HEADER_FORMAT_SPECS</code>.
+<code>detect_vendor_from_eit_header()</code> iterates the list and returns the first match -
+no changes to <code>detection.py</code> needed.</p>
+<div class="highlight"><pre><span></span><code><span class="n">CAREFUSION_EIT_SPEC</span> <span class="o">=</span> <span class="n">HeaderFormatSpec</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"Carefusion_EIT_v1"</span><span class="p">,</span>
+    <span class="n">vendor</span><span class="o">=</span><span class="s2">"carefusion"</span><span class="p">,</span>
+    <span class="n">magic_string</span><span class="o">=</span><span class="s2">"CareFusion"</span><span class="p">,</span>      <span class="c1"># ASCII substring in first magic_search_bytes bytes</span>
+    <span class="n">magic_search_bytes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
+    <span class="n">frame_size_bytes</span><span class="o">=</span><span class="mi">5120</span><span class="p">,</span>          <span class="c1"># byte-exact frame size for this firmware</span>
+    <span class="n">n_electrodes</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">n_measurements</span><span class="o">=</span><span class="mi">208</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">HEADER_FORMAT_SPECS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">HeaderFormatSpec</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">DRAEGER_EIT_HEADER_SPEC</span><span class="p">,</span>
+    <span class="n">CAREFUSION_EIT_SPEC</span><span class="p">,</span>            <span class="c1"># ← add here; detection is automatic</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><code>HeaderFormatSpec</code> fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>magic_string</code></td>
+<td>ASCII substring searched in the first <code>magic_search_bytes</code></td>
+</tr>
+<tr>
+<td><code>magic_search_bytes</code></td>
+<td>How many bytes to read for detection (keep it small)</td>
+</tr>
+<tr>
+<td><code>encoding</code></td>
+<td>Header text encoding (usually <code>"latin-1"</code> or <code>"utf-8"</code>)</td>
+</tr>
+<tr>
+<td><code>frame_size_bytes</code></td>
+<td>Byte-exact size of one binary frame - used by the parser</td>
+</tr>
+<tr>
+<td><code>n_electrodes</code> / <code>n_measurements</code></td>
+<td>Protocol geometry metadata</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong><code>.eit</code>-style but with a new extension (e.g. <code>.acm</code>)</strong></p>
+<p>Add one branch in <code>detect_vendor_and_format()</code> that calls the same generic
+<code>detect_vendor_from_eit_header()</code> (if the magic-string approach works for this format):</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># In detect_vendor_and_format() - detection.py:</span>
+<span class="k">if</span> <span class="n">extension</span> <span class="o">==</span> <span class="s2">".acm"</span><span class="p">:</span>
+    <span class="n">vendor</span> <span class="o">=</span> <span class="n">detect_vendor_from_eit_header</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>  <span class="c1"># reuses HEADER_FORMAT_SPECS</span>
+    <span class="k">return</span> <span class="n">FileDetection</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span> <span class="n">vendor</span><span class="o">=</span><span class="n">vendor</span><span class="p">)</span>
+</code></pre></div>
+<p>Then add the <code>HeaderFormatSpec</code> to <code>HEADER_FORMAT_SPECS</code> as above.</p>
+<hr />
+<p><strong>Binary without a header (size-based, <code>.bin</code>)</strong></p>
+<p>Add a <code>FormatSpec</code> to <code>BIN_FORMAT_SPECS</code> (see <a href="#2-add-a-new-dräger-bin-frame-size">section 2</a>).
+No changes to <code>detection.py</code> needed.</p>
+<hr />
+<p><strong>Tabular (CSV / TXT / ASC)</strong></p>
+<p>File: <code>src/fasteit/parsers/detection.py</code> - extend <code>detect_vendor_from_tabular()</code>
+with a keyword found in the first 40 lines:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># In detect_vendor_from_tabular():</span>
+<span class="k">if</span> <span class="s2">"hamilton medical"</span> <span class="ow">in</span> <span class="n">normalized</span><span class="p">:</span>
+    <span class="k">return</span> <span class="s2">"hamilton"</span>
+</code></pre></div>
+<hr />
+<h3 id="step-2---schema-definition">Step 2 - Schema definition<a class="headerlink" href="#step-2---schema-definition" title="Permanent link">&para;</a></h3>
+<p><strong>Binary</strong> - define a numpy structured dtype (byte-exact) and a Medibus-style
+field list. File: <code>src/fasteit/parsers/acmeit/acmeit_dtypes.py</code> (new)</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">ACMEIT_FRAME_DTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+    <span class="p">(</span><span class="s2">"ts"</span><span class="p">,</span>     <span class="s2">"&lt;f8"</span><span class="p">),</span>           <span class="c1">#    8 bytes</span>
+    <span class="p">(</span><span class="s2">"pixels"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)),</span> <span class="c1"># 4096 bytes</span>
+    <span class="p">(</span><span class="s2">"flow"</span><span class="p">,</span>   <span class="s2">"&lt;f4"</span><span class="p">),</span>           <span class="c1">#    4 bytes</span>
+    <span class="p">(</span><span class="s2">"paw"</span><span class="p">,</span>    <span class="s2">"&lt;f4"</span><span class="p">),</span>           <span class="c1">#    4 bytes</span>
+<span class="p">])</span>
+<span class="c1"># Total: 8 + 4096 + 4 + 4 = 4112 bytes</span>
+</code></pre></div>
+<p><strong>Tabular</strong> - define a <code>(snake_case_name, unit, is_continuous)</code> field list.
+<em>(Optional but recommended - makes the schema self-documenting and testable.)</em>
+File: <code>src/fasteit/parsers/hamilton/hamilton_dtypes.py</code> (new)</p>
+<div class="highlight"><pre><span></span><code><span class="n">HAMILTON_FIELDS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">"flow"</span><span class="p">,</span>             <span class="s2">"L/min"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>   <span class="c1"># continuous waveform</span>
+    <span class="p">(</span><span class="s2">"airway_pressure"</span><span class="p">,</span>  <span class="s2">"mbar"</span><span class="p">,</span>  <span class="kc">True</span><span class="p">),</span>   <span class="c1"># continuous waveform</span>
+    <span class="p">(</span><span class="s2">"volume"</span><span class="p">,</span>           <span class="s2">"mL"</span><span class="p">,</span>    <span class="kc">True</span><span class="p">),</span>   <span class="c1"># continuous waveform</span>
+    <span class="p">(</span><span class="s2">"respiratory_rate"</span><span class="p">,</span> <span class="s2">"/min"</span><span class="p">,</span>  <span class="kc">False</span><span class="p">),</span>  <span class="c1"># breath-averaged</span>
+    <span class="p">(</span><span class="s2">"tidal_volume"</span><span class="p">,</span>     <span class="s2">"mL"</span><span class="p">,</span>    <span class="kc">False</span><span class="p">),</span>  <span class="c1"># breath-averaged</span>
+    <span class="p">(</span><span class="s2">"peep"</span><span class="p">,</span>             <span class="s2">"mbar"</span><span class="p">,</span>  <span class="kc">False</span><span class="p">),</span>  <span class="c1"># breath-averaged</span>
+<span class="p">]</span>
+</code></pre></div>
+<p>The <code>is_continuous</code> flag lets downstream code select only waveforms or only
+breath-averaged values without touching the parser.</p>
+<hr />
+<h3 id="step-3---parser-class">Step 3 - Parser class<a class="headerlink" href="#step-3---parser-class" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/fasteit/parsers/&lt;vendor&gt;/&lt;vendor&gt;_parser.py</code> (new)</p>
+<p>The structure is always the same: <code>validate()</code> + <code>parse()</code>.</p>
+<p><strong>Binary parser:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models.reconstructed_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReconstructedFrameData</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseParser</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AcmEitParser</span><span class="p">(</span><span class="n">BaseParser</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># e.g. check magic bytes or frame-size divisibility</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReconstructedFrameData</span><span class="p">:</span>
+        <span class="c1"># np.memmap with ACMEIT_FRAME_DTYPE, fs estimation ...</span>
+        <span class="c1"># (keep sentinel values as-is: NaN replacement belongs to preprocessing)</span>
+        <span class="k">return</span> <span class="n">ReconstructedFrameData</span><span class="p">(</span>
+            <span class="n">frames</span><span class="o">=</span><span class="n">frames</span><span class="p">,</span>
+            <span class="n">aux_signals</span><span class="o">=</span><span class="n">aux_signals</span><span class="p">,</span>
+            <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+            <span class="n">file_format</span><span class="o">=</span><span class="s2">"acm"</span><span class="p">,</span>
+        <span class="p">)</span>
+</code></pre></div>
+<p><strong>Tabular parser:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models.continuous_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContinuousSignalData</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.detection</span><span class="w"> </span><span class="kn">import</span> <span class="n">detect_vendor_from_tabular</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">HamiltonParser</span><span class="p">(</span><span class="n">BaseParser</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">detect_vendor_from_tabular</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"hamilton"</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContinuousSignalData</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+        <span class="c1"># Locate the column-header row (skip any prose header above it)</span>
+        <span class="n">header_idx</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"Time"</span><span class="p">)</span>  <span class="c1"># adapt to real format</span>
+        <span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">header_idx</span><span class="p">:])),</span>
+            <span class="n">sep</span><span class="o">=</span><span class="s2">";"</span><span class="p">,</span>            <span class="c1"># or "\t" - check the real file</span>
+            <span class="n">decimal</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span>
+            <span class="n">na_values</span><span class="o">=</span><span class="p">[</span><span class="s2">"-"</span><span class="p">,</span> <span class="s2">"---"</span><span class="p">],</span>
+            <span class="n">index_col</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">" "</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+
+        <span class="n">fs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">"time"</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"time"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">median</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fs</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span>  <span class="c1"># time assumed already in seconds</span>
+
+        <span class="k">return</span> <span class="n">ContinuousSignalData</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+            <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+            <span class="n">file_format</span><span class="o">=</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"."</span><span class="p">),</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"parsed_section"</span><span class="p">:</span> <span class="s2">"ventilator_export"</span><span class="p">},</span>
+        <span class="p">)</span>
+</code></pre></div>
+<hr />
+<h3 id="step-4---register-in-loader">Step 4 - Register in loader<a class="headerlink" href="#step-4---register-in-loader" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/fasteit/parsers/loader.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.hamilton.hamilton_parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">HamiltonParser</span>   <span class="c1"># or AcmEitParser</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">default_parser_registry</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="o">...</span>
+        <span class="p">(</span><span class="s2">"hamilton"</span><span class="p">,</span> <span class="s2">".csv"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">HamiltonParser</span><span class="p">(),</span>
+        <span class="p">(</span><span class="s2">"hamilton"</span><span class="p">,</span> <span class="s2">".txt"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">HamiltonParser</span><span class="p">(),</span>
+    <span class="p">}</span>
+</code></pre></div>
+<p>Registry key = <code>(vendor_lowercase, extension_with_dot)</code>. If a vendor uses
+multiple extensions for the same format, add one entry per extension pointing
+to the same parser factory.</p>
+<hr />
+<h3 id="step-5---export-from-package-__init__">Step 5 - Export from package <code>__init__</code><a class="headerlink" href="#step-5---export-from-package-__init__" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/fasteit/parsers/__init__.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.hamilton.hamilton_parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">HamiltonParser</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="s2">"HamiltonParser"</span><span class="p">]</span>
+</code></pre></div>
+<hr />
+<h3 id="note-same-extension-different-vendors">Note: same extension, different vendors<a class="headerlink" href="#note-same-extension-different-vendors" title="Permanent link">&para;</a></h3>
+<p>If two vendors share the same extension (e.g. both export <code>.csv</code>),
+<code>detect_vendor_from_tabular()</code> reads the file content and returns a different
+vendor string for each. The registry key <code>(vendor, extension)</code> ensures the
+correct parser is called.</p>
+<hr />
+<h2 id="4-testing-checklist">4. Testing checklist<a class="headerlink" href="#4-testing-checklist" title="Permanent link">&para;</a></h2>
+<p>Every new parser must have tests before it is considered done.
+Minimal coverage for a tabular parser:</p>
+<ul>
+<li>[ ] <code>test_validate_returns_true_on_valid_file</code> - synthetic file, happy path</li>
+<li>[ ] <code>test_validate_returns_false_on_wrong_extension</code> - wrong extension</li>
+<li>[ ] <code>test_validate_returns_false_on_wrong_vendor_keyword</code> - wrong content</li>
+<li>[ ] <code>test_parse_returns_continuous_signal_data</code> - correct type and <code>file_format</code></li>
+<li>[ ] <code>test_parse_fs_estimated</code> - <code>fs</code> is a reasonable integer (e.g. 50)</li>
+<li>[ ] <code>test_parse_column_names_normalised</code> - no spaces or special characters</li>
+<li>[ ] <code>test_parse_time_column_present</code> - <code>"time"</code> in <code>data.table.columns</code></li>
+<li>[ ] <code>test_parse_continuous_channels_present</code> - at least one signal channel</li>
+<li>[ ] <code>test_parse_raises_on_missing_table_section</code> - <code>ValueError</code> on malformed file</li>
+<li>[ ] <code>test_load_data_routes_to_parser</code> - <code>load_data(path).vendor == "myvendor"</code></li>
+</ul>
+<hr />
+<h2 id="5-file-layout">5. File layout<a class="headerlink" href="#5-file-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="n">src</span><span class="o">/</span><span class="n">fasteit</span><span class="o">/</span>
+<span class="err">├──</span> <span class="n">models</span><span class="o">/</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">base_data</span><span class="o">.</span><span class="n">py</span>              <span class="n">BaseData</span> <span class="o">-</span> <span class="n">common</span> <span class="n">fields</span> <span class="k">for</span> <span class="nb">all</span> <span class="n">containers</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">reconstructed_data</span><span class="o">.</span><span class="n">py</span>     <span class="n">ReconstructedFrameData</span> <span class="o">-</span> <span class="mi">32</span><span class="err">×</span><span class="mi">32</span> <span class="n">pixel</span> <span class="n">frames</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">continuous_data</span><span class="o">.</span><span class="n">py</span>        <span class="n">ContinuousSignalData</span> <span class="o">-</span> <span class="n">tabular</span> <span class="n">signal</span> <span class="n">export</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">raw_impedance_data</span><span class="o">.</span><span class="n">py</span>     <span class="n">RawImpedanceData</span> <span class="o">-</span> <span class="mi">208</span> <span class="n">transimpedances</span> <span class="n">per</span> <span class="n">frame</span>
+<span class="err">│</span>
+<span class="err">└──</span> <span class="n">parsers</span><span class="o">/</span>
+    <span class="err">├──</span> <span class="n">base</span><span class="o">.</span><span class="n">py</span>                   <span class="n">BaseParser</span> <span class="p">(</span><span class="n">validate</span> <span class="o">/</span> <span class="n">parse</span> <span class="o">/</span> <span class="n">parse_safe</span><span class="p">)</span>
+    <span class="err">├──</span> <span class="n">bin_formats</span><span class="o">.</span><span class="n">py</span>            <span class="n">BIN_FORMAT_SPECS</span> <span class="o">-</span> <span class="nb">all</span> <span class="n">known</span> <span class="o">.</span><span class="n">bin</span> <span class="n">frame</span> <span class="n">sizes</span>
+    <span class="err">├──</span> <span class="n">detection</span><span class="o">.</span><span class="n">py</span>              <span class="n">detect_vendor_and_format</span><span class="p">()</span> <span class="o">-</span> <span class="n">routes</span> <span class="nb">any</span> <span class="n">file</span>
+    <span class="err">├──</span> <span class="n">errors</span><span class="o">.</span><span class="n">py</span>                 <span class="n">ParserError</span> <span class="ow">and</span> <span class="n">subclasses</span> <span class="p">(</span><span class="n">UnsupportedFrameSize</span><span class="p">,</span> <span class="n">AmbiguousFormat</span><span class="p">,</span> <span class="n">InvalidSlice</span><span class="p">)</span>
+    <span class="err">├──</span> <span class="n">header_formats</span><span class="o">.</span><span class="n">py</span>         <span class="n">HEADER_FORMAT_SPECS</span> <span class="o">-</span> <span class="n">known</span> <span class="o">.</span><span class="n">eit</span> <span class="n">ASCII</span> <span class="n">headers</span>
+    <span class="err">├──</span> <span class="n">loader</span><span class="o">.</span><span class="n">py</span>                 <span class="n">load_data</span> <span class="o">/</span> <span class="n">load_many</span> <span class="o">/</span> <span class="n">load_folder</span>
+    <span class="err">│</span>
+    <span class="err">├──</span> <span class="n">draeger</span><span class="o">/</span>
+    <span class="err">│</span>   <span class="err">├──</span> <span class="n">asc</span><span class="o">/</span>
+    <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">asc_parser</span><span class="o">.</span><span class="n">py</span>     <span class="n">DragerAscParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">asc</span> <span class="n">continuous</span> <span class="n">export</span>
+    <span class="err">│</span>   <span class="err">├──</span> <span class="nb">bin</span><span class="o">/</span>
+    <span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">bin_parser</span><span class="o">.</span><span class="n">py</span>     <span class="n">DragerBinParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">bin</span> <span class="n">reconstructed</span> <span class="n">frames</span>
+    <span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">bin_utils</span><span class="o">.</span><span class="n">py</span>      <span class="n">Frame</span> <span class="n">slicing</span><span class="p">,</span> <span class="n">fs</span> <span class="n">estimation</span><span class="p">,</span> <span class="nb">sentinel</span> <span class="n">helpers</span>
+    <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">draeger_dtypes</span><span class="o">.</span><span class="n">py</span> <span class="n">FRAME_BASE_DTYPE</span><span class="p">,</span> <span class="n">FRAME_EXT_DTYPE</span><span class="p">,</span> <span class="n">MEDIBUS_</span><span class="o">*</span> <span class="n">fields</span>
+    <span class="err">│</span>   <span class="err">└──</span> <span class="n">eit</span><span class="o">/</span>
+    <span class="err">│</span>       <span class="err">├──</span> <span class="n">eit_parser</span><span class="o">.</span><span class="n">py</span>     <span class="n">DragerEitParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">eit</span> <span class="n">raw</span> <span class="n">transimpedances</span>
+    <span class="err">│</span>       <span class="err">├──</span> <span class="n">eit_dtypes</span><span class="o">.</span><span class="n">py</span>     <span class="n">FRAME_EIT_DTYPE</span> <span class="p">(</span><span class="mi">5495</span><span class="o">-</span><span class="n">byte</span> <span class="n">frame</span> <span class="n">layout</span><span class="p">)</span>
+    <span class="err">│</span>       <span class="err">├──</span> <span class="n">eit_utils</span><span class="o">.</span><span class="n">py</span>      <span class="n">Header</span> <span class="n">parsing</span><span class="p">,</span> <span class="n">calibration</span> <span class="n">constants</span> <span class="n">FT_A</span><span class="o">/</span><span class="n">FT_B</span><span class="o">/</span><span class="n">FC_CURRENT</span><span class="o">/</span><span class="n">FV_VOLTAGE</span>
+    <span class="err">│</span>       <span class="err">└──</span> <span class="n">eit_pyeit_bridge</span><span class="o">.</span><span class="n">py</span>  <span class="n">build_greit</span><span class="p">()</span> <span class="o">/</span> <span class="n">reconstruct_greit</span><span class="p">()</span> <span class="o">-</span> <span class="n">pyEIT</span> <span class="n">bridge</span>
+    <span class="err">│</span>
+    <span class="err">└──</span> <span class="n">timpel</span><span class="o">/</span>
+        <span class="err">├──</span> <span class="n">timpel_parser</span><span class="o">.</span><span class="n">py</span>      <span class="n">TimpelTabularParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">csv</span><span class="o">/.</span><span class="n">txt</span><span class="o">/.</span><span class="n">asc</span> <span class="n">reconstructed</span> <span class="n">frames</span>
+        <span class="err">└──</span> <span class="n">timpel_dtypes</span><span class="o">.</span><span class="n">py</span>      <span class="n">TIMPEL_AUX_FIELDS</span> <span class="o">-</span> <span class="n">auxiliary</span> <span class="n">signal</span> <span class="n">columns</span>
+</code></pre></div>
+<p><strong>Where to add a new vendor</strong> - create <code>parsers/&lt;vendor&gt;/</code> mirroring the structure above:
+one <code>&lt;vendor&gt;_parser.py</code>, one <code>&lt;vendor&gt;_dtypes.py</code>, one <code>__init__.py</code>.
+Then follow steps 1-5 in <a href="#3-add-a-new-parser">section 3</a>.</p>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../api/config/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Configuration">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Configuration
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../contributing/" class="md-footer__link md-footer__link--next" aria-label="Next: Contributing">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Contributing
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Research use only - not a medical device
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
