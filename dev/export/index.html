@@ -708,17 +708,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#6-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Limits
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1492,17 +1481,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#6-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Limits
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1540,7 +1518,6 @@ Only recordings that can be analysed (Dräger <code>.bin</code>, Timpel) have ta
 <li><a href="#3-tables">Tables</a></li>
 <li><a href="#4-column-names">Column names</a></li>
 <li><a href="#5-csv-files">CSV files</a></li>
-<li><a href="#6-limits">Limits</a></li>
 </ol>
 <hr />
 <h2 id="1-entry-point">1. Entry point<a class="headerlink" href="#1-entry-point" title="Permanent link">&para;</a></h2>
@@ -1706,20 +1683,9 @@ of the file.</p>
 <p><code>write_csv(tables, folder)</code> writes one file per table: UTF-8, comma separated,
 decimal point, an empty cell for a missing value, booleans as 1 / 0. The files are
 read without options by R (<code>readr::read_csv()</code>), SPSS (File &gt; Import Data &gt; CSV), Excel
-and Python. Files with the same name in the folder are replaced.</p>
-<h2 id="6-limits">6. Limits<a class="headerlink" href="#6-limits" title="Permanent link">&para;</a></h2>
-<ul>
-<li>The tables are built from the results of <code>tidal_features()</code> or <code>peep_trial_features()</code>:
-  the export does not read the files or run the analysis.</li>
-<li>The images (pixels, lung mask, tidal maps) are not exported.</li>
-<li><code>file</code> is the name of the source file: if it holds names or dates, rename the files
-  before sharing the tables.</li>
-<li><code>peep_set</code> needs the levels of the protocol
-  (<code>SegmentationConfig.peep_levels</code>); without them it is empty
-  (<a href="../segmentation/"><code>segmentation.md</code></a>).</li>
-<li>Only Dräger <code>.bin</code> and Timpel recordings are analysed; <code>.eit</code> and <code>.asc</code> give no tables
-  (<a href="../getting_started/#supported-files">supported files</a>).</li>
-</ul>
+and Python. Files with the same name in the folder are replaced. The column <code>file</code> is the
+name of the source file: rename files whose names hold names or dates before sharing the
+tables.</p>
 
 
 
