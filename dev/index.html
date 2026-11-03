@@ -505,6 +505,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -690,6 +694,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -708,6 +768,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -903,6 +967,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1181,6 +1301,7 @@ clinical decisions.</p>
           <span class="err">├─</span> <span class="n">tidal_features</span><span class="p">()</span> <span class="err">───────►</span> <span class="n">TidalFeatures</span>       <span class="n">layer</span> <span class="mi">3</span><span class="p">:</span> <span class="n">indices</span>
           <span class="err">└─</span> <span class="n">segment_peep_trial</span><span class="p">()</span> <span class="err">───►</span> <span class="n">PeepTrial</span>           <span class="n">layer</span> <span class="mi">2</span><span class="n">b</span><span class="p">:</span> <span class="n">PEEP</span> <span class="n">steps</span>
                <span class="err">└─</span> <span class="n">peep_trial_features</span><span class="p">()</span> <span class="err">►</span> <span class="n">PeepTrialFeatures</span>  <span class="n">layer</span> <span class="mi">3</span><span class="p">:</span> <span class="n">indices</span>
+                    <span class="err">└─</span> <span class="n">recording_tables</span><span class="p">()</span> <span class="err">►</span> <span class="n">tables</span><span class="p">,</span> <span class="n">CSV</span>        <span class="n">layer</span> <span class="mi">4</span><span class="p">:</span> <span class="n">export</span>
 </code></pre></div>
 <table>
 <thead>
@@ -1210,6 +1331,11 @@ clinical decisions.</p>
 <td>3. Clinical indices</td>
 <td>EELI, TIV, share by region, GI, centre of ventilation, compliance, Costa collapse and overdistension, changes between steps, recruitment-to-inflation ratio</td>
 <td><a href="features/">Clinical indices</a></td>
+</tr>
+<tr>
+<td>4. Export</td>
+<td>one row per recording, breath and PEEP step, keyed by patient, recording and phase; a whole study at once; CSV for R, SPSS and Excel</td>
+<td><a href="export/">Export</a></td>
 </tr>
 </tbody>
 </table>

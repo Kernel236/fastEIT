@@ -451,6 +451,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -741,6 +745,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -759,6 +819,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -954,6 +1018,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1381,6 +1501,7 @@ one holds everything:</p>
           <span class="err">├─</span> <span class="n">tidal_features</span><span class="p">()</span> <span class="err">───────►</span> <span class="n">TidalFeatures</span>       <span class="n">layer</span> <span class="mi">3</span><span class="p">:</span> <span class="n">indices</span>
           <span class="err">└─</span> <span class="n">segment_peep_trial</span><span class="p">()</span> <span class="err">───►</span> <span class="n">PeepTrial</span>           <span class="n">layer</span> <span class="mi">2</span><span class="n">b</span><span class="p">:</span> <span class="n">PEEP</span> <span class="n">steps</span>
                <span class="err">└─</span> <span class="n">peep_trial_features</span><span class="p">()</span> <span class="err">►</span> <span class="n">PeepTrialFeatures</span>  <span class="n">layer</span> <span class="mi">3</span><span class="p">:</span> <span class="n">indices</span>
+                    <span class="err">└─</span> <span class="n">recording_tables</span><span class="p">()</span> <span class="err">►</span> <span class="n">tables</span><span class="p">,</span> <span class="n">CSV</span>        <span class="n">layer</span> <span class="mi">4</span><span class="p">:</span> <span class="n">export</span>
 </code></pre></div>
 <p>Each value is stored once, in the table of the layer that produces it; tables are joined
 on <code>breath_id</code>, <code>step</code> (with <code>peep</code>) and <code>region</code>.</p>
@@ -1409,14 +1530,24 @@ on <code>breath_id</code>, <code>step</code> (with <code>peep</code>) and <code>
 <td><code>pixels</code>, <code>lung_mask</code>, <code>roi_masks</code>, <code>roi_signals</code>, <code>global_signal</code>, <code>time</code></td>
 </tr>
 <tr>
+<td><code>EITRecording.context</code></td>
+<td>-</td>
+<td><code>RecordingContext</code>: <code>patient_id</code>, <code>label</code>, <code>position</code>, <code>protocol</code>, <code>interface</code>, <code>tidal_volume_ml</code>, <code>notes</code></td>
+</tr>
+<tr>
 <td><code>PeepTrial.breaths</code></td>
 <td>breath</td>
 <td>the breaths of the recording plus <code>peep_step</code>, <code>analysed</code></td>
 </tr>
 <tr>
+<td><code>PeepTrial</code> fields</td>
+<td>-</td>
+<td><code>source</code> (<code>"pressure"</code> or <code>"manual"</code>), <code>phase</code> (the PEEP trial part of the recording, or None), <code>config</code> (<code>SegmentationConfig</code>)</td>
+</tr>
+<tr>
 <td><code>PeepTrial.steps</code></td>
 <td>step</td>
-<td>PEEP level, times, breaths analysed, <code>enough</code>, plateau, driving pressure and tidal volume with their sources</td>
+<td>PEEP level measured and of the protocol (<code>peep_set</code>), times, breaths analysed, <code>enough</code>, plateau, driving pressure and tidal volume with their sources</td>
 </tr>
 <tr>
 <td><code>TidalFeatures.breaths</code>, <code>PeepTrialFeatures.breaths</code></td>
@@ -1446,12 +1577,17 @@ on <code>breath_id</code>, <code>step</code> (with <code>peep</code>) and <code>
 <tr>
 <td><code>PeepTrialFeatures.summary</code></td>
 <td>region and feature</td>
-<td>crossing PEEP, best PEEP, R/I and recruited volume (global and by region)</td>
+<td>crossing PEEP, best PEEP, R/I steps (global), R/I and recruited volume (global and by region)</td>
+</tr>
+<tr>
+<td><code>PeepTrialFeatures.config</code></td>
+<td>-</td>
+<td><code>AnalysisConfig</code> used (R/I levels)</td>
 </tr>
 </tbody>
 </table>
-<p>The flat export, with everything in one table per breath and per step, belongs to the
-next layer (database and export). Details: <a href="../preprocessing/"><code>preprocessing.md</code></a>,
+<p>Layer 4 joins them into flat tables, one row per breath or step with everything, keyed
+by patient, recording and phase (<a href="../export/"><code>export.md</code></a>). Details: <a href="../preprocessing/"><code>preprocessing.md</code></a>,
 <a href="../segmentation/"><code>segmentation.md</code></a>, <a href="../features/"><code>features.md</code></a>.</p>
 
 

@@ -449,6 +449,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -634,6 +638,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -654,6 +714,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -938,6 +1002,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fasteit.segmentation.peep_steps.protocol_levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        protocol_levels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fasteit.segmentation.peep_steps.steps_from_segments" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -988,6 +1063,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1269,6 +1400,17 @@
     <span class="md-ellipsis">
       
         step_of_each_breath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.segmentation.peep_steps.protocol_levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        protocol_levels
       
     </span>
   </a>
@@ -1785,6 +1927,129 @@ the PEEP of the next breath that has one.</p>
         <p>Step number of each breath, from the first breath of each step.</p>
 <p>A breath belongs to the last step that starts at or before it: searchsorted counts
 the steps that start at or before each breath, minus one gives the step number.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fasteit.segmentation.peep_steps.protocol_levels" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">protocol_levels</span>
+
+
+<a href="#fasteit.segmentation.peep_steps.protocol_levels" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">protocol_levels</span><span class="p">(</span><span class="n">levels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">protocol</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>PEEP level of the protocol of each step.</p>
+<p>The measured PEEP of every step can be off the set level by about the same amount
+(mbar to cmH2O, PEEP valve: +0.6 cmH2O in every step of a trial of notebook 06, 1.1
+cmH2O at PEEP 0, nearer to 2 than to 0). That offset, the median distance of the
+steps from their nearest level, is removed first; then each step gets the nearest
+level. A step further than <code>tolerance</code> from every level (a level that is not in
+the protocol) gets NaN. An offset of half a step or more cannot be told apart from
+the next level.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>levels</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PEEP of each step, measured or typed (cmH2O).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>protocol</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="collections.abc.Sequence" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence">Sequence</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PEEP levels of the protocol, or None.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tolerance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Largest distance from a level of the protocol (cmH2O).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One level per step; NaN where no level of the protocol is near enough, and for</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>every step without the levels of the protocol.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>

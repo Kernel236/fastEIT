@@ -503,6 +503,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#tables-for-r-and-spss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tables for R and SPSS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#look-at-the-breaths-used" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Look at the breaths used
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#where-the-values-are" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -529,6 +551,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -725,6 +751,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -743,6 +825,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -938,6 +1024,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1197,6 +1339,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#tables-for-r-and-spss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tables for R and SPSS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#look-at-the-breaths-used" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Look at the breaths used
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#where-the-values-are" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1278,6 +1442,20 @@ mkdocs<span class="w"> </span>serve<span class="w">        </span><span class="c
 </code></pre></div>
 <p>Without a pressure signal, or to choose the breaths yourself, place the steps by hand
 (<a href="../segmentation/">segmentation</a>).</p>
+<h2 id="tables-for-r-and-spss">Tables for R and SPSS<a class="headerlink" href="#tables-for-r-and-spss" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.export</span><span class="w"> </span><span class="kn">import</span> <span class="n">combine_tables</span><span class="p">,</span> <span class="n">recording_tables</span><span class="p">,</span> <span class="n">write_csv</span>
+
+<span class="n">tables</span> <span class="o">=</span> <span class="n">combine_tables</span><span class="p">([</span><span class="n">recording_tables</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">all_features</span><span class="p">])</span>  <span class="c1"># one or many</span>
+<span class="n">write_csv</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="s2">"results/"</span><span class="p">)</span>   <span class="c1"># recordings.csv, breaths.csv, steps.csv, settings.csv, log.csv</span>
+</code></pre></div>
+<p>Every row starts with <code>patient_id</code>, <code>label</code> (the recording) and <code>phase</code>; see
+<a href="../export/">export</a>.</p>
+<h2 id="look-at-the-breaths-used">Look at the breaths used<a class="headerlink" href="#look-at-the-breaths-used" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_breaths</span>
+
+<span class="n">plot_breaths</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>   <span class="c1"># breaths used, flagged, excluded; steps; lung mask</span>
+</code></pre></div>
+<p>See <a href="../review/">review figures</a>.</p>
 <h2 id="where-the-values-are">Where the values are<a class="headerlink" href="#where-the-values-are" title="Permanent link">&para;</a></h2>
 <p>Each value is stored once, in the table of the layer that produces it, and the tables are
 joined on <code>breath_id</code>, <code>step</code> and <code>region</code>: see the <a href="../data_model/">data model</a>.</p>

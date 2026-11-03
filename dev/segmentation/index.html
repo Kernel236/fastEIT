@@ -451,6 +451,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -752,6 +756,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -770,6 +830,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -965,6 +1029,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1365,11 +1485,20 @@ gives a warning. Parameters are in <code>SegmentationConfig</code>.</p>
 </tr>
 <tr>
 <td>4</td>
-<td>Step table: driving pressure and tidal volume of each step</td>
+<td>Step table: level of the protocol, driving pressure and tidal volume of each step</td>
 <td><code>pipeline</code></td>
 </tr>
 </tbody>
 </table>
+<p><strong>Level of the protocol</strong> (<code>peep_set</code>). The PEEP trial follows the protocol, the same for
+every patient, while the measured level is noisy and in cmH2O (10 mbar set on a Dräger
+ventilator is 10.2 cmH2O). Each step gets the nearest PEEP level of the protocol, given
+as <code>SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))</code>, after removing the
+offset common to all steps (in a trial of notebook 06 every step read 0.6 cmH2O above the
+set level, and 1.1 cmH2O at PEEP 0, nearer to 2 than to 0). A step more than
+<code>step_threshold</code> (half of the step of the protocol) from every level gets none, with a
+warning; without the levels of the protocol <code>peep_set</code> is empty. <code>peep_set</code> is the level to compare
+and average steps between patients; <code>peep</code> stays the measured one.</p>
 <p>The event texts typed on the device are not used to cut the steps: in the trials of the
 notebook they were written from 2 s after to 14 s before the change of pressure.</p>
 <h2 id="3-driving-pressure-and-tidal-volume-of-each-step">3. Driving pressure and tidal volume of each step<a class="headerlink" href="#3-driving-pressure-and-tidal-volume-of-each-step" title="Permanent link">&para;</a></h2>
@@ -1465,8 +1594,12 @@ not count when the steps are found. Without a phase the whole recording is segme
 <td><code>"pressure"</code> or <code>"manual"</code></td>
 </tr>
 <tr>
+<td><code>phase</code></td>
+<td>the PEEP trial part of the recording, or None for the whole recording</td>
+</tr>
+<tr>
 <td><code>steps</code></td>
-<td><code>step</code>, <code>peep</code> (level), <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>, <code>n_analysed</code>, <code>enough</code>, <code>plateau</code>, <code>driving_pressure</code>, <code>driving_pressure_source</code>, <code>n_driving_pressure</code>, <code>enough_driving_pressure</code>, <code>tidal_volume</code>, <code>tidal_volume_source</code></td>
+<td><code>step</code>, <code>peep</code> (level), <code>peep_set</code> (level of the protocol), <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>, <code>n_analysed</code>, <code>enough</code>, <code>plateau</code>, <code>driving_pressure</code>, <code>driving_pressure_source</code>, <code>n_driving_pressure</code>, <code>enough_driving_pressure</code>, <code>tidal_volume</code>, <code>tidal_volume_source</code></td>
 </tr>
 <tr>
 <td><code>breaths</code></td>

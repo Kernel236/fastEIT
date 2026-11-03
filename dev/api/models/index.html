@@ -449,6 +449,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -634,6 +638,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -654,6 +714,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -1284,6 +1348,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -2774,8 +2894,9 @@ before any image reconstruction. The intended consumer is pyEIT.</p>
 
         <p>Containers for a preprocessed recording (layer 2).</p>
 <ul>
-<li>Segment          - a time interval of a recording (exclusion, later PEEP step)</li>
-<li>RecordingContext - attributes of the whole recording (patient, position, protocol)</li>
+<li>Segment          - a time interval of a recording (exclusion, PEEP step, phase)</li>
+<li>RecordingContext - attributes of the whole recording (patient, label, position,
+                     protocol, tidal volume)</li>
 <li>EITRecording     - the recording ready for analysis, output of <code>preprocess()</code></li>
 </ul>
 
@@ -2966,7 +3087,7 @@ ending at 10 s overlaps both.</p>
   </span>
 
 <a href="#fasteit.models.eit_recording.RecordingContext" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">RecordingContext</span><span class="p">(</span><span class="n">patient_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">protocol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'tidal'</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tidal_volume_ml</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">notes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">RecordingContext</span><span class="p">(</span><span class="n">patient_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">protocol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'tidal'</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tidal_volume_ml</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">notes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2994,6 +3115,19 @@ ending at 10 s overlaps both.</p>
             <td>
               <div class="doc-md-description">
                 <p>Anonymised patient identifier.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.eit_recording.RecordingContext.label">label</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the recording for this patient, e.g. a time point (<code>"T0"</code>)
+        or a position; with <code>patient_id</code> it identifies the rows of the
+        exported tables (layer 4), where it can also be changed.</p>
               </div>
             </td>
           </tr>
@@ -3532,7 +3666,7 @@ are extrema of <code>detection_signal</code>, the signal they were found on.</p>
   </span>
 
 <a href="#fasteit.models.peep_trial.PeepTrial" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PeepTrial</span><span class="p">(</span><span class="n">recording</span><span class="p">:</span> <span class="n">EITRecording</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">SegmentationConfig</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PeepTrial</span><span class="p">(</span><span class="n">recording</span><span class="p">:</span> <span class="n">EITRecording</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">SegmentationConfig</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">Segment</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3598,6 +3732,23 @@ call it again. Do not modify the DataFrames in place: make a copy.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.peep_trial.PeepTrial.phase">phase</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Segment
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.Segment)" href="#fasteit.models.eit_recording.Segment">Segment</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The PEEP trial part of the recording, or None for the whole
+              recording.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><span title="fasteit.models.peep_trial.PeepTrial.steps">steps</span></code></td>
             <td>
                   <code><a class="autorefs autorefs-external" title="pandas.DataFrame" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">DataFrame</a></code>
@@ -3605,7 +3756,8 @@ call it again. Do not modify the DataFrames in place: make a copy.</p>
             <td>
               <div class="doc-md-description">
                 <p>One row per step: <code>step</code>, <code>peep</code> (level, as measured or as
-              typed, cmH2O), <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>,
+              typed, cmH2O), <code>peep_set</code> (the nearest PEEP level of the
+              protocol, <code>SegmentationConfig.peep_levels</code>), <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>,
               <code>n_analysed</code>, <code>enough</code> (at least the minimum), <code>plateau</code>
               and <code>driving_pressure</code> with <code>driving_pressure_source</code>:
               <code>"breaths"</code> (median of the analysed breaths, continuous
@@ -3902,7 +4054,7 @@ breath, or step, and region), so that they can be joined with the clinical data
   </span>
 
 <a href="#fasteit.models.features.PeepTrialFeatures" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PeepTrialFeatures</span><span class="p">(</span><span class="n">trial</span><span class="p">:</span> <span class="n">PeepTrial</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">step_regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">summary</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PeepTrialFeatures</span><span class="p">(</span><span class="n">trial</span><span class="p">:</span> <span class="n">PeepTrial</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">AnalysisConfig</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">step_regions</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">summary</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">log</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3936,6 +4088,22 @@ modify the DataFrames in place: make a copy.</p>
             <td>
               <div class="doc-md-description">
                 <p>The segmented PEEP trial (layer 2b).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.models.features.PeepTrialFeatures.config">config</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="AnalysisConfig
+
+
+  
+      dataclass
+   (fasteit.config.AnalysisConfig)" href="../config/#fasteit.config.AnalysisConfig">AnalysisConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parameters used.</p>
               </div>
             </td>
           </tr>

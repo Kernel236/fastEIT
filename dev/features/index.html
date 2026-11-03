@@ -16,7 +16,7 @@
         <link rel="prev" href="../segmentation/">
       
       
-        <link rel="next" href="../api/">
+        <link rel="next" href="../export/">
       
       
         
@@ -451,6 +451,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -741,6 +745,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -759,6 +819,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -954,6 +1018,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1280,6 +1400,9 @@ PEEP, the best PEEP and the change of EELI in mL of the notebook.</p>
 <h2 id="1-entry-points">1. Entry points<a class="headerlink" href="#1-entry-points" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span><span class="p">,</span> <span class="n">tidal_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordingContext</span><span class="p">,</span> <span class="n">Segment</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">preprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.segmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">segment_peep_trial</span>
 
 <span class="c1"># A recording at one setting (or the tidal phase of a longer one).</span>
 <span class="n">recording</span> <span class="o">=</span> <span class="n">preprocess</span><span class="p">(</span><span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">),</span>
@@ -1290,8 +1413,9 @@ PEEP, the best PEEP and the change of EELI in mL of the notebook.</p>
 <span class="n">tidal</span><span class="o">.</span><span class="n">summary</span>    <span class="c1"># median and quartiles over the valid breaths, by region and index</span>
 
 <span class="c1"># A PEEP trial.</span>
+<span class="n">context</span> <span class="o">=</span> <span class="n">RecordingContext</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="s2">"peep_trial"</span><span class="p">,</span> <span class="n">tidal_volume_ml</span><span class="o">=</span><span class="mi">450</span><span class="p">)</span>
 <span class="n">trial</span> <span class="o">=</span> <span class="n">segment_peep_trial</span><span class="p">(</span><span class="n">preprocess</span><span class="p">(</span><span class="n">load_data</span><span class="p">(</span><span class="s2">"peep_trial.bin"</span><span class="p">),</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">))</span>
-<span class="n">features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>
+<span class="n">features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>   <span class="c1"># parameters in features.config (AnalysisConfig)</span>
 <span class="n">features</span><span class="o">.</span><span class="n">steps</span>          <span class="c1"># one row per PEEP step</span>
 <span class="n">features</span><span class="o">.</span><span class="n">step_regions</span>   <span class="c1"># one row per step and region</span>
 <span class="n">features</span><span class="o">.</span><span class="n">summary</span>        <span class="c1"># crossing PEEP, best PEEP, R/I (global and by region)</span>
@@ -1301,8 +1425,9 @@ each step, breaths analysed), <code>features.trial.breaths</code> (step of each 
 <code>features.trial.recording.breaths</code> (times, quality flags, PEEP, plateau, driving
 pressure, measured tidal volume). Each value is stored once: the tables of layer 3 have
 the keys (<code>breath_id</code>, <code>step</code>, <code>peep</code>, <code>region</code>) and what layer 3 computes, and are
-joined on the keys with the tables before them. The flat export with everything in one
-table per breath and per step belongs to the next layer (database and export).</p>
+joined on the keys with the tables before them. The flat tables with everything in one
+row per breath and per step, for R, SPSS and databases, are made by layer 4
+(<a href="../export/"><code>export.md</code></a>).</p>
 <h2 id="2-indices-of-a-breath">2. Indices of a breath<a class="headerlink" href="#2-indices-of-a-breath" title="Permanent link">&para;</a></h2>
 <p>All from the frames of the layer 2 breath (one sample, no averaging): start =
 end-expiratory valley, peak = end-inspiratory peak.</p>
@@ -1432,7 +1557,7 @@ curves.</p>
 </tr>
 <tr>
 <td><code>collapse</code>, <code>overdistension</code></td>
-<td>Costa method (%), from the median tidal image of the step: pixel compliance, loss as % of the best of each pixel, weighted by the best compliance (Costa 2009, DOI: 10.1007/s00134-009-1447-y; formulas as in Shono and Kotani 2019, DOI: 10.1186/s40560-019-0358-4)</td>
+<td>Costa method (%), from the median tidal image of the step: pixel compliance, loss as % of the best of each pixel, weighted by the best compliance; the loss of a pixel is at most 100 % (Costa 2009, DOI: 10.1007/s00134-009-1447-y; formulas as in Shono and Kotani 2019, DOI: 10.1186/s40560-019-0358-4)</td>
 </tr>
 <tr>
 <td><code>d_eeli_tiv_vs_previous</code>, <code>d_eeli_tiv_vs_first</code></td>
@@ -1489,6 +1614,11 @@ the analysed breaths, and <code>tiv_ml</code>, <code>compliance</code> and <code
 </tr>
 </tbody>
 </table>
+<p>The PEEP of <code>crossing_peep</code>, the best PEEP and the R/I steps are on the levels of the
+protocol (<code>peep_set</code>, from <code>SegmentationConfig.peep_levels</code>) when every step has one, so
+that they can be compared between patients; otherwise on the measured PEEP. The R/I steps
+are chosen, and the drop of PEEP in its formula is computed, on the measured PEEP (the
+change of pressure that happened).</p>
 <p><strong>Recruitment-to-inflation ratio</strong> (Chen et al., Am J Respir Crit Care Med 2020, DOI:
 10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
 PEEP 5 at least 10 below it (<code>AnalysisConfig</code>):</p>
@@ -1583,13 +1713,13 @@ first step has no analysed breaths, the changes vs the first step are NaN.</p>
         
         
           
-          <a href="../api/" class="md-footer__link md-footer__link--next" aria-label="Next: API reference">
+          <a href="../export/" class="md-footer__link md-footer__link--next" aria-label="Next: Export (layer 4)">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                API reference
+                Export (layer 4)
               </div>
             </div>
             <div class="md-footer__button md-icon">

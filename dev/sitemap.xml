@@ -2,70 +2,86 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/contributing/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/data_model/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
+    </url>
+    <url>
+         <loc>https://kernel236.github.io/fastEIT/latest/export/</loc>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/features/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/getting_started/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/license/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/parsers/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/parsing_layer/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/preprocessing/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
+    </url>
+    <url>
+         <loc>https://kernel236.github.io/fastEIT/latest/review/</loc>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/segmentation/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/config/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
+    </url>
+    <url>
+         <loc>https://kernel236.github.io/fastEIT/latest/api/export/</loc>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/features/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/models/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/parsers/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
+    </url>
+    <url>
+         <loc>https://kernel236.github.io/fastEIT/latest/api/plotting/</loc>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/preprocessing/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
     <url>
          <loc>https://kernel236.github.io/fastEIT/latest/api/segmentation/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-03</lastmod>
     </url>
 </urlset>

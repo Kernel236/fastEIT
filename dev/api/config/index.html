@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://kernel236.github.io/fastEIT/latest/api/config/">
       
       
-        <link rel="prev" href="../features/">
+        <link rel="prev" href="../plotting/">
       
       
         <link rel="next" href="../../parsing_layer/">
@@ -449,6 +449,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -634,6 +638,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export (layer 4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -654,6 +714,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -852,6 +916,62 @@
     
   
     Clinical indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
   
 
     
@@ -1537,7 +1657,7 @@ data of eitprocessing <code>BreathDetection</code>).</p>
   </span>
 
 <a href="#fasteit.config.SegmentationConfig" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">SegmentationConfig</span><span class="p">(</span><span class="n">step_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">analysis_skip_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span><span class="p">,</span> <span class="n">analysis_max_breaths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">analysis_min_breaths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">SegmentationConfig</span><span class="p">(</span><span class="n">step_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">analysis_skip_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span><span class="p">,</span> <span class="n">analysis_max_breaths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">analysis_min_breaths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">peep_levels</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1596,6 +1716,22 @@ PEEP are not analysed, as EELI is still moving (section 5).</p>
                 <p>Then the last valid breaths of the
 step are analysed, up to <code>analysis_max_breaths</code>; fewer than
 <code>analysis_min_breaths</code> give a warning (section 5).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="fasteit.config.SegmentationConfig.peep_levels">peep_levels</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PEEP levels of the protocol, e.g. <code>(16, 14, ..., 0)</code>. Each step
+gets the nearest one as <code>peep_set</code>, after removing the offset common to
+all steps, so that steps can be compared between patients (the measured
+PEEP is noisy, and 10 mbar set on a Dräger ventilator is 10.2 cmH2O);
+none, with a warning, if further than <code>step_threshold</code>. None:
+<code>peep_set</code> is empty.</p>
               </div>
             </td>
           </tr>
@@ -1816,7 +1952,7 @@ cfg.analysis</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../features/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Clinical indices">
+          <a href="../plotting/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Review figures">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1826,7 +1962,7 @@ cfg.analysis</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Clinical indices
+                Review figures
               </div>
             </div>
           </a>
