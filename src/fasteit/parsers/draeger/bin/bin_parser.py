@@ -14,6 +14,7 @@ from fasteit.parsers.errors import AmbiguousFormatError, UnsupportedFrameSizeErr
 from .bin_utils import (
     estimate_sampling_frequency_hz,
     normalize_frame_slice,
+    replace_draeger_sentinels,
 )
 
 # Default sampling frequency used when fs cannot be estimated from timestamps.
@@ -21,6 +22,27 @@ from .bin_utils import (
 # (high-speed mode). 50 Hz is the safe upper bound; recordings with a
 # PressurePod always run at 50 Hz (device specification).
 _DEFAULT_FS_HZ: float = 50.0
+
+# Frames read to tell whether a PressurePod was connected: a sample, not the whole
+# file, so that parsing stays a memory map.
+_POD_CHECK_FRAMES: int = 200
+
+
+def _has_pressure_pod(
+    frames: np.ndarray, medibus_fields: tuple[str, ...] | None
+) -> bool:
+    """True if a PressurePod channel holds a value other than "no data".
+
+    The extended frame has room for the Pod channels whether or not a Pod is
+    connected; without it they hold the Draeger "no data" values. Checked on a
+    sample of frames spread over the file.
+    """
+    pod = [i for i, name in enumerate(medibus_fields or ()) if name.endswith("_pod")]
+    if not pod or len(frames) == 0:
+        return False
+    step = max(1, len(frames) // _POD_CHECK_FRAMES)
+    sample = replace_draeger_sentinels(frames["medibus_data"][::step][:, pod])
+    return bool(np.isfinite(sample).any())
 
 
 class DragerBinParser(BaseParser):
@@ -131,7 +153,9 @@ class DragerBinParser(BaseParser):
                 "n_total_frames": n_total_frames,
                 "n_loaded_frames": n_frames_to_load,
                 "frame_format": spec.name,
-                "has_pressure_pod": spec.has_pressure_pod_fields,
+                "has_pressure_pod": _has_pressure_pod(
+                    mapped_frames, spec.medibus_fields
+                ),
             },
         )
 

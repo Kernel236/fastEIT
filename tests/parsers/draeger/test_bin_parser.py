@@ -192,3 +192,34 @@ def test_roundtrip_via_load_data(bin_3frames):
     assert data.timestamps[0] == pytest.approx(0.0)
     assert data.metadata["detected_vendor"] == "draeger"
     assert data.metadata["detected_extension"] == ".bin"
+
+
+# ── has_pressure_pod: from the Pod channels, not from the frame size ─────────
+
+POD_FIELDS = [
+    i for i, (name, _u, _c) in enumerate(MEDIBUS_EXT_FIELDS) if name.endswith("_pod")
+]
+
+
+def _write_ext_with_pod(tmp_path: Path, pod_value: float) -> Path:
+    path = _write_bin(tmp_path, FRAME_EXT_DTYPE, n_frames=20)
+    frames = np.fromfile(path, dtype=FRAME_EXT_DTYPE)
+    frames["medibus_data"][:, POD_FIELDS] = -1000.0  # Draeger "no data"
+    frames["medibus_data"][:, POD_FIELDS[0]] = pod_value
+    frames.tofile(path)
+    return path
+
+
+def test_extended_frames_without_a_pod_connected_have_no_pressure_pod(tmp_path):
+    data = DragerBinParser().parse(_write_ext_with_pod(tmp_path, -1000.0))
+    assert data.metadata["has_pressure_pod"] is False
+
+
+def test_a_pod_channel_with_values_means_a_pressure_pod(tmp_path):
+    data = DragerBinParser().parse(_write_ext_with_pod(tmp_path, 5.0))
+    assert data.metadata["has_pressure_pod"] is True
+
+
+def test_base_frames_have_no_pressure_pod(tmp_path):
+    data = DragerBinParser().parse(_write_bin(tmp_path, FRAME_BASE_DTYPE))
+    assert data.metadata["has_pressure_pod"] is False
