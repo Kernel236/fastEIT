@@ -128,10 +128,10 @@ class ReconstructedFrameData(BaseData):
         p = self._require_frames()["pixels"]
         return np.column_stack(
             [
-                p[:, 0:8, :].sum(axis=(1, 2)),  # ROI 0 - ventral
-                p[:, 8:16, :].sum(axis=(1, 2)),  # ROI 1 - mid-ventral
-                p[:, 16:24, :].sum(axis=(1, 2)),  # ROI 2 - mid-dorsal
-                p[:, 24:32, :].sum(axis=(1, 2)),  # ROI 3 - dorsal
+                p[:, 0:8, :].sum(axis=(1, 2)),  # strip 0 - ventral
+                p[:, 8:16, :].sum(axis=(1, 2)),  # strip 1 - mid-ventral
+                p[:, 16:24, :].sum(axis=(1, 2)),  # strip 2 - mid-dorsal
+                p[:, 24:32, :].sum(axis=(1, 2)),  # strip 3 - dorsal
             ]
         )
 

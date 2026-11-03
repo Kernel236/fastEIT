@@ -33,7 +33,7 @@ Two frame formats are registered; detection is size-based (no header).
 | Name | Frame size | Medibus channels | Notes |
 |------|-----------|-----------------|-------|
 | `Draeger_base_4358` | 4358 bytes | 52 | Standard export |
-| `Draeger_ext_4382` | 4382 bytes | 58 | PressurePod variant: BiLevel parameters + 4 Pod pressure waveforms |
+| `Draeger_ext_4382` | 4382 bytes | 58 | BiLevel parameters + 4 PressurePod channels; the channels are there whether or not a Pod is connected, `metadata["has_pressure_pod"]` says if they hold values |
 
 ### Binary frame layout (base format)
 
@@ -244,10 +244,7 @@ sourced from PulmoVista 500 IFU SW 1.3n:
 
 **Spatial quality note**: a generic circular mesh does not replicate Dräger's
 proprietary reconstruction. Both algorithms produce correct relative distributions,
-but the vendor `.bin` uses a device-specific mesh and matrix. A data-driven
-reconstruction that learns the Dräger mapping from paired `.eit`/`.bin` recordings
-is being developed on the `feat/ml-reconstruction` branch and is not part of this
-release.
+but the vendor `.bin` uses a device-specific mesh and matrix.
 
 ---
 

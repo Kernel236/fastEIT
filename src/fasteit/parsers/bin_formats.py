@@ -32,7 +32,6 @@ class FormatSpec:
     frame_size_bytes: int
     dtype: np.dtype
     medibus_fields: tuple[str, ...] | None
-    has_pressure_pod_fields: bool | None
 
 
 BIN_FORMAT_SPECS: tuple[FormatSpec, ...] = (
@@ -42,7 +41,6 @@ BIN_FORMAT_SPECS: tuple[FormatSpec, ...] = (
         frame_size_bytes=4358,
         dtype=FRAME_BASE_DTYPE,
         medibus_fields=tuple(name for name, _unit, _is_cont in MEDIBUS_BASE_FIELDS),
-        has_pressure_pod_fields=False,
     ),
     FormatSpec(
         name="Draeger_ext_4382",
@@ -50,6 +48,5 @@ BIN_FORMAT_SPECS: tuple[FormatSpec, ...] = (
         frame_size_bytes=4382,
         dtype=FRAME_EXT_DTYPE,
         medibus_fields=tuple(name for name, _unit, _is_cont in MEDIBUS_EXT_FIELDS),
-        has_pressure_pod_fields=True,
     ),
 )

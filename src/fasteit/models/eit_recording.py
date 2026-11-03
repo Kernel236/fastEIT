@@ -75,7 +75,8 @@ class RecordingContext:
                     or a position; with ``patient_id`` it identifies the rows of the
                     exported tables (layer 4), where it can also be changed.
         position:   Patient position during the recording, e.g. ``"supine"``, ``"prone"``.
-        protocol:   ``"tidal"`` or ``"peep_trial"``; decides what layers 3-4 compute.
+        protocol:   ``"tidal"`` or ``"peep_trial"``; recorded in the settings table of
+                    the export (layer 4), it does not change what is computed.
         interface:  Ventilation interface, e.g. ``"helmet"``, ``"face_mask"``.
         tidal_volume_ml: Tidal volume of the whole recording typed by the user (mL),
                     e.g. the one set in volume control or the mean on the case report

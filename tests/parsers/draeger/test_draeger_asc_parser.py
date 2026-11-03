@@ -121,9 +121,20 @@ def test_asc_parser_raises_if_no_waveform_header(tmp_path):
         DragerAscParser().parse(p)
 
 
-_ASC_FILE = Path("src/fasteit/test_files/patient01.asc")
+def _real_draeger_asc() -> Path | None:
+    """The first Draeger .asc export in the local test files, whatever its name."""
+    for path in sorted(Path("src/fasteit/test_files").glob("*.asc")):
+        try:
+            if detect_vendor_from_tabular(path) == "draeger":
+                return path
+        except ValueError:  # an .asc that is not a known export
+            continue
+    return None
+
+
+_ASC_FILE = _real_draeger_asc()
 _real_file_available = pytest.mark.skipif(
-    not _ASC_FILE.exists(),
+    _ASC_FILE is None,
     reason="no real Draeger .asc export in src/fasteit/test_files (gitignored, local only)",
 )
 

@@ -1,9 +1,10 @@
-# fastEIT - Export Layer (tables for R, SPSS and databases)
+# Export for R and SPSS
 
-The export layer (layer 4) takes the clinical indices of layer 3 and writes them as
-tables: one analysis at a time, or a whole study at once. The objects of the earlier
-layers store each value once, in the table of the layer that computes it; here they
-are joined, so that a breath or a PEEP step is one row with everything.
+The export (layer 4) takes the results of an analysis ([analyse a recording](guide/analyse.md))
+and writes them as tables: one analysis at a time, or a whole study at once. In the
+analysis objects each value is stored once, in the table of the step that computes it;
+here the tables are joined, so that a breath or a PEEP step is one row with everything.
+Only recordings that can be analysed (Dräger `.bin`, Timpel) have tables.
 
 1. [Entry point](#1-entry-point)
 2. [Keys: patient, recording, phase](#2-keys-patient-recording-phase)
@@ -57,9 +58,11 @@ Every row starts with three keys:
 | `label` | the recording for that patient, e.g. a time point (`T0`) or a position | `RecordingContext.label`, or `recording_tables(..., label="T1")` |
 | `phase` | the part of the recording analysed | `recording_tables(..., phase="baseline")`; by default the protocol, `tidal` or `peep_trial` |
 
-The phase needs a name only when a recording has two phases of the same protocol (e.g.
-a baseline and a recovery). `combine_tables()` refuses two analyses with the same three
-keys.
+By default the phase is the protocol, so a tidal baseline and a PEEP trial of the same
+recording are told apart already; two parts of the same protocol (e.g. a baseline and a
+recovery) need a name. Naming every part (`baseline`, `trial`) makes the tables easier to
+read: see [cut a recording](guide/segments.md).
+`combine_tables()` refuses two analyses with the same three keys.
 
 The clinical data (side, position, interface, outcome) stay in the case report form and
 are joined at the time of the analysis on `patient_id` and `label`: one row per
@@ -70,14 +73,15 @@ recording here, one row per patient in R or SPSS (`tidyr::pivot_wider()` on `lab
 | Table | One row per | Content |
 |-------|-------------|---------|
 | `recordings` | analysis | `protocol`, `file`, `vendor`, `fs`, `start_time` and `end_time` of the breaths of the phase, `n_breaths`, `n_used`, typed `tidal_volume_ml`, `cardiac_filter`, `fasteit_version`; for a PEEP trial its results: crossing PEEP, best PEEP, R/I and recruited volume (global and by half) |
-| `breaths` | breath of the phase | times, quality flags, `excluded`, `exclusion_label`, `is_valid`, `used`, PEEP, plateau, driving pressure, measured tidal volume (layer 2); `peep_step`, `peep_set` (layer 2b, PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (layer 3); regional values as columns |
-| `steps` | PEEP step (PEEP trials) | `step`, measured `peep`, `peep_set`, times, breaths analysed, driving pressure and tidal volume with their sources (layer 2b); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (layer 3); regional values as columns |
+| `breaths` | breath of the phase | times, quality flags, `excluded`, `exclusion_label`, `is_valid`, `used`, PEEP, plateau, driving pressure, measured tidal volume (preprocessing); `peep_step`, `peep_set` (PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (clinical indices); regional values as columns |
+| `steps` | PEEP step (PEEP trials) | `step`, measured `peep`, `peep_set`, times, breaths analysed, driving pressure and tidal volume with their sources (segmentation); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (clinical indices); regional values as columns |
 | `settings` | parameter | `section` (`fasteit`, `preprocessing`, `context`, `segmentation`, `analysis`), `parameter`, `value`: with the file, enough to compute the same values again |
 | `log` | message | `layer` (`preprocessing`, `segmentation`, `indices`), `message` (warnings start with `WARNING:`) |
 
 **Each value once.** The tables hold what was measured (one row per breath and per
-step) and the results that need the methods of layer 3 (Costa in `steps`; crossing PEEP,
-best PEEP and R/I in `recordings`, one value per trial). Summaries of these rows are made
+step) and the results of the PEEP-trial methods (Costa collapse and overdistension in
+`steps`; crossing PEEP, best PEEP and recruitment-to-inflation ratio, R/I, in
+`recordings`, one value per trial). Summaries of these rows are made
 at analysis time, with the choices of the study (median or mean, which breaths):
 
 ```r
@@ -116,8 +120,8 @@ ggplot(steps, aes(peep_set)) +
 | `{feature}__{region}` | `crossing_peep__global`, `ri__dorsal` | results of a PEEP trial in `recordings` |
 
 The regions exported are the halves of the lung: `ventral`, `dorsal`, `right`, `left`
-(patient right and left); the layers and the quadrants of layer 2 stay in the objects
-(`features.regions`). Two underscores separate the index from the region, because an
+(patient right and left); the layers and the quadrants stay in the analysis objects
+(`features.regions`) and are not exported. Two underscores separate the index from the region, because an
 index can contain one (`compliance_ml`). Back to one row per region in R:
 
 ```r
@@ -138,11 +142,13 @@ and Python. Files with the same name in the folder are replaced.
 
 ## 6. Limits
 
-- The tables are built from the objects of layer 3: the export does not read the files
-  or run the pipeline.
+- The tables are built from the results of `tidal_features()` or `peep_trial_features()`:
+  the export does not read the files or run the analysis.
 - The images (pixels, lung mask, tidal maps) are not exported.
 - `file` is the name of the source file: if it holds names or dates, rename the files
   before sharing the tables.
 - `peep_set` needs the levels of the protocol
   (`SegmentationConfig.peep_levels`); without them it is empty
   ([`segmentation.md`](segmentation.md)).
+- Only Dräger `.bin` and Timpel recordings are analysed; `.eit` and `.asc` give no tables
+  ([supported files](getting_started.md#supported-files)).

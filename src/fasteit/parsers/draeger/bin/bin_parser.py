@@ -37,11 +37,13 @@ def _has_pressure_pod(
     connected; without it they hold the Draeger "no data" values. Checked on a
     sample of frames spread over the file.
     """
-    pod = [i for i, name in enumerate(medibus_fields or ()) if name.endswith("_pod")]
-    if not pod or len(frames) == 0:
+    pod_columns = [
+        i for i, name in enumerate(medibus_fields or ()) if name.endswith("_pod")
+    ]
+    if not pod_columns:
         return False
     step = max(1, len(frames) // _POD_CHECK_FRAMES)
-    sample = replace_draeger_sentinels(frames["medibus_data"][::step][:, pod])
+    sample = replace_draeger_sentinels(frames["medibus_data"][::step, pod_columns])
     return bool(np.isfinite(sample).any())
 
 

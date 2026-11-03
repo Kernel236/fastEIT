@@ -197,7 +197,7 @@ def test_roundtrip_via_load_data(bin_3frames):
 
 # ── has_pressure_pod: from the Pod channels, not from the frame size ─────────
 
-POD_FIELDS = [
+POD_COLUMNS = [
     i for i, (name, _u, _c) in enumerate(MEDIBUS_EXT_FIELDS) if name.endswith("_pod")
 ]
 
@@ -217,9 +217,9 @@ def _write_ext_with_pod(
     """Extended frames with the Pod channels at `no_data`, and `pod_value` from frame `pod_from` on."""
     path = _write_bin(tmp_path, FRAME_EXT_DTYPE, n_frames=n_frames)
     frames = np.fromfile(path, dtype=FRAME_EXT_DTYPE)
-    frames["medibus_data"][:, POD_FIELDS] = no_data
+    frames["medibus_data"][:, POD_COLUMNS] = no_data
     if pod_value is not None:
-        frames["medibus_data"][pod_from:, POD_FIELDS[0]] = pod_value
+        frames["medibus_data"][pod_from:, POD_COLUMNS[0]] = pod_value
     frames.tofile(path)
     return path
 
@@ -264,7 +264,7 @@ def test_medibus_values_are_read_as_written(tmp_path, dtype, fields):
     frames = np.fromfile(path, dtype=dtype)
     # A different value for every channel and frame: a shifted or swapped channel fails.
     written = (
-        np.arange(len(fields))[None, :] * 1.5 + np.arange(6)[:, None] * 0.25
+        np.arange(len(fields))[None, :] * 1.5 + np.arange(len(frames))[:, None] * 0.25
     ).astype("<f4")
     frames["medibus_data"] = written
     frames.tofile(path)

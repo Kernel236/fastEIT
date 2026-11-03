@@ -36,15 +36,18 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting started: getting_started.md
   - User guide:
+      - Install and supported files: getting_started.md
+      - Analyse a recording: guide/analyse.md
+      - Cut a recording: guide/segments.md
+      - Review figures: review.md
+      - Export for R and SPSS: export.md
+  - How it works:
       - Data model: data_model.md
-      - Parsers: parsers.md
+      - Parsers (layer 1): parsers.md
       - Preprocessing (layer 2): preprocessing.md
       - PEEP trial segmentation (layer 2b): segmentation.md
       - Clinical indices (layer 3): features.md
-      - Export (layer 4): export.md
-      - Review figures: review.md
   - API reference:
       - api/index.md
       - Parsers: api/parsers.md

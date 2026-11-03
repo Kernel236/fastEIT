@@ -71,7 +71,11 @@ with their source.
 | 10 | Airway pressures of each breath: PEEP, plateau, driving pressure | `breath_pressures` | notebook 06 §2, §4 |
 | 11 | Inspiratory tidal volume of each breath | `tidal_volume` | - |
 
-Breaths are **flagged, never removed**: the clinician decides what to use.
+Breaths are **flagged, never removed**: the clinician decides what to use. Every
+exclusion is widened by 0.5 s on each side (`exclusion_margin_seconds`) and a breath that
+touches it is excluded. In the later layers a breath belongs to a phase or a PEEP step
+when it starts and ends inside it. The user-facing rules are in
+[cut a recording](guide/segments.md#rules).
 
 Quality flags of each breath:
 

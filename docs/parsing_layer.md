@@ -220,7 +220,6 @@ BIN_FORMAT_SPECS: tuple[FormatSpec, ...] = (
         frame_size_bytes=4406,
         dtype=FRAME_NEWEXT_DTYPE,
         medibus_fields=tuple(name for name, _, _ in MEDIBUS_NEWEXT_FIELDS),
-        has_pressure_pod_fields=True,
     ),
 )
 ```

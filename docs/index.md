@@ -27,7 +27,7 @@ measurements (`RawImpedanceData`, 208 transimpedances per frame) and needs a
 reconstruction first; a Dräger `.asc` export holds signals only (`ContinuousSignalData`)
 and has no images ([parsers](parsers.md)).
 
-| Layer | What it does | Guide |
+| Layer | What it does | How it works |
 |-------|--------------|-------|
 | 1. Parsers | Dräger `.bin`, `.eit`, `.asc` and Timpel files to data containers | [Parsers](parsers.md) |
 | 2. Preprocessing | cardiac filter, breaths with quality flags, exclusions, lung mask, regions; auxiliary signals in cmH2O, L/s, mL; PEEP, plateau, driving pressure and tidal volume of each breath | [Preprocessing](preprocessing.md) |
@@ -38,6 +38,8 @@ and has no images ([parsers](parsers.md)).
 Every method states its source (paper and DOI, or the evidence notebook) and the
 reimplemented steps are checked against [eitprocessing](https://github.com/EIT-ALIVE/eitprocessing).
 
-Start with [Getting started](getting_started.md); the objects of every layer and where
-each value is stored are in the [data model](data_model.md); every function is in the
+Start with the **user guide**: [install and supported files](getting_started.md), then
+[analyse a recording](guide/analyse.md), [cut a recording](guide/segments.md), check it
+with the [review figures](review.md) and [export the tables](export.md). The pages under
+"How it works" describe each layer and its choices; every function is in the
 [API reference](api/index.md).
