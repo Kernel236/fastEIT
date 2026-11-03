@@ -202,23 +202,49 @@ POD_FIELDS = [
 ]
 
 
-def _write_ext_with_pod(tmp_path: Path, pod_value: float) -> Path:
-    path = _write_bin(tmp_path, FRAME_EXT_DTYPE, n_frames=20)
+# The two Draeger "no data" encodings: -1000.0, and the bit pattern 0xFF7FC99E (about -3.4e38,
+# a finite float) that real files without a Pod hold in the Pod channels.
+NO_DATA = [-1000.0, float(np.array([0xFF7FC99E], dtype="<u4").view("<f4")[0])]
+
+
+def _write_ext_with_pod(
+    tmp_path: Path,
+    no_data: float,
+    pod_value: float | None = None,
+    n_frames: int = 20,
+    pod_from: int = 0,
+) -> Path:
+    """Extended frames with the Pod channels at `no_data`, and `pod_value` from frame `pod_from` on."""
+    path = _write_bin(tmp_path, FRAME_EXT_DTYPE, n_frames=n_frames)
     frames = np.fromfile(path, dtype=FRAME_EXT_DTYPE)
-    frames["medibus_data"][:, POD_FIELDS] = -1000.0  # Draeger "no data"
-    frames["medibus_data"][:, POD_FIELDS[0]] = pod_value
+    frames["medibus_data"][:, POD_FIELDS] = no_data
+    if pod_value is not None:
+        frames["medibus_data"][pod_from:, POD_FIELDS[0]] = pod_value
     frames.tofile(path)
     return path
 
 
-def test_extended_frames_without_a_pod_connected_have_no_pressure_pod(tmp_path):
-    data = DragerBinParser().parse(_write_ext_with_pod(tmp_path, -1000.0))
+@pytest.mark.parametrize("no_data", NO_DATA, ids=["minus_1000", "bit_pattern"])
+def test_extended_frames_without_a_pod_connected_have_no_pressure_pod(
+    tmp_path, no_data
+):
+    data = DragerBinParser().parse(_write_ext_with_pod(tmp_path, no_data))
     assert data.metadata["has_pressure_pod"] is False
 
 
-def test_a_pod_channel_with_values_means_a_pressure_pod(tmp_path):
-    data = DragerBinParser().parse(_write_ext_with_pod(tmp_path, 5.0))
+@pytest.mark.parametrize("no_data", NO_DATA, ids=["minus_1000", "bit_pattern"])
+def test_a_pod_channel_with_values_means_a_pressure_pod(tmp_path, no_data):
+    data = DragerBinParser().parse(
+        _write_ext_with_pod(tmp_path, no_data, pod_value=5.0)
+    )
     assert data.metadata["has_pressure_pod"] is True
+
+
+def test_a_pod_connected_later_in_a_long_file_is_found(tmp_path):
+    path = _write_ext_with_pod(
+        tmp_path, NO_DATA[1], pod_value=5.0, n_frames=1000, pod_from=500
+    )
+    assert DragerBinParser().parse(path).metadata["has_pressure_pod"] is True
 
 
 def test_base_frames_have_no_pressure_pod(tmp_path):
