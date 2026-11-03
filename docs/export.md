@@ -139,7 +139,7 @@ and Python. Files with the same name in the folder are replaced.
 ## 6. Limits
 
 - The tables are built from the objects of layer 3: the export does not read the files
-  or run the pipeline (a study from a file of segments is the next step).
+  or run the pipeline.
 - The images (pixels, lung mask, tidal maps) are not exported.
 - `file` is the name of the source file: if it holds names or dates, rename the files
   before sharing the tables.

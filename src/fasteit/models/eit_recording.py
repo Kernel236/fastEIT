@@ -1,7 +1,8 @@
 """Containers for a preprocessed recording (layer 2).
 
-- Segment          - a time interval of a recording (exclusion, later PEEP step)
-- RecordingContext - attributes of the whole recording (patient, position, protocol)
+- Segment          - a time interval of a recording (exclusion, PEEP step, phase)
+- RecordingContext - attributes of the whole recording (patient, label, position,
+                     protocol, tidal volume)
 - EITRecording     - the recording ready for analysis, output of ``preprocess()``
 """
 

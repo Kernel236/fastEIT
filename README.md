@@ -10,8 +10,9 @@
 | **CI / CD** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) ![deploy](https://img.shields.io/badge/deploy-todo-lightgrey) |
 
 Python library for parsing and preprocessing Electrical Impedance Tomography (EIT) data
-from the Dräger PulmoVista 500. Provides structured data containers and a breath-by-breath
-preprocessing for research in mechanical ventilation and lung monitoring.
+from the Dräger PulmoVista 500 and from Timpel. Provides structured data containers, a
+breath-by-breath preprocessing, clinical indices of tidal recordings and PEEP trials, and
+tables for R and databases, for research in mechanical ventilation and lung monitoring.
 
 ## Installation
 
@@ -115,7 +116,7 @@ See [`docs/segmentation.md`](docs/segmentation.md); evidence in
 
 `tidal_features()` and `peep_trial_features()` compute the clinical indices as tables ready
 for a database or R: EELI, TIV, share of ventilation by region, global inhomogeneity,
-centre of ventilation, durations, compliance (in EIT units and, with a tidal volume, in
+centre of ventilation, respiratory rate, compliance (in EIT units and, with a tidal volume, in
 mL/cmH2O), and for a PEEP trial the indices of each step, Costa collapse and
 overdistension, the crossing PEEP, the changes between steps and the
 recruitment-to-inflation ratio (global and by region).
