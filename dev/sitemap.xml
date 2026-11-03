@@ -84,4 +84,12 @@
          <loc>https://kernel236.github.io/fastEIT/latest/api/segmentation/</loc>
          <lastmod>2026-11-03</lastmod>
     </url>
+    <url>
+         <loc>https://kernel236.github.io/fastEIT/latest/guide/analyse/</loc>
+         <lastmod>2026-11-03</lastmod>
+    </url>
+    <url>
+         <loc>https://kernel236.github.io/fastEIT/latest/guide/segments/</loc>
+         <lastmod>2026-11-03</lastmod>
+    </url>
 </urlset>

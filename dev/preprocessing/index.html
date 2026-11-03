@@ -249,17 +249,20 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="../getting_started/" class="md-tabs__link">
-        
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting_started/" class="md-tabs__link">
+          
   
   
     
   
-  Getting started
+  User guide
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
   
 
       
@@ -279,7 +282,7 @@
   
     
   
-  User guide
+  How it works
 
         </a>
       </li>
@@ -409,6 +412,70 @@
   
   
   
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../getting_started/" class="md-nav__link">
         
@@ -417,7 +484,7 @@
   <span class="md-ellipsis">
     
   
-    Getting started
+    Install and supported files
   
 
     
@@ -426,6 +493,126 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/analyse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analyse a recording
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cut a recording
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export for R and SPSS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -440,10 +627,6 @@
   
     
     
-      
-        
-      
-        
       
         
       
@@ -481,7 +664,7 @@
   <span class="md-ellipsis">
     
   
-    User guide
+    How it works
   
 
     
@@ -497,7 +680,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    User guide
+    How it works
   
 
           </label>
@@ -545,7 +728,7 @@
   <span class="md-ellipsis">
     
   
-    Parsers
+    Parsers (layer 1)
   
 
     
@@ -754,62 +937,6 @@
     
   
     Clinical indices (layer 3)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../export/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Export (layer 4)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../review/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Review figures
   
 
     
@@ -1552,7 +1679,11 @@ with their source.</p>
 </tr>
 </tbody>
 </table>
-<p>Breaths are <strong>flagged, never removed</strong>: the clinician decides what to use.</p>
+<p>Breaths are <strong>flagged, never removed</strong>: the clinician decides what to use. Every
+exclusion is widened by 0.5 s on each side (<code>exclusion_margin_seconds</code>) and a breath that
+touches it is excluded. In the later layers a breath belongs to a phase or a PEEP step
+when it starts and ends inside it. The user-facing rules are in
+<a href="../guide/segments/#rules">cut a recording</a>.</p>
 <p>Quality flags of each breath:</p>
 <table>
 <thead>
@@ -1828,7 +1959,7 @@ the start and at the peak of a breath:</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../parsers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Parsers">
+          <a href="../parsers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Parsers (layer 1)">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1838,7 +1969,7 @@ the start and at the peak of a breath:</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Parsers
+                Parsers (layer 1)
               </div>
             </div>
           </a>

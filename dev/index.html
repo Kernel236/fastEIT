@@ -249,17 +249,20 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="getting_started/" class="md-tabs__link">
-        
+    
+    
+      <li class="md-tabs__item">
+        <a href="getting_started/" class="md-tabs__link">
+          
   
   
     
   
-  Getting started
+  User guide
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
   
 
       
@@ -277,7 +280,7 @@
   
     
   
-  User guide
+  How it works
 
         </a>
       </li>
@@ -465,6 +468,70 @@
   
   
   
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="getting_started/" class="md-nav__link">
         
@@ -473,7 +540,7 @@
   <span class="md-ellipsis">
     
   
-    Getting started
+    Install and supported files
   
 
     
@@ -482,6 +549,126 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/analyse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analyse a recording
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cut a recording
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review figures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export for R and SPSS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -494,10 +681,6 @@
   
     
     
-      
-        
-      
-        
       
         
       
@@ -532,7 +715,7 @@
   <span class="md-ellipsis">
     
   
-    User guide
+    How it works
   
 
     
@@ -548,7 +731,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    User guide
+    How it works
   
 
           </label>
@@ -596,7 +779,7 @@
   <span class="md-ellipsis">
     
   
-    Parsers
+    Parsers (layer 1)
   
 
     
@@ -681,62 +864,6 @@
     
   
     Clinical indices (layer 3)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="export/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Export (layer 4)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="review/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Review figures
   
 
     
@@ -1312,7 +1439,7 @@ and has no images (<a href="parsers/">parsers</a>).</p>
 <tr>
 <th>Layer</th>
 <th>What it does</th>
-<th>Guide</th>
+<th>How it works</th>
 </tr>
 </thead>
 <tbody>
@@ -1345,8 +1472,10 @@ and has no images (<a href="parsers/">parsers</a>).</p>
 </table>
 <p>Every method states its source (paper and DOI, or the evidence notebook) and the
 reimplemented steps are checked against <a href="https://github.com/EIT-ALIVE/eitprocessing">eitprocessing</a>.</p>
-<p>Start with <a href="getting_started/">Getting started</a>; the objects of every layer and where
-each value is stored are in the <a href="data_model/">data model</a>; every function is in the
+<p>Start with the <strong>user guide</strong>: <a href="getting_started/">install and supported files</a>, then
+<a href="guide/analyse/">analyse a recording</a>, <a href="guide/segments/">cut a recording</a>, check it
+with the <a href="review/">review figures</a> and <a href="export/">export the tables</a>. The pages under
+"How it works" describe each layer and its choices; every function is in the
 <a href="api/">API reference</a>.</p>
 
 
@@ -1384,13 +1513,13 @@ each value is stored are in the <a href="data_model/">data model</a>; every func
         
         
           
-          <a href="getting_started/" class="md-footer__link md-footer__link--next" aria-label="Next: Getting started">
+          <a href="getting_started/" class="md-footer__link md-footer__link--next" aria-label="Next: Install and supported files">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Getting started
+                Install and supported files
               </div>
             </div>
             <div class="md-footer__button md-icon">
