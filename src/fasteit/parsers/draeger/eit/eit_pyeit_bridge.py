@@ -181,8 +181,8 @@ def reconstruct_greit(
         # GREIT computes Δσ (conductivity change): decreases when air enters the lungs.
         # Clinical EIT convention is the opposite (impedance increases with air).
         # Negate so images match the .bin Dräger convention - peaks up during inspiration.
-        # Rotate 90° CCW (k=1) to match anatomical orientation: heart left-anterior,
-        # right lung on the right (same as a CT cross-section viewed from the feet).
+        # Rotate 90° CCW (k=1) and flip to match anatomical orientation: ventral up,
+        # patient right on the image left (a CT cross-section viewed from the feet).
         ds = solver.solve(v1, v0)
         # Post-processing to match Dräger PulmoVista 500 display convention
         # (IFU SW 1.3n, p. 146):

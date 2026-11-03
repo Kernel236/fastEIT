@@ -119,9 +119,10 @@ class ReconstructedFrameData(BaseData):
           strip 2 = rows 16-23 (mid-dorsal)
           strip 3 = rows 24-31 (dorsal)
 
-        Note: these are horizontal *strips*, not the 2×2 TREND quadrants
-        (ROI1-ROI4 in Frerichs et al., Thorax 2017; doi:10.1136/thoraxjnl-2016-208357).
-        TREND quadrant decomposition is a separate future feature.
+        These are the four horizontal layers of the PulmoVista display (ROI 1-4 from
+        ventral to dorsal, 8 rows each), on the whole image. The regions of the lung
+        (halves, layers on the lung extent, quadrants) are computed in layer 2
+        (``EITRecording.roi_masks``).
         """
         p = self._require_frames()["pixels"]
         return np.column_stack(
