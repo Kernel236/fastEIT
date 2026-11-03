@@ -58,8 +58,10 @@ Every row starts with three keys:
 | `label` | the recording for that patient, e.g. a time point (`T0`) or a position | `RecordingContext.label`, or `recording_tables(..., label="T1")` |
 | `phase` | the part of the recording analysed | `recording_tables(..., phase="baseline")`; by default the protocol, `tidal` or `peep_trial` |
 
-The phase needs a name when a recording has two parts (e.g. a baseline and a PEEP
-trial, or a baseline and a recovery): see [cut a recording](guide/segments.md).
+By default the phase is the protocol, so a tidal baseline and a PEEP trial of the same
+recording are told apart already; two parts of the same protocol (e.g. a baseline and a
+recovery) need a name. Naming every part (`baseline`, `trial`) makes the tables easier to
+read: see [cut a recording](guide/segments.md).
 `combine_tables()` refuses two analyses with the same three keys.
 
 The clinical data (side, position, interface, outcome) stay in the case report form and

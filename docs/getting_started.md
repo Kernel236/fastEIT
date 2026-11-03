@@ -27,8 +27,8 @@ The analysis starts from reconstructed images (32x32 pixels per frame):
 | Dräger `.asc` export | `ContinuousSignalData` (signals only) | no: no images |
 
 `load_data(path)` recognises the vendor and the format by itself. Large `.bin` and `.eit`
-files are not read into memory at once: loading reads the header only, and the frames
-are read when they are used.
+files are not read into memory at once: the images and measurements are read from disk
+when they are used.
 
 ## The four steps
 

@@ -33,7 +33,7 @@ Two frame formats are registered; detection is size-based (no header).
 | Name | Frame size | Medibus channels | Notes |
 |------|-----------|-----------------|-------|
 | `Draeger_base_4358` | 4358 bytes | 52 | Standard export |
-| `Draeger_ext_4382` | 4382 bytes | 58 | PressurePod variant: BiLevel parameters + 4 Pod pressure waveforms |
+| `Draeger_ext_4382` | 4382 bytes | 58 | BiLevel parameters + 4 PressurePod channels; the channels are there whether or not a Pod is connected, `metadata["has_pressure_pod"]` says if they hold values |
 
 ### Binary frame layout (base format)
 
