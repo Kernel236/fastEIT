@@ -10,8 +10,9 @@
 | **CI / CD** | [![Tests](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/test.yml) [![Lint](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/lint.yml) [![Build](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml/badge.svg)](https://github.com/Kernel236/fastEIT/actions/workflows/build.yml) ![deploy](https://img.shields.io/badge/deploy-todo-lightgrey) |
 
 Python library for parsing and preprocessing Electrical Impedance Tomography (EIT) data
-from the Dräger PulmoVista 500. Provides structured data containers and a breath-by-breath
-preprocessing for research in mechanical ventilation and lung monitoring.
+from the Dräger PulmoVista 500 and from Timpel. Provides structured data containers, a
+breath-by-breath preprocessing, clinical indices of tidal recordings and PEEP trials, and
+tables for R and databases, for research in mechanical ventilation and lung monitoring.
 
 ## Installation
 
@@ -115,7 +116,7 @@ See [`docs/segmentation.md`](docs/segmentation.md); evidence in
 
 `tidal_features()` and `peep_trial_features()` compute the clinical indices as tables ready
 for a database or R: EELI, TIV, share of ventilation by region, global inhomogeneity,
-centre of ventilation, durations, compliance (in EIT units and, with a tidal volume, in
+centre of ventilation, respiratory rate, compliance (in EIT units and, with a tidal volume, in
 mL/cmH2O), and for a PEEP trial the indices of each step, Costa collapse and
 overdistension, the crossing PEEP, the changes between steps and the
 recruitment-to-inflation ratio (global and by region).
@@ -133,10 +134,27 @@ features.steps, features.step_regions, features.summary
 See [`docs/features.md`](docs/features.md); evidence in
 `notebooks/07_clinical_indices.ipynb`.
 
+## Export
+
+`recording_tables()` turns the indices of one analysis (one phase of a recording) into
+flat tables, one row per recording, breath and PEEP step, each row keyed by
+`patient_id`, `label` (the recording, e.g. a time point) and `phase`;
+`combine_tables()` puts a whole study together and `write_csv()` writes files that R,
+SPSS and Excel read without options.
+
+```python
+from fasteit.export import combine_tables, recording_tables, write_csv
+
+tables = combine_tables([recording_tables(tidal), recording_tables(features)])
+write_csv(tables, "results/")   # recordings, breaths, steps, settings, log
+```
+
+See [`docs/export.md`](docs/export.md).
+
 ## Project status
 
-Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation and clinical indices
-implemented.
+Pre-alpha. Data model, parsing, preprocessing, PEEP trial segmentation, clinical indices
+and export implemented.
 
 **Data model** (`models/`):
 
@@ -187,6 +205,8 @@ and one for `dev`. The same guides in the repository:
 - [`docs/preprocessing.md`](docs/preprocessing.md) - preprocessing steps, ventilator values of each breath, units, outputs, logs and limits
 - [`docs/segmentation.md`](docs/segmentation.md) - PEEP trial segmentation: steps, breaths analysed, driving pressure and tidal volume, phases
 - [`docs/features.md`](docs/features.md) - clinical indices: definitions, tables and limits
+- [`docs/export.md`](docs/export.md) - export: keys, tables, column names, CSV files for R and SPSS
+- [`docs/review.md`](docs/review.md) - review figures: segments before preprocessing, breaths used after
 
 ## Contributing
 

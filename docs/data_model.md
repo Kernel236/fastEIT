@@ -137,6 +137,7 @@ file .bin / .csv
           ├─ tidal_features() ───────► TidalFeatures       layer 3: indices
           └─ segment_peep_trial() ───► PeepTrial           layer 2b: PEEP steps
                └─ peep_trial_features() ► PeepTrialFeatures  layer 3: indices
+                    └─ recording_tables() ► tables, CSV        layer 4: export
 ```
 
 Each value is stored once, in the table of the layer that produces it; tables are joined
@@ -147,16 +148,19 @@ on `breath_id`, `step` (with `peep`) and `region`.
 | `EITRecording.breaths` | breath | times and frames, quality flags, `excluded`, `is_valid`, PEEP, plateau, driving pressure, measured tidal volume |
 | `EITRecording.aux` (+ `aux_units`) | frame | auxiliary signals in cmH2O, L/s, mL; device markers |
 | `EITRecording` arrays | - | `pixels`, `lung_mask`, `roi_masks`, `roi_signals`, `global_signal`, `time` |
+| `EITRecording.context` | - | `RecordingContext`: `patient_id`, `label`, `position`, `protocol`, `interface`, `tidal_volume_ml`, `notes` |
 | `PeepTrial.breaths` | breath | the breaths of the recording plus `peep_step`, `analysed` |
-| `PeepTrial.steps` | step | PEEP level, times, breaths analysed, `enough`, plateau, driving pressure and tidal volume with their sources |
+| `PeepTrial` fields | - | `source` (`"pressure"` or `"manual"`), `phase` (the PEEP trial part of the recording, or None), `config` (`SegmentationConfig`) |
+| `PeepTrial.steps` | step | PEEP level measured and of the protocol (`peep_set`), times, breaths analysed, `enough`, plateau, driving pressure and tidal volume with their sources |
 | `TidalFeatures.breaths`, `PeepTrialFeatures.breaths` | breath | EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (EIT units and mL/cmH2O) |
 | `...Features.regions` | breath and region | EELI, TIV, share, TIV in mL, compliance (EIT units and mL/cmH2O) |
 | `PeepTrialFeatures.steps` | step | medians of the analysed breaths, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step |
 | `PeepTrialFeatures.step_regions` | step and region | the regional values of each step |
 | `TidalFeatures.summary` | region and index | median and quartiles over the valid breaths |
-| `PeepTrialFeatures.summary` | region and feature | crossing PEEP, best PEEP, R/I and recruited volume (global and by region) |
+| `PeepTrialFeatures.summary` | region and feature | crossing PEEP, best PEEP, R/I steps (global), R/I and recruited volume (global and by region) |
+| `PeepTrialFeatures.config` | - | `AnalysisConfig` used (R/I levels) |
 
-The flat export, with everything in one table per breath and per step, belongs to the
-next layer (database and export). Details: [`preprocessing.md`](preprocessing.md),
+Layer 4 joins them into flat tables, one row per breath or step with everything, keyed
+by patient, recording and phase ([`export.md`](export.md)). Details: [`preprocessing.md`](preprocessing.md),
 [`segmentation.md`](segmentation.md), [`features.md`](features.md).
 

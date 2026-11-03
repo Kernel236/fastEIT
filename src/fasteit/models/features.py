@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from fasteit.config import AnalysisConfig
 from fasteit.models.eit_recording import EITRecording
 from fasteit.models.peep_trial import PeepTrial
 
@@ -60,6 +61,7 @@ class PeepTrialFeatures:
 
     Attributes:
         trial:        The segmented PEEP trial (layer 2b).
+        config:       Parameters used.
         breaths:      One row per breath, as in ``TidalFeatures`` (without
                       ``in_phase``). Step and analysed breaths: ``trial.breaths``.
         regions:      One row per breath and region, as in ``TidalFeatures``.
@@ -81,6 +83,7 @@ class PeepTrialFeatures:
     """
 
     trial: PeepTrial
+    config: AnalysisConfig
     breaths: pd.DataFrame
     regions: pd.DataFrame
     steps: pd.DataFrame

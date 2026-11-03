@@ -89,6 +89,47 @@ def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
     return np.searchsorted(step_starts, breaths, side="right") - 1
 
 
+def protocol_levels(
+    levels: np.ndarray, protocol: Sequence[float] | None, tolerance: float
+) -> np.ndarray:
+    """PEEP level of the protocol of each step.
+
+    The measured PEEP of every step can be off the set level by about the same amount
+    (mbar to cmH2O, PEEP valve: +0.6 cmH2O in every step of a trial of notebook 06, 1.1
+    cmH2O at PEEP 0, nearer to 2 than to 0). That offset, the median distance of the
+    steps from their nearest level, is removed first; then each step gets the nearest
+    level. A step further than ``tolerance`` from every level (a level that is not in
+    the protocol) gets NaN. An offset of half a step or more cannot be told apart from
+    the next level.
+
+    Args:
+        levels:    PEEP of each step, measured or typed (cmH2O).
+        protocol:  PEEP levels of the protocol, or None.
+        tolerance: Largest distance from a level of the protocol (cmH2O).
+
+    Returns:
+        One level per step; NaN where no level of the protocol is near enough, and for
+        every step without the levels of the protocol.
+    """
+    levels = np.asarray(levels, dtype=float)
+    if protocol is None or len(levels) == 0:
+        return np.full(len(levels), np.nan)
+    candidates = np.asarray(protocol, dtype=float)
+
+    def nearest(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        # Distance of each step (rows) from each level of the protocol (columns).
+        distance = np.abs(values[:, None] - candidates[None, :])
+        return candidates[np.argmin(distance, axis=1)], distance.min(axis=1)
+
+    first_guess, first_distance = nearest(levels)
+    # Offset common to every step, from the steps near a level: a step outside the
+    # protocol does not move it.
+    near = first_distance <= tolerance
+    offset = np.median(levels[near] - first_guess[near]) if near.any() else 0.0
+    level, distance = nearest(levels - offset)
+    return np.where(distance <= tolerance, level, np.nan)
+
+
 def steps_from_segments(
     breath_starts: np.ndarray, breath_ends: np.ndarray, segments: Sequence[Segment]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

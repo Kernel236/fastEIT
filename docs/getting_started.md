@@ -58,6 +58,28 @@ trial.steps             # PEEP level, breaths analysed, driving pressure, tidal 
 Without a pressure signal, or to choose the breaths yourself, place the steps by hand
 ([segmentation](segmentation.md)).
 
+## Tables for R and SPSS
+
+```python
+from fasteit.export import combine_tables, recording_tables, write_csv
+
+tables = combine_tables([recording_tables(f) for f in all_features])  # one or many
+write_csv(tables, "results/")   # recordings.csv, breaths.csv, steps.csv, settings.csv, log.csv
+```
+
+Every row starts with `patient_id`, `label` (the recording) and `phase`; see
+[export](export.md).
+
+## Look at the breaths used
+
+```python
+from fasteit.plotting import plot_breaths
+
+plot_breaths(trial)   # breaths used, flagged, excluded; steps; lung mask
+```
+
+See [review figures](review.md).
+
 ## Where the values are
 
 Each value is stored once, in the table of the layer that produces it, and the tables are

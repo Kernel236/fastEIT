@@ -454,11 +454,15 @@ def _recruitment_rows(
     trial: PeepTrial,
     steps: pd.DataFrame,
     step_regions: pd.DataFrame,
+    result_peep: np.ndarray,
     config: AnalysisConfig,
     log: RunLog,
 ) -> list[dict]:
     """R/I and recruited volume between the steps nearest to the two PEEP levels of the
-    config, globally and for each region (rows of the summary)."""
+    config, globally and for each region (rows of the summary).
+
+    The steps are chosen and the drop of PEEP is computed on the measured PEEP (the
+    change of pressure that happened); the two steps are reported on ``result_peep``."""
     pair = ri_steps(
         steps.peep.to_numpy(),
         config.ri_peep_high,
@@ -478,8 +482,8 @@ def _recruitment_rows(
     log.info(f"R/I between the steps at PEEP {peep_high:.1f} and {peep_low:.1f}.")
 
     rows = [
-        {"region": "global", "feature": "ri_peep_high", "value": peep_high},
-        {"region": "global", "feature": "ri_peep_low", "value": peep_low},
+        {"region": "global", "feature": "ri_peep_high", "value": result_peep[high]},
+        {"region": "global", "feature": "ri_peep_low", "value": result_peep[low]},
     ]
     ri, recruited = recruitment_to_inflation(
         steps.eeli[high], steps.eeli[low], steps.tiv[low], driving_low,
@@ -503,12 +507,28 @@ def _recruitment_rows(
     return rows
 
 
-def _best_peep(steps: pd.DataFrame, column: str) -> float:
-    """PEEP of the step with the highest value of a column (NaN if none has one)."""
-    values = steps[column]
-    if values.isna().all():
+def _result_peep(trial: PeepTrial, steps: pd.DataFrame, log: RunLog) -> np.ndarray:
+    """PEEP of each step on which the results of the trial are given: the level of the
+    protocol (``peep_set``) when every step has one, so that the results can be compared
+    between patients; otherwise the measured level."""
+    levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
+    peep_set = levels.peep_set.to_numpy(dtype=float)
+    if np.isfinite(peep_set).all():
+        log.info(
+            "Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
+        )
+        return peep_set
+    log.info("Crossing PEEP, best PEEP and R/I steps on the measured PEEP.")
+    return steps.peep.to_numpy(dtype=float)
+
+
+def _best_peep(steps: pd.DataFrame, column: str, peep: np.ndarray) -> float:
+    """PEEP of the step with the highest value of a column, the first if two are equal
+    (NaN if none has one)."""
+    values = steps[column].to_numpy(dtype=float)
+    if np.isnan(values).all():
         return np.nan
-    return float(steps.peep[values.idxmax()])
+    return float(peep[np.nanargmax(values)])
 
 
 def _check_steps(
@@ -588,24 +608,29 @@ def peep_trial_features(
     steps["collapse"] = costa.collapse
     steps["overdistension"] = costa.overdistension
 
-    # 4. Changes between steps, and the summary of the trial.
+    # 4. Changes between steps, and the summary of the trial, on the PEEP levels of the
+    # protocol when every step has one.
     steps = _add_changes(steps, trial.steps.tidal_volume.to_numpy(dtype=float))
-    crossing = crossing_peep(steps.peep, steps.collapse, steps.overdistension)
+    result_peep = _result_peep(trial, steps, log)
+    crossing = crossing_peep(result_peep, steps.collapse, steps.overdistension)
     summary_rows = [
         {"region": "global", "feature": "crossing_peep", "value": crossing},
         {"region": "global", "feature": "best_peep_compliance",
-         "value": _best_peep(steps, "compliance")},
+         "value": _best_peep(steps, "compliance", result_peep)},
         {"region": "global", "feature": "best_peep_compliance_ml",
-         "value": _best_peep(steps, "compliance_ml")},
+         "value": _best_peep(steps, "compliance_ml", result_peep)},
     ]  # fmt: skip
     _check_steps(steps, trial, crossing, log)
 
     # 5. Recruitment-to-inflation ratio, globally and by region.
-    summary_rows += _recruitment_rows(trial, steps, step_regions, config, log)
+    summary_rows += _recruitment_rows(
+        trial, steps, step_regions, result_peep, config, log
+    )
     summary = pd.DataFrame(summary_rows)
 
     return PeepTrialFeatures(
         trial=trial,
+        config=config,
         breaths=breaths,
         regions=regions,
         steps=steps,

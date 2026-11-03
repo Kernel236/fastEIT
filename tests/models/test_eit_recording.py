@@ -50,6 +50,7 @@ def test_recording_context_defaults():
     ctx = RecordingContext(patient_id="PZ01")
     assert ctx.protocol == "tidal"
     assert ctx.position is None
+    assert ctx.label == ""
 
 
 def test_recording_context_tidal_volume_must_be_positive():

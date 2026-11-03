@@ -9,6 +9,7 @@ from fasteit.segmentation.peep_steps import (
     STEP_MIN_BREATHS,
     analysed_breaths,
     find_steps,
+    protocol_levels,
     step_of_each_breath,
     steps_from_segments,
 )
@@ -73,6 +74,32 @@ def test_an_odd_first_breath_does_not_open_a_step():
 
 def test_a_series_shorter_than_three_breaths_is_one_step():
     assert steps([12.0, 10.0]).tolist() == [0]
+
+
+def test_each_step_gets_the_nearest_level_of_the_protocol():
+    measured = [16.3, 14.4, 11.8, 10.2, 0.4]  # 2 % of mbar to cmH2O, noise
+    np.testing.assert_array_equal(
+        protocol_levels(measured, [16, 14, 12, 10, 8, 6, 4, 2, 0], tolerance=1),
+        [16, 14, 12, 10, 0],
+    )
+
+
+def test_a_step_far_from_the_protocol_has_no_level():
+    levels = protocol_levels([16.2, 20.1], [16, 14, 12], tolerance=1)
+    assert levels[0] == 16 and np.isnan(levels[1])
+
+
+def test_an_offset_common_to_every_step_is_removed_first():
+    # Patient B supine (notebook 06): +0.6 cmH2O in every step, 1.06 at PEEP 0.
+    measured = [16.62, 14.69, 12.75, 10.62, 8.67, 6.62, 4.57, 2.67, 1.06]
+    np.testing.assert_array_equal(
+        protocol_levels(measured, [16, 14, 12, 10, 8, 6, 4, 2, 0], tolerance=1),
+        [16, 14, 12, 10, 8, 6, 4, 2, 0],
+    )
+
+
+def test_without_the_protocol_there_is_no_level():
+    assert np.isnan(protocol_levels([16.3, 9.8], None, 1)).all()
 
 
 def test_step_of_each_breath():

@@ -24,6 +24,7 @@ from fasteit.segmentation.peep_steps import (
     STEP_MIN_BREATHS,
     analysed_breaths,
     find_steps,
+    protocol_levels,
     step_of_each_breath,
     steps_from_segments,
 )
@@ -38,7 +39,7 @@ MIN_FRACTION_READ = 0.5
 # control, where it changes with PEEP): a plausibility check, not a measured accuracy.
 TIDAL_VOLUME_AGREEMENT = 0.15
 STEP_COLUMNS = [
-    "step", "peep", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
+    "step", "peep", "peep_set", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
     "plateau", "driving_pressure", "driving_pressure_source", "n_driving_pressure",
     "enough_driving_pressure", "tidal_volume", "tidal_volume_source",
 ]  # fmt: skip
@@ -273,7 +274,16 @@ def _steps_table(
     config: SegmentationConfig,
     log: RunLog,
 ) -> pd.DataFrame:
-    """One row per step, with its plateau, driving pressure and tidal volume."""
+    """One row per step, with its level of the protocol, plateau, driving pressure and
+    tidal volume."""
+    peep_set = protocol_levels(levels, config.peep_levels, config.step_threshold)
+    if config.peep_levels is None:
+        log.info(
+            "No PEEP levels of the protocol (SegmentationConfig.peep_levels): "
+            "peep_set is empty."
+        )
+    else:
+        log.info(f"PEEP level of the protocol of each step: {peep_set.tolist()}.")
     rows = []
     for k, level in enumerate(levels):
         in_step = breaths[breaths.peep_step == k]
@@ -283,12 +293,17 @@ def _steps_table(
         )
         volume = _step_tidal_volume(analysed, typed_volumes[k], recording_volume)
         rows.append([
-            k, float(level),
+            k, float(level), float(peep_set[k]),
             float(in_step.start_time.min()) if len(in_step) else np.nan,
             float(in_step.end_time.max()) if len(in_step) else np.nan,
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
             *driving, *volume,
         ])  # fmt: skip
+        if config.peep_levels is not None and np.isnan(peep_set[k]):
+            log.warning(
+                f"Step {k} (PEEP {level:.1f}): no PEEP level of the protocol within "
+                f"{config.step_threshold:g} cmH2O."
+            )
         if len(analysed) < config.analysis_min_breaths:
             log.warning(
                 f"Step {k} (PEEP {level:.1f}): only {len(analysed)} breaths analysed, "
@@ -415,6 +430,7 @@ def segment_peep_trial(
         recording=recording,
         config=config,
         source=source,
+        phase=phase,
         steps=steps,
         breaths=breaths,
         log=tuple(log.messages),

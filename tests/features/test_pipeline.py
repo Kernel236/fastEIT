@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from fasteit.config import AnalysisConfig
+from fasteit.config import AnalysisConfig, SegmentationConfig
 from fasteit.features import peep_trial_features, tidal_features
 from fasteit.features.pipeline import _add_changes
 from fasteit.models import RecordingContext, Segment
@@ -279,11 +279,26 @@ def test_real_peep_trials_give_the_indices_of_notebook_07():
         assert last == pytest.approx(eeli_ml, abs=1), name
 
 
+def test_results_of_the_trial_on_the_protocol_levels():
+    recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
+    ri_config = AnalysisConfig(ri_peep_high=12, ri_peep_low=6, ri_min_peep_drop=6)
+    measured = peep_trial_features(segment_peep_trial(recording), ri_config)
+    levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
+    protocol = peep_trial_features(segment_peep_trial(recording, levels), ri_config)
+    assert value(protocol, "best_peep_compliance") in {12, 10, 8, 6}
+    assert any("on the measured PEEP" in m for m in measured.log)  # no protocol levels
+    assert (value(protocol, "ri_peep_high"), value(protocol, "ri_peep_low")) == (12, 6)
+    # Same steps and same drop of measured PEEP: the same R/I.
+    assert value(protocol, "ri") == pytest.approx(value(measured, "ri"))
+    assert any("PEEP levels of the protocol" in m for m in protocol.log)
+
+
 def test_ri_between_the_steps_of_the_config_globally_and_by_region():
     recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
     trial = segment_peep_trial(recording)
     config = AnalysisConfig(ri_peep_high=12, ri_peep_low=6, ri_min_peep_drop=6)
     features = peep_trial_features(trial, config)
+    assert features.config == config  # kept with the results
     assert value(features, "ri_peep_high") == pytest.approx(12, abs=0.1)
     assert value(features, "ri_peep_low") == pytest.approx(6, abs=0.1)
     # The synthetic EELI does not follow the PEEP: no volume is lost, R/I = -1.

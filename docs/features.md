@@ -24,6 +24,9 @@ PEEP, the best PEEP and the change of EELI in mL of the notebook.
 ```python
 from fasteit.features import peep_trial_features, tidal_features
 from fasteit.models import RecordingContext, Segment
+from fasteit.parsers.loader import load_data
+from fasteit.preprocessing import preprocess
+from fasteit.segmentation import segment_peep_trial
 
 # A recording at one setting (or the tidal phase of a longer one).
 recording = preprocess(load_data("patient01.bin"),
@@ -34,8 +37,9 @@ tidal.regions    # one row per breath and region
 tidal.summary    # median and quartiles over the valid breaths, by region and index
 
 # A PEEP trial.
+context = RecordingContext(protocol="peep_trial", tidal_volume_ml=450)
 trial = segment_peep_trial(preprocess(load_data("peep_trial.bin"), context=context))
-features = peep_trial_features(trial)
+features = peep_trial_features(trial)   # parameters in features.config (AnalysisConfig)
 features.steps          # one row per PEEP step
 features.step_regions   # one row per step and region
 features.summary        # crossing PEEP, best PEEP, R/I (global and by region)
@@ -46,8 +50,9 @@ each step, breaths analysed), `features.trial.breaths` (step of each breath),
 `features.trial.recording.breaths` (times, quality flags, PEEP, plateau, driving
 pressure, measured tidal volume). Each value is stored once: the tables of layer 3 have
 the keys (`breath_id`, `step`, `peep`, `region`) and what layer 3 computes, and are
-joined on the keys with the tables before them. The flat export with everything in one
-table per breath and per step belongs to the next layer (database and export).
+joined on the keys with the tables before them. The flat tables with everything in one
+row per breath and per step, for R, SPSS and databases, are made by layer 4
+([`export.md`](export.md)).
 
 ## 2. Indices of a breath
 
@@ -104,7 +109,7 @@ curves.
 | `compliance` | median TIV / driving pressure of the step: it also works when the driving pressure comes from one inspiratory hold or is typed |
 | `compliance_ml` | tidal volume / driving pressure of the step (it needs no EIT data, so it exists also for a step without analysed breaths) |
 | `compliance_pct_of_best`, `compliance_ml_pct_of_best` | as % of the best step |
-| `collapse`, `overdistension` | Costa method (%), from the median tidal image of the step: pixel compliance, loss as % of the best of each pixel, weighted by the best compliance (Costa 2009, DOI: 10.1007/s00134-009-1447-y; formulas as in Shono and Kotani 2019, DOI: 10.1186/s40560-019-0358-4) |
+| `collapse`, `overdistension` | Costa method (%), from the median tidal image of the step: pixel compliance, loss as % of the best of each pixel, weighted by the best compliance; the loss of a pixel is at most 100 % (Costa 2009, DOI: 10.1007/s00134-009-1447-y; formulas as in Shono and Kotani 2019, DOI: 10.1186/s40560-019-0358-4) |
 | `d_eeli_tiv_vs_previous`, `d_eeli_tiv_vs_first` | change of EELI in tidal volumes: change / TIV of the step at the lower PEEP of the two (Wang 2020, DOI: 10.12659/MSM.922609) |
 | `d_eeli_ml_vs_previous`, `d_eeli_ml_vs_first` | the same in mL: × tidal volume of that step |
 | `d_compliance_pct_of_best_vs_...`, `d_compliance_ml_pct_of_best_vs_...` | changes of compliance vs the previous and the first step, in points of % of the best |
@@ -124,6 +129,12 @@ The summary is a long table (`region`, `feature`, `value`):
 | `ri_peep_high`, `ri_peep_low` | global | PEEP of the two steps used for R/I |
 | `ri` | global and each region | recruitment-to-inflation ratio |
 | `recruited_volume_ml` | global and each region | recruited volume (mL, with a tidal volume) |
+
+The PEEP of `crossing_peep`, the best PEEP and the R/I steps are on the levels of the
+protocol (`peep_set`, from `SegmentationConfig.peep_levels`) when every step has one, so
+that they can be compared between patients; otherwise on the measured PEEP. The R/I steps
+are chosen, and the drop of PEEP in its formula is computed, on the measured PEEP (the
+change of pressure that happened).
 
 **Recruitment-to-inflation ratio** (Chen et al., Am J Respir Crit Care Med 2020, DOI:
 10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
