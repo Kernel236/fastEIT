@@ -103,9 +103,7 @@ def test_regions_are_columns_with_the_values_of_the_long_table(composite, tables
 def test_only_the_halves_of_the_lung_are_exported(tables):
     for table in [tables[1]["breaths"], tables[1]["steps"], tables[1]["recordings"]]:
         regions = {c.split("__")[1] for c in table.columns if "__" in c}
-        assert regions <= {"global", "ventral", "dorsal", "right", "left"} | {
-            f"peep{level}" for level in (16, 14, 12, 10)
-        }
+        assert regions <= {"global", "ventral", "dorsal", "right", "left"}
     regional = [c for c in tables[1]["breaths"].columns if "__" in c]
     assert len(regional) == 6 * 4  # 6 indices x 4 halves
 
@@ -119,28 +117,16 @@ def test_the_step_table_has_the_curve_of_the_trial(composite, tables):
     np.testing.assert_allclose(steps.collapse, composite[1].steps.collapse)
 
 
-def test_the_recording_row_has_the_summary_in_wide_format(composite, tables):
+def test_the_recording_row_has_only_what_needs_the_methods(composite, tables):
     baseline, trial = tables[0]["recordings"], tables[1]["recordings"]
-    summary = composite[0].summary.set_index(["feature", "region"])
-    assert baseline["gi__global__median"].iloc[0] == pytest.approx(
-        summary.loc[("gi", "global"), "median"]
+    # Tidal: file and breaths only; medians are made from breaths.csv at analysis time.
+    assert not [c for c in baseline.columns if "__" in c]
+    # PEEP trial: crossing PEEP, best PEEP, R/I (global and by half), no step by level.
+    summary = composite[1].summary.set_index(["feature", "region"])
+    assert trial["crossing_peep__global"].iloc[0] == pytest.approx(
+        summary.loc[("crossing_peep", "global"), "value"]
     )
-    assert "crossing_peep__global" in trial.columns
-    steps = composite[1].steps
-    assert trial["collapse__peep16"].iloc[0] == pytest.approx(steps.collapse.iloc[0])
-    assert trial["compliance__peep10"].iloc[0] == pytest.approx(
-        steps.compliance.iloc[-1]
-    )
-
-
-def test_a_level_met_twice_gets_a_second_column():
-    up_and_down = [12] * 12 + [10] * 12 + [12] * 12 + [10] * 14
-    levels = SegmentationConfig(peep_levels=(12, 10))
-    trial = segment_peep_trial(trial_recording(up_and_down), levels)
-    row = recording_tables(peep_trial_features(trial))["recordings"]
-    assert {"collapse__peep12", "collapse__peep12_2", "collapse__peep10_2"} <= set(
-        row.columns
-    )
+    assert not [c for c in trial.columns if "__peep" in c]
 
 
 def test_settings_and_log_of_every_layer(composite, tables):

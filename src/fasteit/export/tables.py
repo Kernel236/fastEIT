@@ -4,7 +4,7 @@ One analysis is the output of layer 3 for one phase of a recording (``TidalFeatu
 or ``PeepTrialFeatures``). Its tables start every row with the keys ``patient_id``,
 ``label`` (the recording, e.g. a time point) and ``phase`` (the part analysed):
 
-- ``recordings``: one row per analysis: file, breaths, summary in wide format;
+- ``recordings``: one row per analysis: file, breaths, results of a PEEP trial;
 - ``breaths``:    one row per breath of the phase;
 - ``steps``:      one row per PEEP step (PEEP trials only);
 - ``settings``:   the parameters, the context and the version of fastEIT used;
@@ -22,7 +22,6 @@ gives back one row per region.
 from __future__ import annotations
 
 import dataclasses
-from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -43,10 +42,6 @@ REGIONS = ["ventral", "dorsal", "right", "left"]
 
 # Frames and detection method stay in the objects: in the tables the times are enough.
 BREATH_COLUMNS_LEFT_OUT = ["start_idx", "peak_idx", "end_idx", "method"]
-# Global indices of each step written in the recording row once per protocol PEEP level.
-LEVEL_INDICES = [
-    "compliance", "compliance_ml", "compliance_pct_of_best", "collapse", "overdistension",
-]  # fmt: skip
 
 
 def recording_tables(
@@ -99,7 +94,7 @@ def combine_tables(
     """The tables of several analyses (a study) as one set of tables.
 
     A table missing in an analysis (``steps`` of a tidal recording) is skipped; columns
-    missing in an analysis (e.g. the summary of the other protocol) are empty.
+    missing in an analysis (e.g. the results of a PEEP trial in a tidal row) are empty.
 
     Args:
         analyses: Outputs of ``recording_tables()``.
@@ -230,49 +225,25 @@ def _step_table(features: PeepTrialFeatures) -> pd.DataFrame:
     return table.merge(regional, on="step", how="left", validate="one_to_one")
 
 
-def _summary_columns(features: TidalFeatures | PeepTrialFeatures) -> dict[str, float]:
-    """The summary of layer 3 as one value per column.
+def _trial_results(features: PeepTrialFeatures) -> dict[str, float]:
+    """The results of a PEEP trial, one column ``{feature}__{region}`` each: crossing
+    PEEP, best PEEP, R/I and recruited volume (global and by exported region).
 
-    Tidal: ``{index}__{region}__median`` (and ``q1``, ``q3``); PEEP trial:
-    ``{feature}__{region}``.
+    Only what needs the methods of layer 3; the medians of the breaths of a tidal
+    recording and the steps by PEEP level are summaries of the ``breaths`` and
+    ``steps`` tables, made at analysis time.
     """
     columns = {}
     for row in features.summary.itertuples(index=False):
-        if row.region != "global" and row.region not in REGIONS:
-            continue
-        if isinstance(features, PeepTrialFeatures):
+        if row.region == "global" or row.region in REGIONS:
             columns[f"{row.feature}{SEP}{row.region}"] = row.value
-        else:
-            for stat in ("median", "q1", "q3"):
-                columns[f"{row.feature}{SEP}{row.region}{SEP}{stat}"] = getattr(
-                    row, stat
-                )
-    return columns
-
-
-def _level_columns(features: PeepTrialFeatures) -> dict[str, float]:
-    """Global indices of each step by PEEP level of the protocol, e.g.
-    ``collapse__peep16``; a level met twice (up and down) gets ``_2``. Steps without a
-    level of the protocol are left out (they stay in the step table)."""
-    steps = features.steps.merge(features.trial.steps[["step", "peep_set"]], on="step")
-    steps = steps[steps.peep_set.notna()]
-    names = []
-    times_met = Counter()
-    for level in steps.peep_set:
-        times_met[level] += 1
-        repeat = f"_{times_met[level]}" if times_met[level] > 1 else ""
-        names.append(f"peep{level:g}{repeat}")
-    columns = {}
-    for index in LEVEL_INDICES:
-        for name, value in zip(names, steps[index], strict=True):
-            columns[f"{index}{SEP}{name}"] = value
     return columns
 
 
 def _recording_row(
     features: TidalFeatures | PeepTrialFeatures, breaths: pd.DataFrame, protocol: str
 ) -> pd.DataFrame:
-    """One row: the file, the breaths of the phase, the summary in wide format."""
+    """One row: the file, the breaths of the phase, the results of a PEEP trial."""
     recording = _recording_of(features)
     row = {
         "protocol": protocol,
@@ -287,9 +258,8 @@ def _recording_row(
         "cardiac_filter": recording.cardiac_filter,
         "fasteit_version": __version__,
     }
-    row.update(_summary_columns(features))
     if isinstance(features, PeepTrialFeatures):
-        row.update(_level_columns(features))
+        row.update(_trial_results(features))
     return pd.DataFrame([row])
 
 

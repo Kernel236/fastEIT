@@ -69,11 +69,27 @@ recording here, one row per patient in R or SPSS (`tidyr::pivot_wider()` on `lab
 
 | Table | One row per | Content |
 |-------|-------------|---------|
-| `recordings` | analysis | `protocol`, `file`, `vendor`, `fs`, `start_time` and `end_time` of the breaths of the phase, `n_breaths`, `n_used`, typed `tidal_volume_ml`, `cardiac_filter`, `fasteit_version`; the summary of layer 3 in wide format; for a PEEP trial, the global indices of each step by PEEP level of the protocol |
+| `recordings` | analysis | `protocol`, `file`, `vendor`, `fs`, `start_time` and `end_time` of the breaths of the phase, `n_breaths`, `n_used`, typed `tidal_volume_ml`, `cardiac_filter`, `fasteit_version`; for a PEEP trial its results: crossing PEEP, best PEEP, R/I and recruited volume (global and by half) |
 | `breaths` | breath of the phase | times, quality flags, `excluded`, `exclusion_label`, `is_valid`, `used`, PEEP, plateau, driving pressure, measured tidal volume (layer 2); `peep_step`, `peep_set` (layer 2b, PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (layer 3); regional values as columns |
 | `steps` | PEEP step (PEEP trials) | `step`, measured `peep`, `peep_set`, times, breaths analysed, driving pressure and tidal volume with their sources (layer 2b); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (layer 3); regional values as columns |
 | `settings` | parameter | `section` (`fasteit`, `preprocessing`, `context`, `segmentation`, `analysis`), `parameter`, `value`: with the file, enough to compute the same values again |
 | `log` | message | `layer` (`preprocessing`, `segmentation`, `indices`), `message` (warnings start with `WARNING:`) |
+
+**Each value once.** The tables hold what was measured (one row per breath and per
+step) and the results that need the methods of layer 3 (Costa in `steps`; crossing PEEP,
+best PEEP and R/I in `recordings`, one value per trial). Summaries of these rows are made
+at analysis time, with the choices of the study (median or mean, which breaths):
+
+```r
+breaths |> filter(used == 1) |>
+  group_by(patient_id, label, phase) |>
+  summarise(across(c(tiv, gi, share__dorsal, compliance_ml), median))   # one row per recording
+steps |> pivot_wider(id_cols = c(patient_id, label), names_from = peep_set,
+                     values_from = collapse, names_prefix = "collapse_peep")   # one column per level
+```
+
+In SPSS the same are `AGGREGATE` (breaths to one row per recording) and `CASESTOVARS`
+(steps to one column per PEEP level).
 
 **Breaths of the phase.** Each analysis exports the breaths of its own phase, all of
 them (also the excluded ones and those between steps), so that in a recording with two
@@ -97,9 +113,7 @@ ggplot(steps, aes(peep_set)) +
 | Pattern | Example | Where |
 |---------|---------|-------|
 | `{index}__{region}` | `tiv__ventral`, `compliance_ml__left` | regional values in `breaths` and `steps` |
-| `{index}__{region}__{statistic}` | `gi__global__median`, `share__dorsal__q1` | summary of a tidal recording in `recordings` |
-| `{feature}__{region}` | `crossing_peep__global`, `ri__dorsal` | summary of a PEEP trial in `recordings` |
-| `{index}__peep{level}` | `collapse__peep16`, `compliance_ml__peep8` | global indices of each step by PEEP level of the protocol, in `recordings`; a level met twice (up and down) gets `_2` |
+| `{feature}__{region}` | `crossing_peep__global`, `ri__dorsal` | results of a PEEP trial in `recordings` |
 
 The regions exported are the halves of the lung: `ventral`, `dorsal`, `right`, `left`
 (patient right and left); the layers and the quadrants of layer 2 stay in the objects
@@ -129,6 +143,6 @@ and Python. Files with the same name in the folder are replaced.
 - The images (pixels, lung mask, tidal maps) are not exported.
 - `file` is the name of the source file: if it holds names or dates, rename the files
   before sharing the tables.
-- `peep_set`, and with it the columns by PEEP level, needs the levels of the protocol
+- `peep_set` needs the levels of the protocol
   (`SegmentationConfig.peep_levels`); without them it is empty
   ([`segmentation.md`](segmentation.md)).
