@@ -12,8 +12,9 @@ or ``PeepTrialFeatures``). Its tables start every row with the keys ``patient_id
 
 The objects of layers 2-3 store each value once; here they are joined, so that a
 breath or a step is one row with everything (times, quality, pressures, volumes,
-indices). Regional values are columns named ``{index}__{region}``, with two
-underscores because both names can contain one: in R
+indices). Regional values are columns named ``{index}__{region}``, for the halves of
+the lung (ventral, dorsal, right, left; the layers and the quadrants stay in the
+objects), with two underscores because both names can contain one: in R
 ``tidyr::pivot_longer(contains("__"), names_to = c("index", "region"), names_sep = "__")``
 gives back one row per region.
 """
@@ -37,6 +38,8 @@ from fasteit.segmentation.pipeline import PEEP_TRIAL
 KEYS = ["patient_id", "label", "phase"]
 TABLES = ["recordings", "breaths", "steps", "settings", "log"]
 SEP = "__"  # between index and region (or PEEP level) in the column names
+# Regions exported: the halves of the lung. Layers and quadrants stay in the objects.
+REGIONS = ["ventral", "dorsal", "right", "left"]
 
 # Frames and detection method stay in the objects: in the tables the times are enough.
 BREATH_COLUMNS_LEFT_OUT = ["start_idx", "peak_idx", "end_idx", "method"]
@@ -169,12 +172,12 @@ def _with_keys(table: pd.DataFrame, keys: dict[str, str]) -> pd.DataFrame:
 
 def _regions_as_columns(regions: pd.DataFrame, key: str) -> pd.DataFrame:
     """One row per ``key`` (breath or step), one column ``{index}__{region}`` per index
-    and region, in the order of the indices and of the regions of layer 3."""
+    and exported region (``REGIONS``)."""
     indices = [c for c in regions.columns if c not in (key, "region")]
+    regions = regions[regions.region.isin(REGIONS)]
     wide = regions.pivot(index=key, columns="region", values=indices)
-    # pivot sorts the regions by name: back to the order of the regions of layer 2.
-    region_order = list(dict.fromkeys(regions.region))
-    wide = wide.reindex(columns=pd.MultiIndex.from_product([indices, region_order]))
+    # pivot sorts the regions by name: back to the order of REGIONS.
+    wide = wide.reindex(columns=pd.MultiIndex.from_product([indices, REGIONS]))
     wide.columns = [f"{index}{SEP}{region}" for index, region in wide.columns]
     return wide.reset_index()
 
@@ -235,6 +238,8 @@ def _summary_columns(features: TidalFeatures | PeepTrialFeatures) -> dict[str, f
     """
     columns = {}
     for row in features.summary.itertuples(index=False):
+        if row.region != "global" and row.region not in REGIONS:
+            continue
         if isinstance(features, PeepTrialFeatures):
             columns[f"{row.feature}{SEP}{row.region}"] = row.value
         else:

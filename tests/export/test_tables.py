@@ -95,9 +95,19 @@ def test_regions_are_columns_with_the_values_of_the_long_table(composite, tables
     long = features.regions.set_index(["breath_id", "region"])
     for breath_id in breaths.breath_id[:5]:
         row = breaths[breaths.breath_id == breath_id].iloc[0]
-        for region in ["ventral", "dorsal_left"]:
+        for region in ["ventral", "left"]:
             expected = long.loc[(breath_id, region), "tiv"]
             assert row[f"tiv__{region}"] == pytest.approx(expected, nan_ok=True)
+
+
+def test_only_the_halves_of_the_lung_are_exported(tables):
+    for table in [tables[1]["breaths"], tables[1]["steps"], tables[1]["recordings"]]:
+        regions = {c.split("__")[1] for c in table.columns if "__" in c}
+        assert regions <= {"global", "ventral", "dorsal", "right", "left"} | {
+            f"peep{level}" for level in (16, 14, 12, 10)
+        }
+    regional = [c for c in tables[1]["breaths"].columns if "__" in c]
+    assert len(regional) == 6 * 4  # 6 indices x 4 halves
 
 
 def test_the_step_table_has_the_curve_of_the_trial(composite, tables):

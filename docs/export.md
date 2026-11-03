@@ -96,13 +96,15 @@ ggplot(steps, aes(peep_set)) +
 
 | Pattern | Example | Where |
 |---------|---------|-------|
-| `{index}__{region}` | `tiv__ventral`, `compliance_ml__dorsal_left` | regional values in `breaths` and `steps` |
+| `{index}__{region}` | `tiv__ventral`, `compliance_ml__left` | regional values in `breaths` and `steps` |
 | `{index}__{region}__{statistic}` | `gi__global__median`, `share__dorsal__q1` | summary of a tidal recording in `recordings` |
 | `{feature}__{region}` | `crossing_peep__global`, `ri__dorsal` | summary of a PEEP trial in `recordings` |
 | `{index}__peep{level}` | `collapse__peep16`, `compliance_ml__peep8` | global indices of each step by PEEP level of the protocol, in `recordings`; a level met twice (up and down) gets `_2` |
 
-Two underscores separate the index from the region, because both can contain one
-(`compliance_ml`, `dorsal_left`). Back to one row per region in R:
+The regions exported are the halves of the lung: `ventral`, `dorsal`, `right`, `left`
+(patient right and left); the layers and the quadrants of layer 2 stay in the objects
+(`features.regions`). Two underscores separate the index from the region, because an
+index can contain one (`compliance_ml`). Back to one row per region in R:
 
 ```r
 steps |> pivot_longer(contains("__"), names_to = c("index", "region"), names_sep = "__")
