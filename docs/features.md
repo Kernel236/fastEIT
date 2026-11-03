@@ -123,6 +123,12 @@ The summary is a long table (`region`, `feature`, `value`):
 | `crossing_peep` | global | PEEP where collapse and overdistension cross (linear interpolation; the lowest if they cross more than once) |
 | `best_peep_compliance`, `best_peep_compliance_ml` | global | PEEP of the best global compliance, in EIT units and in mL/cmH2O |
 | `ri_peep_high`, `ri_peep_low` | global | PEEP of the two steps used for R/I |
+
+These PEEP are on the levels of the protocol (`peep_set`, from
+`SegmentationConfig.peep_levels`) when every step has one, so that they can be compared
+between patients; otherwise on the measured PEEP. The R/I steps are chosen, and the drop
+of PEEP in its formula is computed, on the measured PEEP (the change of pressure that
+happened).
 | `ri` | global and each region | recruitment-to-inflation ratio |
 | `recruited_volume_ml` | global and each region | recruited volume (mL, with a tidal volume) |
 
