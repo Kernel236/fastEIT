@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from fasteit.models.raw_impedance_data import RawImpedanceData
-from fasteit.parsers.draeger.eit.eit_dtypes import FRAME_EIT_DTYPE
+from fasteit.parsers.draeger.eit.eit_dtypes import EIT_MEDIBUS_CHANNELS, FRAME_EIT_DTYPE
 from fasteit.parsers.draeger.eit.eit_parser import DragerEitParser
 from fasteit.parsers.draeger.eit.eit_utils import FT_A, FT_B, SEPARATOR
 
@@ -33,6 +33,7 @@ def _write_eit(
     trans_A_val: float = 1.0,
     trans_B_val: float = 0.5,
     magic: str = "Draeger EIT-Software",
+    medibus: np.ndarray | None = None,
 ) -> Path:
     """Write a minimal synthetic Dräger .eit file with known frame values."""
     header_lines = [
@@ -56,6 +57,8 @@ def _write_eit(
     frames["trans_A"] = trans_A_val
     frames["trans_B"] = trans_B_val
     frames["frame_counter"] = np.arange(n_frames, dtype=np.uint16)
+    if medibus is not None:
+        frames["medibus"] = medibus
 
     path = tmp_path / "synthetic.eit"
     with path.open("wb") as f:
@@ -312,3 +315,39 @@ def test_real_n_frames_coherent_with_duration():
     duration_ts = (ts[-1] - ts[0]) * 86400.0  # fraction-of-day → seconds
     duration_frames = data.metadata["n_frames"] / data.fs
     assert abs(duration_ts - duration_frames) < 1.0
+
+
+def test_parse_named_medibus_channels(tmp_path):
+    medibus = np.arange(5 * 67, dtype=np.float32).reshape(5, 67)
+    data = DragerEitParser().parse(_write_eit(tmp_path, medibus=medibus))
+    for name, i in EIT_MEDIBUS_CHANNELS.items():
+        np.testing.assert_array_equal(data.aux_signals[name], medibus[:, i])
+
+
+@pytest.mark.slow
+def test_named_medibus_equal_to_the_bin_on_real_pairs():
+    """Each named ventilator signal of an .eit is the signal of its .bin, value by value."""
+    from fasteit.parsers.loader import load_data
+
+    folder = Path(__file__).parents[3] / "src/fasteit/test_files"
+    checked = 0
+    for eit_path in sorted(folder.glob("*.eit")):
+        bin_path = next(
+            (
+                b
+                for b in folder.glob("*.bin")
+                if b.stem in (eit_path.stem, eit_path.stem + "_01")
+            ),
+            None,
+        )
+        if bin_path is None:
+            continue
+        eit, bin_ = load_data(eit_path), load_data(bin_path)
+        n = min(eit.n_frames, bin_.n_frames)
+        for name in EIT_MEDIBUS_CHANNELS:
+            np.testing.assert_array_equal(
+                eit.aux_signals[name][:n], bin_.aux_signals[name][:n]
+            )
+        checked += 1
+    if not checked:
+        pytest.skip("no paired .eit/.bin in test_files")

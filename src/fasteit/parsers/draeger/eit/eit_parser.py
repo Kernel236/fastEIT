@@ -24,7 +24,12 @@ from fasteit.parsers.base import BaseParser
 from fasteit.parsers.detection import detect_vendor_from_eit_header
 from fasteit.parsers.header_formats import get_eit_specs
 
-from .eit_dtypes import FRAME_EIT_DTYPE, PREAMBLE_DTYPE, PREAMBLE_N_FIELDS
+from .eit_dtypes import (
+    EIT_MEDIBUS_CHANNELS,
+    FRAME_EIT_DTYPE,
+    PREAMBLE_DTYPE,
+    PREAMBLE_N_FIELDS,
+)
 from .eit_utils import FC_CURRENT, FT_A, FT_B, FV_VOLTAGE, SEPARATOR, parse_eit_header
 
 
@@ -142,6 +147,9 @@ class DragerEitParser(BaseParser):
             "frame_counter": np.array(frames["frame_counter"]),
             "medibus": np.array(frames["medibus"]),  # (n_frames, 67)
         }
+        # Ventilator channels with a known name, as in the .bin
+        for name, channel in EIT_MEDIBUS_CHANNELS.items():
+            aux_signals[name] = aux_signals["medibus"][:, channel]
 
         # ── 6. Assemble result ────────────────────────────────────────────────
         if "fs" not in metadata:

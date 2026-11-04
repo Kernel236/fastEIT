@@ -48,3 +48,26 @@ FRAME_EIT_DTYPE = np.dtype(
 assert FRAME_EIT_DTYPE.itemsize == 5495, (
     f"FRAME_EIT_DTYPE size mismatch: {FRAME_EIT_DTYPE.itemsize} != 5495"
 )
+
+# Ventilator (Medibus) channels of the .eit frame with a known name: the .bin signal with the
+# same name (MEDIBUS_EXT_FIELDS) has the same values, frame by frame. Found by matching the 67
+# .eit channels with the .bin signals on 4 recordings with the ventilator connected; every
+# signal matched one channel only. The order differs from the .bin. The other channels are not
+# named (no data in those recordings). The PressurePod signals are not in the .eit frame.
+EIT_MEDIBUS_CHANNELS: dict[str, int] = {
+    "flow": 1,
+    "airway_pressure": 3,
+    "dynamic_compliance": 4,
+    "resistance": 7,
+    "minimal_pressure": 10,
+    "mean_pressure": 12,
+    "plateau_pressure": 13,
+    "peep": 14,
+    "spontaneous_minute_volume": 16,
+    "peak_inspiratory_pressure": 19,
+    "tidal_volume": 29,
+    "negative_inspiratory_force": 31,
+    "minute_volume": 38,
+    "respiratory_rate": 41,
+    "fio2": 50,
+}

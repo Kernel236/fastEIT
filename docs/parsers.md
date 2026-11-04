@@ -132,6 +132,11 @@ Bytes sep_offset+8… : binary frames, 5495 bytes each
 | `frame_counter` | uint16 | 2 B | Rolling frame counter |
 | `padding` | uint8 × 2 | 2 B | Alignment padding |
 
+15 of the 67 Medibus channels are also in `aux_signals` with the name of the `.bin` signal
+(`EIT_MEDIBUS_CHANNELS`: `airway_pressure`, `flow`, `peep`, `plateau_pressure`, `tidal_volume`,
+...): on recordings with the ventilator connected their values equal the `.bin` signals frame by
+frame. The order differs from the `.bin`. The PressurePod signals are not in the `.eit` frame.
+
 ### Calibration pipeline
 
 Empirical constants from EIDORS `read_draeger_file.m` (A. Adler, estimated 2016-04-07).
@@ -244,7 +249,9 @@ sourced from PulmoVista 500 IFU SW 1.3n:
 
 **Spatial quality note**: a generic circular mesh does not replicate Dräger's
 proprietary reconstruction. Both algorithms produce correct relative distributions,
-but the vendor `.bin` uses a device-specific mesh and matrix.
+but the vendor `.bin` uses a device-specific mesh and matrix. A data-driven
+reconstruction that learns the Dräger mapping from paired `.eit`/`.bin` recordings
+is provided in `fasteit.reconstruction` (see [reconstruction.md](reconstruction.md)).
 
 ---
 

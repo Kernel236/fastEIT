@@ -45,3 +45,13 @@ def test_zero_filled_frames_parse(n_frames):
     frames = np.frombuffer(bytes(FRAME_BYTES * n_frames), dtype=FRAME_EIT_DTYPE)
     assert frames.shape == (n_frames,)
     assert frames["trans_A"].shape == (n_frames, 208)
+
+
+def test_named_medibus_channels_are_unique_and_known():
+    from fasteit.parsers.draeger.bin.draeger_dtypes import MEDIBUS_EXT_FIELDS
+    from fasteit.parsers.draeger.eit.eit_dtypes import EIT_MEDIBUS_CHANNELS
+
+    assert len(EIT_MEDIBUS_CHANNELS) == 15
+    assert len(set(EIT_MEDIBUS_CHANNELS.values())) == 15
+    assert all(0 <= i < 67 for i in EIT_MEDIBUS_CHANNELS.values())
+    assert set(EIT_MEDIBUS_CHANNELS) <= {field[0] for field in MEDIBUS_EXT_FIELDS}
