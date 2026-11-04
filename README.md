@@ -67,6 +67,13 @@ Adler et al., *Physiol. Meas.* 2009, DOI: 10.1088/0967-3334/30/6/S03). This brid
 experimental: it uses a generic circular mesh, and its images do not match the Dräger
 reconstruction stored in `.bin` files.
 
+**ML reconstruction (this branch, experimental).** `fasteit.reconstruction` learns the
+Dräger reconstruction from paired `.eit`/`.bin` recordings with ridge regression (optional:
+`fasteit[reconstruction]`): each recording is normalised to a reference at its lowest
+end-expiration, the channels with a bad reference are set to 0, and the images are low-pass
+filtered at 50/min as the Dräger ones. Only the method is published here: results on our data and
+trained models stay private.
+
 ## Contributing
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). This project follows the
