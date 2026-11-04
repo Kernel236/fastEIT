@@ -5,6 +5,15 @@ CLAUDE.md
 # Test files (patient data — never commit)
 /src/fasteit/test_files/*
 
+# ML reconstruction: training data, caches and trained models never go to GitHub (patient
+# data; the learned weights may resemble the Dräger matrices). Only the method and results.
+.ml_cache/
+.venv-ml/
+*.npz
+*.npy
+*.joblib
+*.pkl
+
 
 
 # (timpel scaffold now tracked — implementation in progress)
@@ -52,3 +61,6 @@ Thumbs.db
 
 # MkDocs build output
 site/
+
+# Notebooks with data of studies not yet published: local only
+notebooks/private/
