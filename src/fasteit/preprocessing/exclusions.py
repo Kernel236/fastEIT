@@ -97,6 +97,14 @@ def widen(segments: list[Segment], margin: float, duration: float) -> list[Segme
 
     The result is clipped to the recording, from 0 to ``duration`` seconds.
 
+    Args:
+        segments: Exclusions, in seconds from the start of the recording.
+        margin: Seconds added on each side.
+        duration: Length of the recording (s).
+
+    Returns:
+        The widened segments, in the same order.
+
     Raises:
         ValueError: if a segment starts after the end of the recording.
     """

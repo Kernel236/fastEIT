@@ -238,6 +238,13 @@ def remove_small_regions(mask: np.ndarray, min_pixels: int) -> np.ndarray:
 
     Pixels belong to the same island when they share a side (4-connectivity), as in
     eitprocessing ``FilterROIBySize``.
+
+    Args:
+        mask: Boolean mask, shape (32, 32).
+        min_pixels: Smallest island kept.
+
+    Returns:
+        The mask without the smaller islands.
     """
     side_neighbours = ndimage.generate_binary_structure(2, 1)
     labels, n_regions = ndimage.label(mask, structure=side_neighbours)

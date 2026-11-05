@@ -84,6 +84,13 @@ def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
 
     A breath belongs to the last step that starts at or before it: searchsorted counts
     the steps that start at or before each breath, minus one gives the step number.
+
+    Args:
+        step_starts: Index of the first breath of each step, increasing.
+        n_breaths: Number of breaths.
+
+    Returns:
+        The step of each breath; -1 before the first step.
     """
     breaths = np.arange(n_breaths)
     return np.searchsorted(step_starts, breaths, side="right") - 1

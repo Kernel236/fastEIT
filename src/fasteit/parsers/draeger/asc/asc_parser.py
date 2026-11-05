@@ -75,6 +75,14 @@ class DragerAscParser(BaseParser):
     """
 
     def validate(self, path: Path) -> bool:
+        """Whether the file looks like a Dräger ``.asc`` export.
+
+        Args:
+            path: The file.
+
+        Returns:
+            True for a non-empty ``.asc``, ``.txt`` or ``.csv`` whose header is Dräger's.
+        """
         path = Path(path)
         if not path.exists() or path.stat().st_size == 0:
             return False
@@ -88,6 +96,18 @@ class DragerAscParser(BaseParser):
         return vendor == "draeger"
 
     def parse(self, path: Path) -> ContinuousSignalData:
+        """Read the continuous signals of a Dräger ``.asc`` export (no images).
+
+        Args:
+            path: The file.
+
+        Returns:
+            The signals, one row per frame, with the header metadata.
+
+        Raises:
+            ValueError: if the file has no continuous waveform table, or the table has no
+                data rows.
+        """
         path = Path(path)
 
         with path.open("r", encoding="latin1", errors="replace") as f:

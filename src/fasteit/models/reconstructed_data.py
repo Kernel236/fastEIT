@@ -140,6 +140,12 @@ class ReconstructedFrameData(BaseData):
 
         Args:
             roi: ROI index in range 0-3.
+
+        Returns:
+            The sum of the 8 rows of that strip, for each frame.
+
+        Raises:
+            ValueError: if ``roi`` is not 0-3.
         """
         if roi < 0 or roi > 3:
             raise ValueError(f"roi must be 0-3, got {roi}")

@@ -72,6 +72,13 @@ def build_parser_from_detection(
     Vendor string is normalised before lookup so that spelling variants
     (``"drager"``, ``"Dräger"``, ``"DRAEGER"``) all resolve correctly.
 
+    Args:
+        detection: Output of ``detect_vendor_and_format()``.
+        registry: Parsers by (vendor, extension); the default registry if None.
+
+    Returns:
+        The parser for the detected vendor and extension.
+
     Raises:
         NotImplementedError: when no parser is registered for detected key.
     """
@@ -95,7 +102,29 @@ def load_data(
     *,
     registry: dict[tuple[str, str], ParserFactory] | None = None,
 ) -> BaseData:
-    """Single entry point: detect format/vendor then parse with matching parser."""
+    """Read one EIT file: detect vendor and format, then parse it with the matching parser.
+
+    Large ``.bin`` and ``.eit`` files are memory-mapped: the frames are read from disk when
+    they are used.
+
+    Args:
+        path: The file (Dräger ``.bin``, ``.eit`` or ``.asc``; Timpel ``.csv``, ``.txt``
+            or ``.asc``).
+        registry: Parsers by (vendor, extension); the default registry if None.
+
+    Returns:
+        ``ReconstructedFrameData`` (Dräger ``.bin``, Timpel), ``RawImpedanceData``
+        (Dräger ``.eit``) or ``ContinuousSignalData`` (Dräger ``.asc``).
+
+    Raises:
+        FileNotFoundError: if the file does not exist.
+        ValueError: if the vendor or the format is not recognised, or the file is
+            invalid.
+        ParserError: for a ``.bin`` whose size fits no known frame layout
+            (``UnsupportedFrameSizeError``) or fits more than one
+            (``AmbiguousFormatError``).
+        NotImplementedError: if no parser is registered for the detected format.
+    """
     path = Path(path)
     detection = detect_vendor_and_format(path)
     parser = build_parser_from_detection(detection, registry=registry)

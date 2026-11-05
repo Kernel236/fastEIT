@@ -101,6 +101,11 @@ def crossing_peep(
     to positive, or stays at 0 up to the highest PEEP) do not cross. If they cross more
     than once, the lowest crossing.
 
+    Args:
+        peep: PEEP of each step (cmH2O), in any order.
+        collapse: Collapse of each step (%).
+        overdistension: Overdistension of each step (%).
+
     Returns:
         The crossing PEEP; NaN if the curves do not cross.
     """

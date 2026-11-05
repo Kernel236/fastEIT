@@ -61,7 +61,15 @@ class Segment:
             )
 
     def overlaps(self, start: float, end: float) -> bool:
-        """Return True if the interval [start, end] touches this segment."""
+        """Whether the interval [start, end] touches this segment.
+
+        Args:
+            start: Start of the interval (s).
+            end: End of the interval (s).
+
+        Returns:
+            True if the two share at least one instant.
+        """
         return start <= self.end and end >= self.start
 
 

@@ -120,6 +120,12 @@ def recording_time(raw: ReconstructedFrameData) -> np.ndarray:
     Draeger ``.bin`` timestamps are a fraction of the day: they are converted to
     seconds and a recording that crosses midnight is unwrapped. Other vendors already
     give seconds.
+
+    Args:
+        raw: Output of ``load_data()``.
+
+    Returns:
+        Seconds from the first frame, one value per frame.
     """
     timestamps = np.asarray(raw.timestamps, dtype=float)
     if raw.vendor == "draeger":
@@ -137,6 +143,12 @@ def pixel_values(raw: ReconstructedFrameData) -> np.ndarray:
 
     The parsed pixels are never modified (they can be a read-only memory map).
     Timpel pixels already have NaN from the parser.
+
+    Args:
+        raw: Output of ``load_data()``.
+
+    Returns:
+        The pixels as float, shape (N, 32, 32).
     """
     if raw.vendor == "draeger":
         return replace_draeger_sentinels(raw.pixels).astype(float)
