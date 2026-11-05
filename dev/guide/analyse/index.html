@@ -1557,7 +1557,7 @@ to be computed by hand.</p>
 <td><code>tidal.summary</code></td>
 </tr>
 <tr>
-<td>what each step did, with warnings</td>
+<td>what each step did: checks passed (<code>OK:</code>), facts, warnings (<code>WARNING:</code>)</td>
 <td><code>recording.log</code>, <code>tidal.log</code></td>
 </tr>
 </tbody>
@@ -1646,7 +1646,10 @@ inside it. In the exported tables the parts are told apart by the name of the ph
 <span class="n">plot_breaths</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>           <span class="c1"># section 2: the same, with the steps and their level</span>
 </code></pre></div>
 <p>Look at the figure before trusting the numbers: if a stretch of unstable breaths was
-analysed, exclude it and preprocess again (<a href="../../review/">review figures</a>).</p>
+analysed, exclude it and preprocess again (<a href="../../review/">review figures</a>). Then read the
+logs (<code>recording.log</code>, <code>trial.log</code>, <code>features.log</code>): a recording with all it needs and no
+problem has only checks (<code>OK:</code>) and facts; each <code>WARNING:</code> says what is missing or wrong
+and what it changes.</p>
 <h2 id="5-save-the-tables">5. Save the tables<a class="headerlink" href="#5-save-the-tables" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.export</span><span class="w"> </span><span class="kn">import</span> <span class="n">combine_tables</span><span class="p">,</span> <span class="n">recording_tables</span><span class="p">,</span> <span class="n">write_csv</span>
 

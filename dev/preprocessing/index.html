@@ -1861,7 +1861,7 @@ typed volume outside 100-1500 mL gives a warning (litres typed instead of mL?).<
 </tr>
 <tr>
 <td><code>log</code></td>
-<td>what each step did, with warnings</td>
+<td>what each step did: checks passed, facts, warnings (section 5)</td>
 </tr>
 </tbody>
 </table>
@@ -1877,7 +1877,13 @@ the start and at the peak of a breath:</p>
 <p>There are two kinds of record, kept apart on purpose:</p>
 <ul>
 <li><strong><code>EITRecording.log</code></strong> belongs to the result: it says which filter ran, what was
-  excluded and every warning, and is saved with the data.</li>
+  excluded and every warning, and is saved with the data. Each message has a level:
+  <code>OK:</code> for a check that passed (no missing frames, respiratory rate inside the searched
+  range, heart rate away from it, pressure and volume read, every region with lung
+  pixels), no prefix for a fact (counts, sources), <code>WARNING:</code> for a check that failed or
+  a missing input with its consequence (e.g. no airway pressure). A missing input is
+  warned once, where it is read. A recording with all it needs and no problem has no
+  warning; the logs of segmentation and indices follow the same rules.</li>
 <li><strong>Technical logs</strong> go through Python <code>logging</code> (logger names
   <code>fasteit.preprocessing.*</code>). The library never configures logging: the script or
   application decides where the messages go, e.g. <code>logging.basicConfig(level=logging.INFO)</code>

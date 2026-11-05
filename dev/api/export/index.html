@@ -1520,7 +1520,8 @@ or <code>PeepTrialFeatures</code>). Its tables start every row with the keys <co
 <li><code>breaths</code>:    one row per breath of the phase;</li>
 <li><code>steps</code>:      one row per PEEP step (PEEP trials only);</li>
 <li><code>settings</code>:   the parameters, the context and the version of fastEIT used;</li>
-<li><code>log</code>:        the messages of every layer.</li>
+<li><code>log</code>:        the messages of every layer, with their level (<code>ok</code>, <code>info</code>,
+                  <code>warning</code>).</li>
 </ul>
 <p>The objects of layers 2-3 store each value once; here they are joined, so that a
 breath or a step is one row with everything (times, quality, pressures, volumes,
