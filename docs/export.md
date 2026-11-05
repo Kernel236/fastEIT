@@ -75,7 +75,7 @@ recording here, one row per patient in R or SPSS (`tidyr::pivot_wider()` on `lab
 | `breaths` | breath of the phase | times, quality flags, `excluded`, `exclusion_label`, `is_valid`, `used`, PEEP, plateau, driving pressure, measured tidal volume (preprocessing); `peep_step`, `peep_set` (PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (clinical indices); regional values as columns |
 | `steps` | PEEP step (PEEP trials) | `step`, measured `peep`, `peep_set`, times, breaths analysed, driving pressure and tidal volume with their sources (segmentation); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (clinical indices); regional values as columns |
 | `settings` | parameter | `section` (`fasteit`, `preprocessing`, `context`, `segmentation`, `analysis`), `parameter`, `value`: with the file, enough to compute the same values again |
-| `log` | message | `layer` (`preprocessing`, `segmentation`, `indices`), `message` (warnings start with `WARNING:`) |
+| `log` | message | `layer` (`preprocessing`, `segmentation`, `indices`), `level` (`ok` for a check that passed, `info`, `warning`), `message` |
 
 **Each value once.** The tables hold what was measured (one row per breath and per
 step) and the results of the PEEP-trial methods (Costa collapse and overdistension in

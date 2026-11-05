@@ -147,6 +147,22 @@ def test_settings_and_log_of_every_layer(composite, tables):
     )
 
 
+def test_log_rows_have_a_level_and_the_message_without_its_prefix(composite, tables):
+    log = tables[1]["log"]
+    assert list(log.columns[-3:]) == ["layer", "level", "message"]
+    assert set(log.level) <= {"ok", "info", "warning"}
+    written = [
+        *composite[1].trial.recording.log,
+        *composite[1].trial.log,
+        *composite[1].log,
+    ]
+    warnings = [
+        m.removeprefix("WARNING: ") for m in written if m.startswith("WARNING: ")
+    ]
+    assert log[log.level == "warning"].message.tolist() == warnings
+    assert not log.message.str.startswith(("OK: ", "WARNING: ")).any()
+
+
 def test_only_layer_3_results_are_accepted(composite):
     with pytest.raises(TypeError, match="tidal_features"):
         recording_tables(composite[1].trial)

@@ -8,7 +8,8 @@ or ``PeepTrialFeatures``). Its tables start every row with the keys ``patient_id
 - ``breaths``:    one row per breath of the phase;
 - ``steps``:      one row per PEEP step (PEEP trials only);
 - ``settings``:   the parameters, the context and the version of fastEIT used;
-- ``log``:        the messages of every layer.
+- ``log``:        the messages of every layer, with their level (``ok``, ``info``,
+                  ``warning``).
 
 The objects of layers 2-3 store each value once; here they are joined, so that a
 breath or a step is one row with everything (times, quality, pressures, volumes,
@@ -32,6 +33,7 @@ from fasteit import __version__
 from fasteit.features.pipeline import TIDAL
 from fasteit.models.eit_recording import EITRecording, Segment
 from fasteit.models.features import PeepTrialFeatures, TidalFeatures
+from fasteit.run_log import split_level
 from fasteit.segmentation.pipeline import PEEP_TRIAL
 
 KEYS = ["patient_id", "label", "phase"]
@@ -279,13 +281,18 @@ def _settings_table(features: TidalFeatures | PeepTrialFeatures) -> pd.DataFrame
 
 
 def _log_table(features: TidalFeatures | PeepTrialFeatures) -> pd.DataFrame:
-    """One row per message of every layer, in the order they were written."""
+    """One row per message of every layer, in the order they were written, with its
+    level (``ok``, ``info``, ``warning``) and the text without the level prefix."""
     logs = [("preprocessing", _recording_of(features).log)]
     if isinstance(features, PeepTrialFeatures):
         logs.append(("segmentation", features.trial.log))
     logs.append(("indices", features.log))
-    rows = [(layer, message) for layer, messages in logs for message in messages]
-    return pd.DataFrame(rows, columns=["layer", "message"])
+    rows = [
+        (layer, *split_level(message))
+        for layer, messages in logs
+        for message in messages
+    ]
+    return pd.DataFrame(rows, columns=["layer", "level", "message"])
 
 
 # --- files ---

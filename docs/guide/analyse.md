@@ -34,7 +34,7 @@ tidal = tidal_features(recording)
 | EELI, TIV, GI, centre of ventilation, compliance of each breath | `tidal.breaths` |
 | the same by region: ventral, dorsal, right, left (the objects also hold layers and quadrants; the exported tables have the four halves only) | `tidal.regions` |
 | median and quartiles over the valid breaths | `tidal.summary` |
-| what each step did, with warnings | `recording.log`, `tidal.log` |
+| what each step did: checks passed (`OK:`), facts, warnings (`WARNING:`) | `recording.log`, `tidal.log` |
 
 **Optional inputs.** Without `heart_rate_bpm` the cardiac component is not removed (a
 0.1 s moving average only). Without a tidal volume (typed, or measured on the ventilator
@@ -114,7 +114,10 @@ plot_breaths(trial)           # section 2: the same, with the steps and their le
 ```
 
 Look at the figure before trusting the numbers: if a stretch of unstable breaths was
-analysed, exclude it and preprocess again ([review figures](../review.md)).
+analysed, exclude it and preprocess again ([review figures](../review.md)). Then read the
+logs (`recording.log`, `trial.log`, `features.log`): a recording with all it needs and no
+problem has only checks (`OK:`) and facts; each `WARNING:` says what is missing or wrong
+and what it changes.
 
 ## 5. Save the tables
 

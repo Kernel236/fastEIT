@@ -269,7 +269,8 @@ def test_without_pressure_the_pressures_of_the_breaths_are_missing():
     recording = preprocess(synthetic_raw()[0])
     assert recording.pressure_channel is None
     assert recording.breaths[["peep", "plateau", "driving_pressure"]].isna().all().all()
-    assert not any(line.startswith("WARNING: No airway") for line in recording.log)
+    # A missing input is a warning, with its consequence.
+    assert any(line.startswith("WARNING: No airway pressure") for line in recording.log)
 
 
 def ventilator_curves(n_frames):
@@ -350,6 +351,58 @@ def test_without_volume_or_flow_the_tidal_volume_is_missing():
 def test_vendors_other_than_draeger_get_a_warning():
     recording = preprocess(synthetic_raw(vendor="timpel")[0])
     assert any("verified on Draeger" in line for line in recording.log)
+
+
+# --- the log: checks that passed (OK), facts, warnings ---
+
+
+def complete_recording():
+    """A Draeger recording with all it needs: PressurePod pressure and the flow curve."""
+    raw, _ = synthetic_raw(vendor="draeger")
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)
+    flow, _ = ventilator_curves(len(raw.frames))
+    raw.aux_signals = {
+        "airway_pressure_pod": paw[: len(raw.frames)].astype(np.float32),
+        "flow": flow * 60,  # Draeger Medibus: L/min
+    }
+    return raw
+
+
+def checks(recording):
+    return [line for line in recording.log if line.startswith("OK: ")]
+
+
+def test_a_complete_clean_recording_has_its_checks_and_no_warning():
+    recording = preprocess(complete_recording(), PreprocessingConfig(heart_rate_bpm=80))
+    assert not [line for line in recording.log if line.startswith("WARNING: ")]
+    for expected in (
+        "No missing pixel data, no device timing errors, no gaps in the frame times.",
+        "Respiratory rate from the spectrum:",
+        "MDN cardiac filter with heart rate 80/min",
+        "Every region has lung pixels.",
+        "PEEP and plateau of each breath read on airway_pressure_pod.",
+        "flow rises during the EIT inspiration.",
+        "Tidal volume of each breath from the integral of the inspiratory flow",
+    ):
+        assert any(expected in line for line in checks(recording)), expected
+
+
+def test_a_failed_check_has_a_warning_and_no_ok():
+    raw = complete_recording()
+    raw.frames["ts"][200:] += 1 / 86400  # 1 s of dropped frames
+    raw.frames["timing_error"][50] = 1
+    recording = preprocess(raw, PreprocessingConfig(heart_rate_bpm=250))
+    assert not any("No missing pixel data" in line for line in checks(recording))
+    assert not any("MDN cardiac filter" in line for line in checks(recording))
+    assert any("MDN cardiac filter" in line for line in recording.log)  # as a fact
+    assert any(line.startswith("WARNING: 1 gaps") for line in recording.log)
+
+
+def test_a_typed_tidal_volume_in_range_is_a_check():
+    recording = preprocess(
+        synthetic_raw()[0], context=RecordingContext(tidal_volume_ml=450)
+    )
+    assert "OK: Tidal volume typed for the recording: 450 mL." in recording.log
 
 
 # --- real recordings ---
