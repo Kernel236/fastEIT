@@ -201,6 +201,12 @@ def _device_exclusions(
     ]
     if len(gaps):
         log.warning(f"{len(gaps)} gaps in the frame times (dropped frames) excluded.")
+    has_timing = "timing_error" in raw.frames.dtype.names
+    if not missing.any() and not len(gaps) and not (has_timing and timing_error.any()):
+        checked = ["no missing pixel data", "no gaps in the frame times"]
+        if has_timing:
+            checked.insert(1, "no device timing errors")
+        log.ok(", ".join(checked).capitalize() + ".")
     return segments
 
 
@@ -220,12 +226,15 @@ def _respiratory_rate(
         log.warning(f"Respiratory rate not estimated: {error}")
         return None
     rr_bpm = rr_hz * SECONDS_PER_MINUTE
-    log.info(f"Respiratory rate from the spectrum: {rr_bpm:.1f}/min.")
+    message = f"Respiratory rate from the spectrum: {rr_bpm:.1f}/min."
     range_edges = (
         RESPIRATORY_RATE_MIN_BPM,
         RESPIRATORY_RATE_MAX_BPM,
     )
-    if rr_bpm in range_edges:
+    if rr_bpm not in range_edges:
+        log.ok(message)
+    else:
+        log.info(message)
         log.warning(
             "Respiratory rate on the edge of the searched range: probably a slow drift "
             "of the signal, not the breathing."
@@ -252,13 +261,14 @@ def _cardiac_step(
     elif rr_hz is None:
         log.warning(f"MDN filter needs the respiratory rate: {not_removed}")
     else:
-        for message in heart_rate_warnings(
+        warnings = heart_rate_warnings(
             hr_bpm,
             rr_hz * SECONDS_PER_MINUTE,
             low_bpm=HEART_RATE_WARNING_LOW_BPM,
             high_bpm=HEART_RATE_WARNING_HIGH_BPM,
             margin_bpm=HEART_RATE_WARNING_MARGIN_BPM,
-        ):
+        )
+        for message in warnings:
             log.warning(message)
         try:
             filtered = mdn_filter(
@@ -270,10 +280,14 @@ def _cardiac_step(
                 upper_limit_hz=MDN_UPPER_LIMIT_BPM / SECONDS_PER_MINUTE,
                 order=MDN_ORDER,
             )
-            log.info(
+            applied = (
                 f"MDN cardiac filter with heart rate {hr_bpm:.0f}/min (as entered, "
-                "not checked on the data)."
+                "not checked on the data)"
             )
+            if warnings:
+                log.info(applied + ".")
+            else:
+                log.ok(applied + ", away from the respiratory rate and its harmonics.")
             return filtered, "mdn"
         except ValueError as error:
             log.warning(f"MDN filter not applied ({error}): {not_removed}")
@@ -291,6 +305,8 @@ def _regional_signals(
         else:
             signals[name] = np.full(len(pixels), np.nan)
             log.warning(f"Region {name} is empty (no lung pixels): its signal is NaN.")
+    if all(region.any() for region in roi_masks.values()):
+        log.ok("Every region has lung pixels.")
     return pd.DataFrame(signals)
 
 
@@ -340,7 +356,7 @@ def _breath_pressures(
         onsets = inspiration_onsets(paw, fs, valleys)
         peep = pressure_before(paw, fs, onsets, PEEP_SECONDS)
         plateau = plateau_pressures(paw, fs, onsets, peep, PLATEAU_WINDOW_SECONDS)
-        log.info(f"PEEP and plateau of each breath read on {channel}.")
+        log.ok(f"PEEP and plateau of each breath read on {channel}.")
         return channel, peep[:-1], plateau[:-1]
 
     if _has_data(aux, PEEP_VALUE_CHANNEL):
@@ -350,13 +366,15 @@ def _breath_pressures(
         if _has_data(aux, PLATEAU_VALUE_CHANNEL):
             values = aux[PLATEAU_VALUE_CHANNEL].to_numpy(dtype=float)
             plateau = _median_over_breaths(values, starts, ends)
-        log.info(
+        log.ok(
             "No airway pressure waveform: PEEP (and plateau, if there) computed by the "
             f"ventilator, median over each breath ({PEEP_VALUE_CHANNEL})."
         )
         return PEEP_VALUE_CHANNEL, peep, plateau
 
-    log.info("No airway pressure: no PEEP, plateau or driving pressure of the breaths.")
+    log.warning(
+        "No airway pressure: no PEEP, plateau or driving pressure of the breaths."
+    )
     nothing = np.full(len(starts), np.nan)
     return None, nothing, nothing.copy()
 
@@ -381,6 +399,8 @@ def _check_inspiration_is_positive(
             f"{channel} does not rise during the EIT inspiration of most breaths: is "
             "inspiration negative on this device? The tidal volumes may be wrong."
         )
+    elif rises:
+        log.ok(f"{channel} rises during the EIT inspiration.")
 
 
 def _tidal_volumes(
@@ -410,18 +430,18 @@ def _tidal_volumes(
         values = aux[channel].to_numpy(dtype=float)
         _check_inspiration_is_positive(values, starts, peaks, is_flow, channel, log)
         if is_flow:
-            log.info(
+            log.ok(
                 "Tidal volume of each breath from the integral of the inspiratory flow "
                 f"({channel})."
             )
             return channel, volumes_from_flow_curve(values, fs, first, after_last)
-        log.info(f"Tidal volume of each breath read on {channel}.")
+        log.ok(f"Tidal volume of each breath read on {channel}.")
         return channel, volumes_from_volume_curve(values, first, after_last)
 
     channel = next((c for c in TIDAL_VOLUME_VALUE_CHANNELS if _has_data(aux, c)), None)
     if channel is not None:
         values = aux[channel].to_numpy(dtype=float)
-        log.info(
+        log.ok(
             "No volume or flow curve: tidal volume computed by the ventilator, median "
             f"over each breath ({channel})."
         )
@@ -589,11 +609,12 @@ def preprocess(
     tidal_volume_channel, tidal_volume = _tidal_volumes(aux, fs, table, config, log)
     table["tidal_volume"] = tidal_volume
     if context.tidal_volume_ml is not None:
-        log.info(
-            f"Tidal volume typed for the recording: {context.tidal_volume_ml:g} mL."
-        )
+        typed = f"Tidal volume typed for the recording: {context.tidal_volume_ml:g} mL."
         low, high = TYPED_VOLUME_RANGE_ML
-        if not low <= context.tidal_volume_ml <= high:
+        if low <= context.tidal_volume_ml <= high:
+            log.ok(typed)
+        else:
+            log.info(typed)
             log.warning(
                 f"Typed tidal volume {context.tidal_volume_ml:g} mL is outside "
                 f"{low:g}-{high:g} mL: is it in mL?"
