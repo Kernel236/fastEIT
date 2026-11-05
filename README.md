@@ -19,7 +19,7 @@ SPSS and databases. For research in mechanical ventilation and lung monitoring.
 ## Install
 
 ```bash
-pip install "fasteit @ git+https://github.com/Kernel236/fastEIT.git@v0.6.0a1"   # a fixed version
+pip install "fasteit @ git+https://github.com/Kernel236/fastEIT.git@v0.7.0a1"   # a fixed version
 pip install git+https://github.com/Kernel236/fastEIT.git                        # the latest dev
 ```
 
