@@ -154,7 +154,7 @@ typed volume outside 100-1500 mL gives a warning (litres typed instead of mL?).
 | `roi_masks`, `roi_signals` | `ventral`, `dorsal`, `right`, `left`, `layer_1`-`layer_4`, four quadrants, cut on the ventilated lung (indices of a shift of ventilation use image coordinates) |
 | `aux`, `aux_units` | auxiliary signals with data, one row per frame (e.g. `airway_pressure_pod`, `esophageal_pressure_pod`, Medibus `peep`, `min_max_flag`), and the unit of each |
 | `pressure_channel`, `tidal_volume_channel` | the columns of `aux` the ventilator values of the breaths come from (None if none) |
-| `log` | what each step did, with warnings |
+| `log` | what each step did: checks passed, facts, warnings (section 5) |
 
 Images are seen from the feet, like a CT slice: row 0 is ventral, column 0 is the
 patient's right.
@@ -173,7 +173,13 @@ paw = recording.aux.airway_pressure_pod[[breath.start_idx, breath.peak_idx]]
 There are two kinds of record, kept apart on purpose:
 
 - **`EITRecording.log`** belongs to the result: it says which filter ran, what was
-  excluded and every warning, and is saved with the data.
+  excluded and every warning, and is saved with the data. Each message has a level:
+  `OK:` for a check that passed (no missing frames, respiratory rate inside the searched
+  range, heart rate away from it, pressure and volume read, every region with lung
+  pixels), no prefix for a fact (counts, sources), `WARNING:` for a check that failed or
+  a missing input with its consequence (e.g. no airway pressure). A missing input is
+  warned once, where it is read. A recording with all it needs and no problem has no
+  warning; the logs of segmentation and indices follow the same rules.
 - **Technical logs** go through Python `logging` (logger names
   `fasteit.preprocessing.*`). The library never configures logging: the script or
   application decides where the messages go, e.g. `logging.basicConfig(level=logging.INFO)`
