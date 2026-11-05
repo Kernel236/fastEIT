@@ -1187,6 +1187,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="DragerAscParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.parse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1844,6 +1872,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="DragerAscParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.parse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -2016,6 +2072,76 @@
 (<code>"drager"</code>, <code>"Dräger"</code>, <code>"DRAEGER"</code>) all resolve correctly.</p>
 
 
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>detection</code>
+            </td>
+            <td>
+                  <code><span title="fasteit.parsers.detection.FileDetection">FileDetection</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output of <code>detect_vendor_and_format()</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>registry</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>], <span title="fasteit.parsers.loader.ParserFactory">ParserFactory</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parsers by (vendor, extension); the default registry if None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="fasteit.parsers.base.BaseParser">BaseParser</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parser for the detected vendor and extension.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
 <p><span class="doc-section-title">Raises:</span></p>
     <table>
       <thead>
@@ -2056,7 +2182,156 @@
 
     <div class="doc doc-contents ">
 
-        <p>Single entry point: detect format/vendor then parse with matching parser.</p>
+        <p>Read one EIT file: detect vendor and format, then parse it with the matching parser.</p>
+<p>Large <code>.bin</code> and <code>.eit</code> files are memory-mapped: the frames are read from disk when
+they are used.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The file (Dräger <code>.bin</code>, <code>.eit</code> or <code>.asc</code>; Timpel <code>.csv</code>, <code>.txt</code>
+or <code>.asc</code>).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>registry</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>], <span title="fasteit.parsers.loader.ParserFactory">ParserFactory</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parsers by (vendor, extension); the default registry if None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="BaseData
+
+
+  
+      dataclass
+   (fasteit.models.base_data.BaseData)" href="../models/#fasteit.models.base_data.BaseData">BaseData</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>ReconstructedFrameData</code> (Dräger <code>.bin</code>, Timpel), <code>RawImpedanceData</code></p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="BaseData
+
+
+  
+      dataclass
+   (fasteit.models.base_data.BaseData)" href="../models/#fasteit.models.base_data.BaseData">BaseData</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(Dräger <code>.eit</code>) or <code>ContinuousSignalData</code> (Dräger <code>.asc</code>).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#FileNotFoundError">FileNotFoundError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if the file does not exist.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if the vendor or the format is not recognised, or the file is
+invalid.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="fasteit.parsers.errors.ParserError">ParserError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>for a <code>.bin</code> whose size fits no known frame layout
+(<code>UnsupportedFrameSizeError</code>) or fits more than one
+(<code>AmbiguousFormatError</code>).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#NotImplementedError">NotImplementedError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if no parser is registered for the detected format.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -2947,6 +3222,183 @@ See <code>docs/reverse_eng/draeger_bin_format.ipynb</code> for field-level findi
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.validate" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">validate</span>
+
+
+<a href="#fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.validate" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">validate</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Whether the file looks like a Dräger <code>.asc</code> export.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True for a non-empty <code>.asc</code>, <code>.txt</code> or <code>.csv</code> whose header is Dräger's.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.parse" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">parse</span>
+
+
+<a href="#fasteit.parsers.draeger.asc.asc_parser.DragerAscParser.parse" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">parse</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContinuousSignalData</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Read the continuous signals of a Dräger <code>.asc</code> export (no images).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ContinuousSignalData
+
+
+  
+      dataclass
+   (fasteit.models.continuous_data.ContinuousSignalData)" href="../models/#fasteit.models.continuous_data.ContinuousSignalData">ContinuousSignalData</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The signals, one row per frame, with the header metadata.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if the file has no continuous waveform table, or the table has no
+data rows.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
 
 
 

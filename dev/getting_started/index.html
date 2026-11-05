@@ -1464,9 +1464,13 @@
 
 <h1 id="install-and-supported-files">Install and supported files<a class="headerlink" href="#install-and-supported-files" title="Permanent link">&para;</a></h1>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/Kernel236/fastEIT.git
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"fasteit @ git+https://github.com/Kernel236/fastEIT.git@v0.6.0a1"</span><span class="w">   </span><span class="c1"># a fixed version</span>
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/Kernel236/fastEIT.git<span class="w">                        </span><span class="c1"># the latest dev</span>
 </code></pre></div>
-<p>Python 3.10 to 3.12. For development (tests, linting) and to build this site:</p>
+<p>Python 3.10 to 3.14. A study, or an app built on fastEIT, should install a fixed version: its results then do
+not change when the library does. The versions are listed on the
+<a href="https://github.com/Kernel236/fastEIT/tags">tags page</a> and in the version menu of this site.</p>
+<p>For development (tests, linting) and to build this site:</p>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Kernel236/fastEIT.git
 <span class="nb">cd</span><span class="w"> </span>fastEIT
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev,docs]"</span>
