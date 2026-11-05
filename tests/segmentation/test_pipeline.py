@@ -429,3 +429,52 @@ def test_a_step_placed_by_hand_is_the_selection_of_breaths_to_analyse(recording)
     assert analysed.breath_id.tolist() == inside.breath_id.tolist()
     assert len(analysed) > trial.config.analysis_max_breaths
     assert analysed.start_time.min() < 1 + trial.config.analysis_skip_seconds
+
+
+# --- the log: checks that passed (OK) ---
+
+
+def checks(trial):
+    return [m for m in trial.log if m.startswith("OK: ")]
+
+
+def test_a_clean_trial_has_its_checks_and_no_warning(recording):
+    trial = segment_peep_trial(
+        recording, SegmentationConfig(peep_levels=(12, 10, 8, 6))
+    )
+    assert not [m for m in trial.log if m.startswith("WARNING: ")]
+    for expected in (
+        "PEEP read for",
+        "Every step on a PEEP level of the protocol: [12.0, 10.0, 8.0, 6.0].",
+        "Every step has at least 5 analysed breaths.",
+        "Every step has a driving pressure.",
+    ):
+        assert any(expected in m for m in checks(trial)), expected
+
+
+def test_without_the_levels_of_the_protocol_a_warning(recording):
+    trial = segment_peep_trial(recording)
+    assert any(
+        m.startswith("WARNING: No PEEP levels of the protocol") for m in trial.log
+    )
+
+
+def test_typed_peep_and_tidal_volumes_that_agree_are_checks(recording):
+    steps = [
+        Segment(start + 1, start + 47, category="peep_step",
+                parameters={"peep": level, "tidal_volume": 450})
+        for start, level in zip((0, 48, 96, 144), (12, 10, 8, 6), strict=True)
+    ]  # fmt: skip
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert "OK: PEEP typed for each step agrees with the PEEP measured in it." in (
+        trial.log
+    )
+    assert "OK: Tidal volume typed for each step in the plausible range." in trial.log
+
+
+def test_without_pressure_the_preprocessing_has_the_warning():
+    recording = synthetic_trial(aux={})
+    steps = [Segment(1, 47, category="peep_step", parameters={"peep": 12})]
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert any(m.startswith("WARNING: No airway pressure") for m in recording.log)
+    assert not any(m.startswith("WARNING: No airway pressure") for m in trial.log)

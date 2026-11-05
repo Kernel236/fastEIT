@@ -74,7 +74,11 @@ def _check_readings(
     """Warn when few breaths of the phase have a PEEP or a plateau."""
     with_peep = np.isfinite(peep[in_phase])
     with_plateau = np.isfinite(plateau[in_phase])
-    log.info(f"PEEP read for {with_peep.sum()} of {in_phase.sum()} breaths.")
+    read = f"PEEP read for {with_peep.sum()} of {in_phase.sum()} breaths."
+    if with_peep.all():
+        log.ok(read)
+    else:
+        log.info(read)
     if with_peep.mean() < MIN_FRACTION_READ:
         log.warning("PEEP missing in most breaths: is the pressure signal complete?")
     if with_peep.any() and with_plateau.mean() < MIN_FRACTION_READ:
@@ -150,14 +154,19 @@ def _check_manual_levels(
     log: RunLog,
 ) -> None:
     """Warn when the PEEP typed for a step differs from the PEEP measured in it."""
+    compared, differ = 0, 0
     for k, level in enumerate(levels):
         measured = peep[step == k]
-        if np.isfinite(measured).any() and (
-            abs(np.nanmedian(measured) - level) > config.step_threshold
-        ):
+        if not np.isfinite(measured).any():
+            continue
+        compared += 1
+        if abs(np.nanmedian(measured) - level) > config.step_threshold:
+            differ += 1
             log.warning(
                 f"Step {k}: PEEP typed {level:g}, measured {np.nanmedian(measured):.1f}."
             )
+    if compared == len(levels) and not differ:
+        log.ok("PEEP typed for each step agrees with the PEEP measured in it.")
 
 
 def _step_driving_pressure(
@@ -227,23 +236,35 @@ def _check_typed_volumes(
     """Warn about typed tidal volumes outside the plausible range or far from the
     tidal volume measured on the analysed breaths of the step."""
     low, high = plausible
-    for _, step in steps[steps.tidal_volume_source == "typed"].iterrows():
+    typed_for_steps = steps[steps.tidal_volume_source == "typed"]
+    outside = 0
+    for _, step in typed_for_steps.iterrows():
         if not low <= step.tidal_volume <= high:
+            outside += 1
             log.warning(
                 f"Step {step.step}: typed tidal volume {step.tidal_volume:g} mL is "
                 f"outside {low:g}-{high:g} mL: is it in mL?"
             )
+    if len(typed_for_steps) and not outside:
+        log.ok("Tidal volume typed for each step in the plausible range.")
     typed = steps.tidal_volume_source.isin(["typed", "typed_recording"])
+    compared, differ = 0, 0
     for _, step in steps[typed].iterrows():
         in_step = breaths[(breaths.peep_step == step.step) & breaths.analysed]
         measured = in_step.tidal_volume.dropna()
-        if len(measured) and abs(step.tidal_volume - measured.median()) > (
+        if not len(measured):
+            continue
+        compared += 1
+        if abs(step.tidal_volume - measured.median()) > (
             TIDAL_VOLUME_AGREEMENT * measured.median()
         ):
+            differ += 1
             log.warning(
                 f"Step {step.step}: tidal volume typed {step.tidal_volume:g} mL, "
                 f"measured {measured.median():.0f} mL."
             )
+    if compared and not differ:
+        log.ok(f"Typed tidal volume close to the measured one in {compared} steps.")
 
 
 def _step_tidal_volume(
@@ -278,10 +299,12 @@ def _steps_table(
     tidal volume."""
     peep_set = protocol_levels(levels, config.peep_levels, config.step_threshold)
     if config.peep_levels is None:
-        log.info(
+        log.warning(
             "No PEEP levels of the protocol (SegmentationConfig.peep_levels): "
-            "peep_set is empty."
+            "peep_set is empty and the results are given on the measured PEEP."
         )
+    elif np.isfinite(peep_set).all():
+        log.ok(f"Every step on a PEEP level of the protocol: {peep_set.tolist()}.")
     else:
         log.info(f"PEEP level of the protocol of each step: {peep_set.tolist()}.")
     rows = []
@@ -310,7 +333,13 @@ def _steps_table(
                 f"fewer than {config.analysis_min_breaths}."
             )
     steps = pd.DataFrame(rows, columns=STEP_COLUMNS)
-    if not steps.enough_driving_pressure.any():
+    if steps.enough.all():
+        log.ok(
+            f"Every step has at least {config.analysis_min_breaths} analysed breaths."
+        )
+    if steps.enough_driving_pressure.all():
+        log.ok("Every step has a driving pressure.")
+    elif not steps.enough_driving_pressure.any():
         log.warning("No step has a driving pressure: compliance cannot be computed.")
     else:
         for k in steps.step[~steps.enough_driving_pressure]:
@@ -381,7 +410,8 @@ def segment_peep_trial(
         log.info(f"PEEP and plateau of each breath from {channel}.")
         _check_readings(peep, plateau, in_phase, log)
     else:
-        log.warning(
+        # The warning is in the log of the preprocessing, where the pressure is read.
+        log.info(
             "No airway pressure in the recording: no PEEP, plateau or driving pressure."
         )
 
