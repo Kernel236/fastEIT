@@ -3,10 +3,15 @@
 ## Install
 
 ```bash
-pip install git+https://github.com/Kernel236/fastEIT.git
+pip install "fasteit @ git+https://github.com/Kernel236/fastEIT.git@v0.6.0a1"   # a fixed version
+pip install git+https://github.com/Kernel236/fastEIT.git                        # the latest dev
 ```
 
-Python 3.10 to 3.12. For development (tests, linting) and to build this site:
+Python 3.10 to 3.14. A study, or an app built on fastEIT, should install a fixed version: its results then do
+not change when the library does. The versions are listed on the
+[tags page](https://github.com/Kernel236/fastEIT/tags) and in the version menu of this site.
+
+For development (tests, linting) and to build this site:
 
 ```bash
 git clone https://github.com/Kernel236/fastEIT.git
