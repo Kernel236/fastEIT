@@ -2,8 +2,8 @@
 .claude/
 CLAUDE.md
 
-# Test files (patient data — never commit)
-/src/fasteit/test_files/*
+# Test files (patient data - never commit): the folder, or a link with its name
+/src/fasteit/test_files
 
 
 
