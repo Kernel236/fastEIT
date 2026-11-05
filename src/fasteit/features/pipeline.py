@@ -192,9 +192,7 @@ def _recording_tidal_volume(
     measured = recording.breaths.tidal_volume.to_numpy(dtype=float)
     source = np.full(n_breaths, "breaths", dtype=object)
     source[np.isnan(measured)] = None
-    if np.isnan(measured).all():
-        log.info("No tidal volume: no values in mL.")
-    else:
+    if not np.isnan(measured).all():
         log.info(f"Tidal volume measured on {recording.tidal_volume_channel}.")
     return measured, source
 
@@ -271,6 +269,10 @@ def tidal_features(
     breath_table = recording.breaths
 
     volume, source = _recording_tidal_volume(recording, log)
+    if np.isnan(volume).all():
+        log.warning(
+            "No tidal volume (none typed, no volume or flow curve): no values in mL."
+        )
     breaths = _breath_indices(recording, volume, source)
     regions = _region_indices(recording, volume)
     breaths.insert(1, "in_phase", _in_phase(breath_table, phase, log))
@@ -281,7 +283,13 @@ def tidal_features(
     if not used.any():
         log.warning("No valid breath: the summary is empty.")
     elif breath_table.driving_pressure[used].isna().all():
-        log.info("No driving pressure: no compliance.")
+        if recording.pressure_channel is None:
+            # The warning is in the log of the preprocessing: no airway pressure.
+            log.info("No driving pressure: no compliance.")
+        else:
+            log.warning(
+                "No driving pressure (no end-inspiratory plateau): no compliance."
+            )
 
     # The summary also gives the pressures of layer 2 (PEEP, plateau, driving pressure).
     with_pressures = breaths.copy()
@@ -479,7 +487,7 @@ def _recruitment_rows(
     peep_high, peep_low = steps.peep[high], steps.peep[low]
     driving_low = trial.steps.driving_pressure[low]
     volume_low = trial.steps.tidal_volume[low]
-    log.info(f"R/I between the steps at PEEP {peep_high:.1f} and {peep_low:.1f}.")
+    log.ok(f"R/I between the steps at PEEP {peep_high:.1f} and {peep_low:.1f}.")
 
     rows = [
         {"region": "global", "feature": "ri_peep_high", "value": result_peep[high]},
@@ -514,7 +522,7 @@ def _result_peep(trial: PeepTrial, steps: pd.DataFrame, log: RunLog) -> np.ndarr
     levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
     peep_set = levels.peep_set.to_numpy(dtype=float)
     if np.isfinite(peep_set).all():
-        log.info(
+        log.ok(
             "Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
         )
         return peep_set
@@ -539,7 +547,9 @@ def _check_steps(
         log.warning("No step has a driving pressure: no compliance and no Costa.")
     else:
         missing = steps.step[steps.compliance.isna()].tolist()
-        if missing:
+        if not missing:
+            log.ok("Every step has a compliance.")
+        else:
             log.warning(
                 f"Steps {missing} have no compliance (no driving pressure or no analysed "
                 "breaths): they are left out of the best step and of Costa."
@@ -557,12 +567,14 @@ def _check_steps(
         log.warning("The first step has no EELI or TIV: the changes vs it are NaN.")
 
     if not np.isnan(crossing):
-        log.info(f"Collapse and overdistension cross at PEEP {crossing:.1f}.")
+        log.ok(f"Collapse and overdistension cross at PEEP {crossing:.1f}.")
     elif steps.collapse.notna().sum() >= 2:
         log.warning("Collapse and overdistension do not cross in the PEEP range.")
 
     if trial.steps.tidal_volume.isna().all():
-        log.info("No tidal volume: no values in mL.")
+        log.warning(
+            "No tidal volume (none typed, no volume or flow curve): no values in mL."
+        )
 
 
 def peep_trial_features(

@@ -306,3 +306,54 @@ def test_ri_between_the_steps_of_the_config_globally_and_by_region():
     volumes = features.summary[features.summary.feature == "recruited_volume_ml"]
     halves = volumes[volumes.region.isin(["ventral", "dorsal"])].value.sum()
     assert halves == pytest.approx(value(features, "recruited_volume_ml"), rel=0.02)
+
+
+# --- the log: checks that passed (OK), missing inputs warned once ---
+
+
+def warnings_of(features):
+    return [m for m in features.log if m.startswith("WARNING: ")]
+
+
+def test_a_complete_tidal_recording_has_no_warning_in_its_indices(tidal):
+    assert not warnings_of(tidal)
+
+
+def test_without_a_tidal_volume_one_warning():
+    features = tidal_features(tidal_recording())
+    assert [m for m in warnings_of(features) if "No tidal volume" in m] == [
+        "WARNING: No tidal volume (none typed, no volume or flow curve): no values in mL."
+    ]
+
+
+def test_no_driving_pressure_is_warned_where_its_cause_is():
+    context = RecordingContext(tidal_volume_ml=450)
+    # No pressure at all: the warning is in the log of the preprocessing only.
+    without_pressure = tidal_features(preprocess(synthetic_raw()[0], context=context))
+    assert any(
+        m.startswith("WARNING: No airway pressure")
+        for m in without_pressure.recording.log
+    )
+    assert not warnings_of(without_pressure)
+    # A pressure without an end-inspiratory pause: the warning is here.
+    raw, _ = synthetic_raw()
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0, pause=0)
+    raw.aux_signals = {"airway_pressure": paw[: len(raw.frames)].astype(np.float32)}
+    without_plateau = tidal_features(preprocess(raw, context=context))
+    assert any("No driving pressure" in m for m in warnings_of(without_plateau))
+
+
+def test_a_trial_with_its_protocol_levels_has_its_checks():
+    recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
+    trial = segment_peep_trial(
+        recording, SegmentationConfig(peep_levels=(12, 10, 8, 6))
+    )
+    features = peep_trial_features(trial)
+    checks = [m for m in features.log if m.startswith("OK: ")]
+    assert (
+        "OK: Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
+        in checks
+    )
+    assert "OK: Every step has a compliance." in checks
+    # Steps at PEEP 12-6 have no pair near 15 and 5: R/I is missing, with a warning.
+    assert any("no R/I" in m for m in warnings_of(features))
