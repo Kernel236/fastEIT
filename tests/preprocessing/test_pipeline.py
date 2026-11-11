@@ -1,5 +1,6 @@
 """Tests for preprocess()."""
 
+import tracemalloc
 from pathlib import Path
 
 import numpy as np
@@ -11,7 +12,13 @@ from fasteit.models.eit_recording import RecordingContext, Segment
 from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing.auxiliary import CMH2O_PER_MBAR
-from fasteit.preprocessing.pipeline import preprocess, recording_time
+from fasteit.preprocessing.exclusions import missing_frames
+from fasteit.preprocessing.pipeline import (
+    global_impedance,
+    pixel_values,
+    preprocess,
+    recording_time,
+)
 
 from .test_breath_pressures import vcv_pressure
 from .test_breath_quality import NOTEBOOK_COUNTS, TEST_FILES
@@ -58,6 +65,65 @@ def test_timpel_time_is_already_in_seconds():
     raw, _ = synthetic_raw(seconds=4)
     raw.frames["ts"] += 2.0
     np.testing.assert_allclose(recording_time(raw), np.arange(80) / FS)
+
+
+# --- the parsed file: pixels and global impedance ---
+
+NOT_CONNECTED = np.array([0xFF7FC99E], np.uint32).view(np.float32)[0]
+
+
+def draeger_raw_with_no_data():
+    """Draeger file: "no data" (-1000) in frame 10, two unconnected pixels in frame 20."""
+    raw, _ = synthetic_raw(vendor="draeger", seconds=10)
+    raw.frames["pixels"][10, 5, 5] = -1000.0
+    raw.frames["pixels"][20, 3, 4:6] = NOT_CONNECTED
+    return raw
+
+
+def test_pixel_values_of_some_frames_only():
+    raw = draeger_raw_with_no_data()
+    every_frame = pixel_values(raw)
+    np.testing.assert_array_equal(pixel_values(raw, 20), every_frame[20])
+    np.testing.assert_array_equal(pixel_values(raw, slice(8, 22)), every_frame[8:22])
+    assert np.isnan(pixel_values(raw, 10)[5, 5])
+
+
+def test_global_impedance_is_the_sum_of_the_pixels_with_a_gap_at_missing_data():
+    raw = draeger_raw_with_no_data()
+    signal = global_impedance(raw)
+    assert np.isnan(signal[[10, 20]]).all()
+    assert np.isfinite(np.delete(signal, [10, 20])).all()  # no -inf, no other gap
+    expected = raw.pixels.astype(float).sum(axis=(1, 2))
+    np.testing.assert_allclose(
+        np.delete(signal, [10, 20]), np.delete(expected, [10, 20])
+    )
+    # The gaps are the frames that preprocess() fills and excludes.
+    np.testing.assert_array_equal(np.isnan(signal), missing_frames(pixel_values(raw)))
+
+
+def test_a_pixel_empty_in_every_frame_does_not_make_a_gap():
+    raw, _ = synthetic_raw(seconds=10)
+    raw.frames["pixels"][:, 0, 0] = np.nan  # e.g. Timpel, outside the belt
+    signal = global_impedance(raw)
+    assert np.isfinite(signal).all()
+    np.testing.assert_allclose(signal, np.nansum(raw.pixels.astype(float), axis=(1, 2)))
+
+
+def test_global_impedance_is_the_same_with_any_block_size():
+    raw = draeger_raw_with_no_data()
+    np.testing.assert_allclose(
+        global_impedance(raw, chunk_frames=7), global_impedance(raw)
+    )
+
+
+def test_global_impedance_reads_the_file_in_blocks():
+    raw, _ = synthetic_raw()  # 1800 frames: a float copy of all the pixels is 15 MB
+    whole_copy = raw.pixels.size * 8
+    tracemalloc.start()
+    global_impedance(raw, chunk_frames=100)
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    assert peak < whole_copy / 4
 
 
 # --- whole pipeline on a synthetic recording ---

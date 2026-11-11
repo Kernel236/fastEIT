@@ -2,7 +2,7 @@
 
 Python library for electrical impedance tomography (EIT) recordings of the Dräger
 PulmoVista 500 and of Timpel: it reads the files, prepares each breath and computes the
-clinical indices of tidal recordings and PEEP trials, as tables ready for a database or R.
+clinical indices of tidal recordings and PEEP trials, as tables ready for statistical analysis.
 
 !!! warning "Research use only"
     fastEIT is for research. It is not a medical device and has not been validated for
@@ -33,7 +33,7 @@ and has no images ([parsers](parsers.md)).
 | 2. Preprocessing | cardiac filter, breaths with quality flags, exclusions, lung mask, regions; auxiliary signals in cmH2O, L/s, mL; PEEP, plateau, driving pressure and tidal volume of each breath | [Preprocessing](preprocessing.md) |
 | 2b. Segmentation | PEEP steps from the pressure or placed by hand, breaths analysed, driving pressure and tidal volume of each step | [Segmentation](segmentation.md) |
 | 3. Clinical indices | EELI, TIV, share by region, GI, centre of ventilation, compliance, Costa collapse and overdistension, changes between steps, recruitment-to-inflation ratio | [Clinical indices](features.md) |
-| 4. Export | one row per recording, breath and PEEP step, keyed by patient, recording and phase; a whole study at once; CSV for R, SPSS and Excel | [Export](export.md) |
+| 4. Export | one row per recording, breath and PEEP step, keyed by patient, recording and phase; a whole study at once; CSV ready for statistical analysis | [Export](export.md) |
 
 Every method states its source (paper and DOI, or the evidence notebook) and the
 reimplemented steps are checked against [eitprocessing](https://github.com/EIT-ALIVE/eitprocessing).

@@ -34,6 +34,8 @@ import numpy as np
 from scipy import ndimage, signal
 from skimage import feature, segmentation
 
+from fasteit.models.eit_recording import EITRecording
+
 # Constants of eitprocessing PixelBreath (v1.8.8), not meant to be tuned.
 MAX_LAG_BREATHS = 1  # pixel delay searched within ± one mean breath duration
 MAX_SKIPPED_FRACTION = 0.25  # a pixel losing more breaths than this is dropped
@@ -53,6 +55,31 @@ def tiv_per_breath(pixels: np.ndarray, breaths: np.ndarray) -> np.ndarray:
         Array (n_breaths, rows, cols): pixel at the peak minus pixel at the start.
     """
     return pixels[breaths[:, 1]] - pixels[breaths[:, 0]]
+
+
+def breath_tiv_map(recording: EITRecording, breath_id: int) -> np.ndarray:
+    """TIV image of one breath, e.g. to see whether that breath is an artefact.
+
+    Each pixel at the end of inspiration of the global signal minus its value at the
+    start (``tiv_per_breath``), on the pixels of the recording (after the cardiac
+    step). ``recording.tiv_map`` is the mean of these images over the valid breaths,
+    so the two can be compared.
+
+    Args:
+        recording: Output of ``preprocess()``.
+        breath_id: The breath, as in ``recording.breaths.breath_id``.
+
+    Returns:
+        Array (rows, cols); NaN for the pixels without a signal.
+
+    Raises:
+        ValueError: if the recording has no breath with this ``breath_id``.
+    """
+    row = recording.breaths[recording.breaths.breath_id == breath_id]
+    if row.empty:
+        raise ValueError(f"No breath {breath_id} in this recording.")
+    frames = row[["start_idx", "peak_idx", "end_idx"]].to_numpy()
+    return tiv_per_breath(recording.pixels, frames)[0]
 
 
 def pixel_lag(

@@ -47,14 +47,14 @@ from fasteit.preprocessing import preprocess
 raw = load_data("recording.bin")                                   # 1. read the file
 recording = preprocess(raw, context=RecordingContext(patient_id="P01", label="T0"))  # 2. breaths
 features = tidal_features(recording)                               # 3. clinical indices
-write_csv(recording_tables(features), "results/")                  # 4. tables for R and SPSS
+write_csv(recording_tables(features), "results/")                  # 4. tables for statistical analysis
 ```
 
 Each step returns an object that keeps the one before it, with a `log` of what was done.
 A PEEP trial adds one step (`segment_peep_trial`) between 2 and 3. The
 user guide goes through the steps: [analyse a recording](guide/analyse.md) (both
 protocols), [cut a recording](guide/segments.md), [review figures](review.md) and
-[export for R and SPSS](export.md). How each layer works is under "How it works"
+[export the tables](export.md). How each layer works is under "How it works"
 ([data model](data_model.md)).
 
 *Research use only - not a medical device.*

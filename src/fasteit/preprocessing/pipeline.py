@@ -138,21 +138,63 @@ def recording_time(raw: ReconstructedFrameData) -> np.ndarray:
     return timestamps - timestamps[0]
 
 
-def pixel_values(raw: ReconstructedFrameData) -> np.ndarray:
+def pixel_values(
+    raw: ReconstructedFrameData, index: int | slice | None = None
+) -> np.ndarray:
     """Float copy of the pixels, with the Draeger "no data" values as NaN.
 
     The parsed pixels are never modified (they can be a read-only memory map).
-    Timpel pixels already have NaN from the parser.
+    Timpel pixels already have NaN from the parser. With ``index`` only those frames
+    are read and copied, e.g. the image under a cursor.
 
     Args:
-        raw: Output of ``load_data()``.
+        raw:   Output of ``load_data()``.
+        index: A frame or a slice of frames; None for every frame.
 
     Returns:
-        The pixels as float, shape (N, 32, 32).
+        The pixels as float: shape (N, 32, 32), or (32, 32) for one frame.
     """
+    pixels = raw.pixels if index is None else raw.pixels[index]
     if raw.vendor == "draeger":
-        return replace_draeger_sentinels(raw.pixels).astype(float)
-    return np.array(raw.pixels, dtype=float)
+        return replace_draeger_sentinels(pixels).astype(float)
+    return np.array(pixels, dtype=float)
+
+
+def global_impedance(
+    raw: ReconstructedFrameData, chunk_frames: int = 2000
+) -> np.ndarray:
+    """Global impedance of the parsed file: the sum of the pixels of each frame.
+
+    Pixels without a value (NaN, Draeger "no data" values) are left out. A frame where
+    some pixel has no value is NaN: these are the frames ``preprocess()`` fills and
+    excludes (``missing_frames``). A pixel without a value in every frame (e.g. outside
+    the belt) is not part of the image and does not make a frame missing.
+
+    The frames are read in blocks of ``chunk_frames``, so the memory used stays small
+    for long recordings: a block of 2000 frames is about 16 MB.
+
+    Args:
+        raw:          Output of ``load_data()``.
+        chunk_frames: Frames read at a time.
+
+    Returns:
+        One value per frame, NaN for the frames with missing pixels.
+    """
+    total = np.empty(raw.n_frames)
+    pixels_without_value = np.empty(raw.n_frames, dtype=int)
+    frames_with_value = np.zeros(raw.pixels.shape[1:], dtype=int)  # for each pixel
+    for start in range(0, raw.n_frames, chunk_frames):
+        block = pixel_values(raw, slice(start, start + chunk_frames))
+        has_value = np.isfinite(block)
+        end = start + len(block)
+        total[start:end] = np.where(has_value, block, 0.0).sum(axis=(1, 2))
+        pixels_without_value[start:end] = (~has_value).sum(axis=(1, 2))
+        frames_with_value += has_value.sum(axis=0)
+    # A frame is missing when it has more pixels without a value than the pixels that
+    # never have one (one pass: the same frames as missing_frames()).
+    never_with_value = np.sum(frames_with_value == 0)
+    total[pixels_without_value > never_with_value] = np.nan
+    return total
 
 
 def _check_input(raw: ReconstructedFrameData) -> None:

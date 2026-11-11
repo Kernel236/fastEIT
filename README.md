@@ -11,8 +11,9 @@
 
 Python library for Electrical Impedance Tomography (EIT) recordings of the Dräger
 PulmoVista 500 and of Timpel: it reads the files, finds and checks each breath, computes
-the clinical indices of tidal recordings and PEEP trials, and writes them as tables for R,
-SPSS and databases. For research in mechanical ventilation and lung monitoring.
+the clinical indices of tidal recordings and PEEP trials, and writes them as tables
+ready for statistical analysis (R, SPSS, Excel, Python...). For research in mechanical
+ventilation and lung monitoring.
 
 **Documentation: [kernel236.github.io/fastEIT](https://kernel236.github.io/fastEIT/)**
 
@@ -38,7 +39,7 @@ from fasteit.preprocessing import preprocess
 raw = load_data("recording.bin")                                   # 1. read the file
 recording = preprocess(raw, context=RecordingContext(patient_id="P01", label="T0"))  # 2. breaths
 features = tidal_features(recording)                               # 3. clinical indices
-write_csv(recording_tables(features), "results/")                  # 4. tables for R and SPSS
+write_csv(recording_tables(features), "results/")                  # 4. tables for statistical analysis
 ```
 
 A PEEP trial adds `segment_peep_trial` between steps 2 and 3. The
@@ -53,7 +54,7 @@ recording, the review figures and the export.
 | Breaths | cardiac filter, breath detection with quality flags, exclusions, lung mask, regions; PEEP, plateau, driving pressure and tidal volume of each breath, in cmH2O and mL |
 | PEEP trials | steps from the airway pressure or placed by hand, at the PEEP levels of the protocol; breaths analysed, driving pressure and tidal volume of each step |
 | Clinical indices | EELI, TIV, share by region, global inhomogeneity, centre of ventilation, compliance; Costa collapse and overdistension, crossing PEEP, best PEEP, recruitment-to-inflation ratio |
-| Tables | one row per recording, breath and PEEP step, keyed by patient, recording and phase; CSV for R, SPSS and Excel |
+| Tables | one row per recording, breath and PEEP step, keyed by patient, recording and phase; CSV ready for statistical analysis |
 | Figures | the segments on the file, and the breaths used for the indices |
 
 Every method states its source (paper and DOI, or an evidence notebook in `notebooks/`),

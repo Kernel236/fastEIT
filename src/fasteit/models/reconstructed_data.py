@@ -29,6 +29,9 @@ class ReconstructedFrameData(BaseData):
                      (float64, timestamp), ``pixels`` (float32, 32×32 image).
         aux_signals: Dict mapping signal name → 1-D array of length N, or None
                      if the source file carries no auxiliary channels.
+        duration:    ``n_frames / fs``. When the device dropped frames (gaps in the
+                     frame times) the file lasts a little longer: the time of each
+                     frame is ``recording_time(raw)`` (``fasteit.preprocessing.pipeline``).
     """
 
     frames: np.ndarray | None = None
@@ -106,7 +109,12 @@ class ReconstructedFrameData(BaseData):
 
     @property
     def global_signal(self) -> np.ndarray:
-        """Sum of all pixels per frame (no lung mask applied). Shape (N,)."""
+        """Sum of the parsed pixels per frame, as stored (no lung mask). Shape (N,).
+
+        Draeger "no data" values are summed as they are (a false dip, or -inf for an
+        unconnected electrode). For the global impedance of a file use
+        ``global_impedance(raw)`` (``fasteit.preprocessing.pipeline``).
+        """
         return self._require_frames()["pixels"].sum(axis=(1, 2))
 
     @property

@@ -164,8 +164,17 @@ the start and at the peak of a breath:
 
 ```python
 breath = recording.valid_breaths.iloc[0]
-tiv_map = recording.pixels[breath.peak_idx] - recording.pixels[breath.start_idx]
 paw = recording.aux.airway_pressure_pod[[breath.start_idx, breath.peak_idx]]
+```
+
+The TIV image of one breath is its pixels at the peak minus at the start;
+`tiv_map` is the mean of these images over the valid breaths. To look at one breath,
+e.g. a suspected artefact:
+
+```python
+from fasteit.preprocessing.lung_mask import breath_tiv_map
+
+image = breath_tiv_map(recording, breath.breath_id)  # (32, 32)
 ```
 
 ## 5. Logs

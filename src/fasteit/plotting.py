@@ -34,7 +34,7 @@ from fasteit.models.reconstructed_data import ReconstructedFrameData
 from fasteit.preprocessing.auxiliary import auxiliary_signals
 from fasteit.preprocessing.pipeline import (
     PRESSURE_CHANNELS,
-    pixel_values,
+    global_impedance,
     recording_time,
 )
 
@@ -62,11 +62,11 @@ def plot_segmentation(
         title:    Title of the figure.
 
     Returns:
-        The figure: global signal on top, airway pressure below.
+        The figure: global impedance on top (``global_impedance``, with a gap where a
+        frame has missing pixels), airway pressure below.
     """
     time = recording_time(raw)
-    pixels = pixel_values(raw)
-    signal = np.nansum(pixels.reshape(len(pixels), -1), axis=1)
+    signal = global_impedance(raw)
     aux, _ = auxiliary_signals(raw)
     pressure_channel = next((c for c in PRESSURE_CHANNELS if c in aux.columns), None)
 
