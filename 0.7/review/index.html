@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -670,7 +670,7 @@
   <span class="md-ellipsis">
     
   
-    Export for R and SPSS
+    Export for statistical analysis
   
 
     
@@ -1455,7 +1455,8 @@ Colours and markers are the same in every figure.</p>
 <span class="p">]</span>
 <span class="n">plot_segmentation</span><span class="p">(</span><span class="n">load_data</span><span class="p">(</span><span class="s2">"P01_T0.bin"</span><span class="p">),</span> <span class="n">segments</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"P01, T0"</span><span class="p">)</span>
 </code></pre></div>
-<p>The global signal of the file (sum of all pixels) with the segments as bands: phases
+<p>The global impedance of the file (<code>global_impedance</code>: the sum of the pixels, with a gap
+where a frame has missing pixels) with the segments as bands: phases
 coloured by protocol (blue tidal, orange PEEP trial), exclusions grey and hatched, PEEP
 steps placed by hand with their level. Below, the airway pressure in cmH2O when the file
 has it.</p>
@@ -1553,13 +1554,13 @@ work on reconstructed images only (Dräger <code>.bin</code>, Timpel).</p>
         
         
           
-          <a href="../export/" class="md-footer__link md-footer__link--next" aria-label="Next: Export for R and SPSS">
+          <a href="../export/" class="md-footer__link md-footer__link--next" aria-label="Next: Export for statistical analysis">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Export for R and SPSS
+                Export for statistical analysis
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1603,7 +1604,7 @@ work on reconstructed images only (Dräger <code>.bin</code>, Timpel).</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

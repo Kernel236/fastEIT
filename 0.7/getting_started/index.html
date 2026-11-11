@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -681,7 +681,7 @@
   <span class="md-ellipsis">
     
   
-    Export for R and SPSS
+    Export for statistical analysis
   
 
     
@@ -1464,7 +1464,7 @@
 
 <h1 id="install-and-supported-files">Install and supported files<a class="headerlink" href="#install-and-supported-files" title="Permanent link">&para;</a></h1>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"fasteit @ git+https://github.com/Kernel236/fastEIT.git@v0.7.0a1"</span><span class="w">   </span><span class="c1"># a fixed version</span>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"fasteit @ git+https://github.com/Kernel236/fastEIT.git@v0.7.0a2"</span><span class="w">   </span><span class="c1"># a fixed version</span>
 pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/Kernel236/fastEIT.git<span class="w">                        </span><span class="c1"># the latest dev</span>
 </code></pre></div>
 <p>Python 3.10 to 3.14. A study, or an app built on fastEIT, should install a fixed version: its results then do
@@ -1522,13 +1522,13 @@ when they are used.</p>
 <span class="n">raw</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s2">"recording.bin"</span><span class="p">)</span>                                   <span class="c1"># 1. read the file</span>
 <span class="n">recording</span> <span class="o">=</span> <span class="n">preprocess</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">RecordingContext</span><span class="p">(</span><span class="n">patient_id</span><span class="o">=</span><span class="s2">"P01"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"T0"</span><span class="p">))</span>  <span class="c1"># 2. breaths</span>
 <span class="n">features</span> <span class="o">=</span> <span class="n">tidal_features</span><span class="p">(</span><span class="n">recording</span><span class="p">)</span>                               <span class="c1"># 3. clinical indices</span>
-<span class="n">write_csv</span><span class="p">(</span><span class="n">recording_tables</span><span class="p">(</span><span class="n">features</span><span class="p">),</span> <span class="s2">"results/"</span><span class="p">)</span>                  <span class="c1"># 4. tables for R and SPSS</span>
+<span class="n">write_csv</span><span class="p">(</span><span class="n">recording_tables</span><span class="p">(</span><span class="n">features</span><span class="p">),</span> <span class="s2">"results/"</span><span class="p">)</span>                  <span class="c1"># 4. tables for statistical analysis</span>
 </code></pre></div>
 <p>Each step returns an object that keeps the one before it, with a <code>log</code> of what was done.
 A PEEP trial adds one step (<code>segment_peep_trial</code>) between 2 and 3. The
 user guide goes through the steps: <a href="../guide/analyse/">analyse a recording</a> (both
 protocols), <a href="../guide/segments/">cut a recording</a>, <a href="../review/">review figures</a> and
-<a href="../export/">export for R and SPSS</a>. How each layer works is under "How it works"
+<a href="../export/">export the tables</a>. How each layer works is under "How it works"
 (<a href="../data_model/">data model</a>).</p>
 <p><em>Research use only - not a medical device.</em></p>
 
@@ -1633,7 +1633,7 @@ protocols), <a href="../guide/segments/">cut a recording</a>, <a href="../review
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

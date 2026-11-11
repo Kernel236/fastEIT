@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -596,7 +596,7 @@
   <span class="md-ellipsis">
     
   
-    Export for R and SPSS
+    Export for statistical analysis
   
 
     
@@ -1510,7 +1510,7 @@
 <p>Layer 3 turns a preprocessed recording (<code>EITRecording</code>, <a href="../preprocessing/"><code>preprocessing.md</code></a>)
 or a segmented PEEP trial (<code>PeepTrial</code>, <a href="../segmentation/"><code>segmentation.md</code></a>) into tables of
 clinical indices: one row per breath, per breath and region, per PEEP step, per step and
-region, and a summary. The tables are ready for a database or for R: the clinical context
+region, and a summary. The tables are ready for a database or for statistical analysis: the clinical context
 (patient, position, side in park bench) is joined at the time of the analysis, the
 recording does not need to know it.</p>
 <p>The definitions and the evidence are in <code>notebooks/07_clinical_indices.ipynb</code> (11 tidal
@@ -1554,7 +1554,7 @@ each step, breaths analysed), <code>features.trial.breaths</code> (step of each 
 pressure, measured tidal volume). Each value is stored once: the tables of layer 3 have
 the keys (<code>breath_id</code>, <code>step</code>, <code>peep</code>, <code>region</code>) and what layer 3 computes, and are
 joined on the keys with the tables before them. The flat tables with everything in one
-row per breath and per step, for R, SPSS and databases, are made by layer 4
+row per breath and per step, for statistical analysis and databases, are made by layer 4
 (<a href="../export/"><code>export.md</code></a>).</p>
 <h2 id="2-indices-of-a-breath">2. Indices of a breath<a class="headerlink" href="#2-indices-of-a-breath" title="Permanent link">&para;</a></h2>
 <p>All from the frames of the layer 2 breath (one sample, no averaging): start =
@@ -1887,7 +1887,7 @@ first step has no analysed breaths, the changes vs the first step are NaN.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
