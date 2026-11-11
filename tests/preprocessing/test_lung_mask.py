@@ -16,11 +16,15 @@ from fasteit.preprocessing.breaths import (
 from fasteit.preprocessing.lung_mask import (
     MIN_REGION_PIXELS,
     amplitude_per_breath,
+    breath_tiv_map,
     pixel_lag,
     remove_small_regions,
     tiv_per_breath,
     watershed_mask,
 )
+from fasteit.preprocessing.pipeline import preprocess
+
+from .test_pipeline import synthetic_raw
 
 CFG = PreprocessingConfig()
 FS = 20
@@ -179,3 +183,31 @@ def test_an_inverted_signal_has_no_lung_mask():
     falling = -global_signal[:, None, None] * np.ones((1, 3, 3))
     with pytest.raises(ValueError, match="no positive maximum"):
         mask_of(falling, global_signal, breaths)
+
+
+# --- the TIV map of one breath ---
+
+
+@pytest.fixture(scope="module")
+def recording():
+    return preprocess(synthetic_raw()[0])
+
+
+def test_the_tiv_map_of_a_breath_is_its_peak_minus_its_start(recording):
+    breath = recording.breaths.iloc[3]
+    expected = recording.pixels[breath.peak_idx] - recording.pixels[breath.start_idx]
+    np.testing.assert_array_equal(breath_tiv_map(recording, breath.breath_id), expected)
+
+
+def test_the_tiv_map_is_the_mean_of_the_maps_of_the_valid_breaths(recording):
+    # The first and last breath are never in the mean (no amplitude for the mask).
+    valid = recording.breaths.breath_id[recording.breaths.is_valid].iloc[1:-1]
+    maps = [breath_tiv_map(recording, breath_id) for breath_id in valid]
+    np.testing.assert_allclose(
+        np.mean(maps, axis=0), recording.tiv_map, rtol=1e-5, atol=1e-6
+    )
+
+
+def test_an_unknown_breath_is_an_error(recording):
+    with pytest.raises(ValueError, match="No breath 999"):
+        breath_tiv_map(recording, 999)
