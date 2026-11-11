@@ -3,7 +3,7 @@
 Layer 3 turns a preprocessed recording (`EITRecording`, [`preprocessing.md`](preprocessing.md))
 or a segmented PEEP trial (`PeepTrial`, [`segmentation.md`](segmentation.md)) into tables of
 clinical indices: one row per breath, per breath and region, per PEEP step, per step and
-region, and a summary. The tables are ready for a database or for R: the clinical context
+region, and a summary. The tables are ready for a database or for statistical analysis: the clinical context
 (patient, position, side in park bench) is joined at the time of the analysis, the
 recording does not need to know it.
 
@@ -53,7 +53,7 @@ each step, breaths analysed), `features.trial.breaths` (step of each breath),
 pressure, measured tidal volume). Each value is stored once: the tables of layer 3 have
 the keys (`breath_id`, `step`, `peep`, `region`) and what layer 3 computes, and are
 joined on the keys with the tables before them. The flat tables with everything in one
-row per breath and per step, for R, SPSS and databases, are made by layer 4
+row per breath and per step, for statistical analysis and databases, are made by layer 4
 ([`export.md`](export.md)).
 
 ## 2. Indices of a breath

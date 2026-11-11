@@ -1,4 +1,4 @@
-# Export for R and SPSS
+# Export for statistical analysis
 
 The export (layer 4) takes the results of an analysis ([analyse a recording](guide/analyse.md))
 and writes them as tables: one analysis at a time, or a whole study at once. In the

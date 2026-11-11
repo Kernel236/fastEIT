@@ -1,4 +1,4 @@
-"""Layer 4: the results of layer 3 as tables for R, SPSS, Excel and databases.
+"""Layer 4: the results of layer 3 as tables for statistical analysis and databases.
 
 ```python
 from fasteit.export import combine_tables, recording_tables, write_csv

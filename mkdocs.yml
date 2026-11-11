@@ -41,7 +41,7 @@ nav:
       - Analyse a recording: guide/analyse.md
       - Cut a recording: guide/segments.md
       - Review figures: review.md
-      - Export for R and SPSS: export.md
+      - Export for statistical analysis: export.md
   - How it works:
       - Data model: data_model.md
       - Parsers (layer 1): parsers.md
