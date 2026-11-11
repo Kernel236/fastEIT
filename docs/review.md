@@ -18,7 +18,8 @@ segments = [
 plot_segmentation(load_data("P01_T0.bin"), segments, title="P01, T0")
 ```
 
-The global signal of the file (sum of all pixels) with the segments as bands: phases
+The global impedance of the file (`global_impedance`: the sum of the pixels, with a gap
+where a frame has missing pixels) with the segments as bands: phases
 coloured by protocol (blue tidal, orange PEEP trial), exclusions grey and hatched, PEEP
 steps placed by hand with their level. Below, the airway pressure in cmH2O when the file
 has it.

@@ -63,7 +63,14 @@ data.roi_signal(n)   # single ROI 0-3          shape (N,)
 ```
 
 `global_signal` and `roi_signals` are raw sums with no lung mask - the mask
-is applied in the preprocessing layer.
+is applied in the preprocessing layer. They sum the values as stored, Dräger "no data"
+values included. On the parsed file, `fasteit.preprocessing.pipeline` has:
+
+- `global_impedance(raw)` - the sum of the pixels with a value, NaN where a frame has
+  missing pixels (the frames `preprocess()` excludes), read in blocks for long files;
+- `pixel_values(raw, index)` - the pixels of some frames, "no data" values as NaN;
+- `recording_time(raw)` - the time of each frame from the device clock. `duration` is
+  `n_frames / fs`: when the device dropped frames, the file lasts a little longer.
 
 **Timestamp conventions:**
 
