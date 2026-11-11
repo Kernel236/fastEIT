@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -596,7 +596,7 @@
   <span class="md-ellipsis">
     
   
-    Export for R and SPSS
+    Export for statistical analysis
   
 
     
@@ -1073,6 +1073,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.pipeline.global_impedance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        global_impedance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fasteit.preprocessing.pipeline.preprocess" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1426,6 +1437,17 @@
     <span class="md-ellipsis">
       
         tiv_per_breath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.lung_mask.breath_tiv_map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        breath_tiv_map
       
     </span>
   </a>
@@ -2016,6 +2038,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.pipeline.global_impedance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        global_impedance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fasteit.preprocessing.pipeline.preprocess" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2369,6 +2402,17 @@
     <span class="md-ellipsis">
       
         tiv_per_breath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.lung_mask.breath_tiv_map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        breath_tiv_map
       
     </span>
   </a>
@@ -2759,14 +2803,15 @@ give seconds.</p>
 
 
 <a href="#fasteit.preprocessing.pipeline.pixel_values" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">pixel_values</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">ReconstructedFrameData</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">pixel_values</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">ReconstructedFrameData</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Float copy of the pixels, with the Draeger "no data" values as NaN.</p>
 <p>The parsed pixels are never modified (they can be a read-only memory map).
-Timpel pixels already have NaN from the parser.</p>
+Timpel pixels already have NaN from the parser. With <code>index</code> only those frames
+are read and copied, e.g. the image under a cursor.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2801,6 +2846,22 @@ Timpel pixels already have NaN from the parser.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>index</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#slice">slice</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A frame or a slice of frames; None for every frame.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -2820,7 +2881,108 @@ Timpel pixels already have NaN from the parser.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The pixels as float, shape (N, 32, 32).</p>
+                <p>The pixels as float: shape (N, 32, 32), or (32, 32) for one frame.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fasteit.preprocessing.pipeline.global_impedance" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">global_impedance</span>
+
+
+<a href="#fasteit.preprocessing.pipeline.global_impedance" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">global_impedance</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">ReconstructedFrameData</span><span class="p">,</span> <span class="n">chunk_frames</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Global impedance of the parsed file: the sum of the pixels of each frame.</p>
+<p>Pixels without a value (NaN, Draeger "no data" values) are left out. A frame where
+some pixel has no value is NaN: these are the frames <code>preprocess()</code> fills and
+excludes (<code>missing_frames</code>). A pixel without a value in every frame (e.g. outside
+the belt) is not part of the image and does not make a frame missing.</p>
+<p>The frames are read in blocks of <code>chunk_frames</code>, so the memory used stays small
+for long recordings: a block of 2000 frames is about 16 MB.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ReconstructedFrameData
+
+
+  
+      dataclass
+   (fasteit.models.reconstructed_data.ReconstructedFrameData)" href="../models/#fasteit.models.reconstructed_data.ReconstructedFrameData">ReconstructedFrameData</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output of <code>load_data()</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>chunk_frames</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Frames read at a time.</p>
+              </div>
+            </td>
+            <td>
+                  <code>2000</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One value per frame, NaN for the frames with missing pixels.</p>
               </div>
             </td>
           </tr>
@@ -6556,6 +6718,128 @@ and low amplitude at its edges, as reconstructed EIT images are.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="fasteit.preprocessing.lung_mask.breath_tiv_map" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">breath_tiv_map</span>
+
+
+<a href="#fasteit.preprocessing.lung_mask.breath_tiv_map" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">breath_tiv_map</span><span class="p">(</span><span class="n">recording</span><span class="p">:</span> <span class="n">EITRecording</span><span class="p">,</span> <span class="n">breath_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>TIV image of one breath, e.g. to see whether that breath is an artefact.</p>
+<p>Each pixel at the end of inspiration of the global signal minus its value at the
+start (<code>tiv_per_breath</code>), on the pixels of the recording (after the cardiac
+step). <code>recording.tiv_map</code> is the mean of these images over the valid breaths,
+so the two can be compared.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>recording</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="EITRecording
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.EITRecording)" href="../models/#fasteit.models.eit_recording.EITRecording">EITRecording</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output of <code>preprocess()</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>breath_id</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The breath, as in <code>recording.breaths.breath_id</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Array (rows, cols); NaN for the pixels without a signal.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if the recording has no breath with this <code>breath_id</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="fasteit.preprocessing.lung_mask.pixel_lag" class="doc doc-heading">
             <span class="doc doc-object-name doc-function-name">pixel_lag</span>
 
@@ -8485,7 +8769,7 @@ duration of the inspiration (e.g. 0.01 L/s over 1 s = 10 mL).</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

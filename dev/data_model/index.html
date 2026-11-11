@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -596,7 +596,7 @@
   <span class="md-ellipsis">
     
   
-    Export for R and SPSS
+    Export for statistical analysis
   
 
     
@@ -1556,7 +1556,15 @@ objects of the later layers are in <a href="#5-from-a-file-to-the-clinical-indic
 <span class="n">data</span><span class="o">.</span><span class="n">roi_signal</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   <span class="c1"># single ROI 0-3          shape (N,)</span>
 </code></pre></div>
 <p><code>global_signal</code> and <code>roi_signals</code> are raw sums with no lung mask - the mask
-is applied in the preprocessing layer.</p>
+is applied in the preprocessing layer. They sum the values as stored, Dräger "no data"
+values included. On the parsed file, <code>fasteit.preprocessing.pipeline</code> has:</p>
+<ul>
+<li><code>global_impedance(raw)</code> - the sum of the pixels with a value, NaN where a frame has
+  missing pixels (the frames <code>preprocess()</code> excludes), read in blocks for long files;</li>
+<li><code>pixel_values(raw, index)</code> - the pixels of some frames, "no data" values as NaN;</li>
+<li><code>recording_time(raw)</code> - the time of each frame from the device clock. <code>duration</code> is
+  <code>n_frames / fs</code>: when the device dropped frames, the file lasts a little longer.</li>
+</ul>
 <p><strong>Timestamp conventions:</strong></p>
 <table>
 <thead>
@@ -1755,7 +1763,7 @@ by patient, recording and phase (<a href="../export/"><code>export.md</code></a>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../export/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Export for R and SPSS">
+          <a href="../export/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Export for statistical analysis">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1765,7 +1773,7 @@ by patient, recording and phase (<a href="../export/"><code>export.md</code></a>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Export for R and SPSS
+                Export for statistical analysis
               </div>
             </div>
           </a>
@@ -1822,7 +1830,7 @@ by patient, recording and phase (<a href="../export/"><code>export.md</code></a>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
