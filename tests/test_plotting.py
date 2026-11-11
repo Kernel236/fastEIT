@@ -66,6 +66,16 @@ def test_segmentation_without_pressure_says_so(raw):
     plt.close(fig)
 
 
+def test_segmentation_has_a_gap_where_a_frame_has_missing_pixels():
+    draeger, _ = synthetic_raw(vendor="draeger", seconds=20)
+    draeger.frames["pixels"][100, 10, 10] = -1000.0  # Draeger "no data"
+    fig = plot_segmentation(draeger)
+    signal = fig.axes[0].lines[0].get_ydata()
+    assert np.isnan(signal[100])  # not a false dip
+    assert np.isfinite(np.delete(signal, 100)).all()
+    plt.close(fig)
+
+
 def test_unknown_segment_categories_are_rejected(raw):
     with pytest.raises(ValueError, match="Unknown segment category"):
         plot_segmentation(raw, [Segment(0, 10, category="other")])
