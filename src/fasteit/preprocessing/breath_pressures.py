@@ -184,7 +184,8 @@ def plateau_pressures(
         lo = min(peak + after_peak, reached)
         falls = slope[lo : reached + 1]
         steepest_fall = falls.min()
-        if steepest_fall >= 0:
+        # No fall, or missing pressure carried by the smoothing from the next breath.
+        if np.isnan(steepest_fall) or steepest_fall >= 0:
             continue
         # The last steep fall (frames ``start`` to ``end``) and its steepest point.
         steep = falls <= STEEP_FALL_FRACTION * steepest_fall

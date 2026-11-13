@@ -125,6 +125,19 @@ def test_a_slow_end_of_expiration_without_pause_gives_no_plateau():
     assert np.isnan(plateaus_of(paw, starts)).all()
 
 
+def test_missing_pressure_at_the_start_of_the_next_breath_is_not_an_error():
+    # The pressure comes back near PEEP only at the end of the breath, and the next
+    # breath starts with missing pressure: the smoothing carries the gap into the fall.
+    paw = np.full(300, 10.0)
+    paw[:20] = np.linspace(10, 30, 20)  # inspiration
+    paw[20:60] = 22.0  # hold
+    paw[60:100] = np.linspace(22, 11.9, 40)  # slow expiration
+    paw[101:104] = np.nan
+    onsets, peeps = np.array([0, 100, 200]), np.full(3, 10.0)
+    plateau = plateau_pressures(paw, 50, onsets, peeps, PLATEAU_WINDOW_SECONDS)
+    assert np.isnan(plateau[1:]).all()  # missing pressure, then no next breath
+
+
 def test_missing_pressure_in_the_breath_gives_no_plateau():
     paw, starts = vcv_pressure([10] * 5)
     onsets = inspiration_onsets(paw, 50, starts)
