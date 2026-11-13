@@ -1579,12 +1579,13 @@ from the pressure). A breath cut by the edge of the segment, or with a quality f
 left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
 looked for only inside the segment: include its breath, or type the plateau or the
 driving pressure.
-Without a pressure signal the plateau read on the ventilator can be typed with the
-step, <code>parameters={"peep": 16, "plateau": 28}</code>, or directly the driving pressure,
-<code>parameters={"peep": 16, "driving_pressure": 12}</code> (e.g. in pressure control, where it
-is set), and so can the tidal volume, <code>parameters={"peep": 16, "tidal_volume": 450}</code>.
-When there is a pressure signal, a typed PEEP more than 1 cmH2O from the measured one
-gives a warning. Parameters are in <code>SegmentationConfig</code>.</p>
+When the pressure curve is missing or not reliable, the plateau read on the ventilator
+can be typed with the step, <code>parameters={"peep": 16, "plateau": 28}</code>, or directly the
+driving pressure, <code>parameters={"peep": 16, "driving_pressure": 12}</code> (e.g. in pressure
+control, where it is set), and so can the tidal volume,
+<code>parameters={"peep": 16, "tidal_volume": 450}</code>. A typed value is used before the curve
+(section 3); None is not typed. When there is a pressure signal, a typed PEEP more than
+1 cmH2O from the measured one gives a warning. Parameters are in <code>SegmentationConfig</code>.</p>
 <h2 id="2-steps">2. Steps<a class="headerlink" href="#2-steps" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1630,33 +1631,44 @@ and average steps between patients; <code>peep</code> stays the measured one.</p
 notebook they were written from 2 s after to 14 s before the change of pressure.</p>
 <h2 id="3-driving-pressure-and-tidal-volume-of-each-step">3. Driving pressure and tidal volume of each step<a class="headerlink" href="#3-driving-pressure-and-tidal-volume-of-each-step" title="Permanent link">&para;</a></h2>
 <p>The driving pressure of each step (the input of compliance in layer 3) works with the
-usual protocols:</p>
+usual protocols. In order, as for the tidal volume:</p>
 <table>
 <thead>
 <tr>
-<th>Protocol</th>
-<th>Driving pressure of the step (<code>driving_pressure_source</code>)</th>
+<th>Source</th>
+<th>Driving pressure of the step</th>
+<th><code>driving_pressure_source</code></th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Typed with a step placed by hand</td>
+<td>the plateau typed minus the PEEP typed, or the driving pressure typed (the plateau wins if both are typed, with a warning if they disagree by more than 0.5 cmH2O; a driving pressure not positive is an error)</td>
+<td><code>"typed"</code></td>
+</tr>
+<tr>
 <td>Volume control with a continuous end-inspiratory pause</td>
-<td>median of the analysed breaths (<code>"breaths"</code>)</td>
+<td>median of the analysed breaths</td>
+<td><code>"breaths"</code></td>
 </tr>
 <tr>
 <td>Volume control with one inspiratory hold per step</td>
-<td>median of the breaths with a hold, one is enough (<code>"hold"</code>)</td>
+<td>median of the breaths with a hold, one is enough</td>
+<td><code>"hold"</code></td>
 </tr>
 <tr>
 <td>Pressure control</td>
-<td>the flat inspiratory pressure is read as plateau (<code>"breaths"</code>), valid if the flow is zero at the end of inspiration</td>
-</tr>
-<tr>
-<td>No pressure signal</td>
-<td>typed with the step placed by hand (<code>"typed"</code>)</td>
+<td>the flat inspiratory pressure is read as plateau, valid if the flow is zero at the end of inspiration</td>
+<td><code>"breaths"</code></td>
 </tr>
 </tbody>
 </table>
+<p>A typed value comes first because it is typed on purpose, usually because the curve is
+missing or not reliable (an offset sensor, a damped line, an end-inspiratory pause too
+short). The curve is still read: <code>driving_pressure_measured</code> is the driving pressure of
+the curve (NaN without one), and a typed value more than 2 cmH2O from it gives a
+warning. <code>peep_measured</code> is the median PEEP of the breaths of the step: the measured
+level of a step placed by hand, close to <code>peep</code> for a step found from the pressure.</p>
 <p>The tidal volume of each step turns compliance into mL/cmH2O and EELI changes into
 mL. In order (<code>tidal_volume_source</code>):</p>
 <table>
@@ -1726,7 +1738,7 @@ not count when the steps are found. Without a phase the whole recording is segme
 </tr>
 <tr>
 <td><code>steps</code></td>
-<td><code>step</code>, <code>peep</code> (level), <code>peep_set</code> (level of the protocol), <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>, <code>n_analysed</code>, <code>enough</code>, <code>plateau</code>, <code>driving_pressure</code>, <code>driving_pressure_source</code>, <code>n_driving_pressure</code>, <code>enough_driving_pressure</code>, <code>tidal_volume</code>, <code>tidal_volume_source</code></td>
+<td><code>step</code>, <code>peep</code> (level), <code>peep_set</code> (level of the protocol), <code>peep_measured</code>, <code>start_time</code>, <code>end_time</code>, <code>n_breaths</code>, <code>n_analysed</code>, <code>enough</code>, <code>plateau</code>, <code>driving_pressure</code>, <code>driving_pressure_source</code>, <code>n_driving_pressure</code>, <code>enough_driving_pressure</code>, <code>driving_pressure_measured</code>, <code>tidal_volume</code>, <code>tidal_volume_source</code></td>
 </tr>
 <tr>
 <td><code>breaths</code></td>

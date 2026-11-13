@@ -1614,8 +1614,9 @@ curves) the values in mL stay empty and compliance is in EIT units only.</p>
 breaths yourself, place the steps by hand (<a href="../segments/">cut a recording</a>). With the
 levels of the protocol (<code>peep_levels</code>), each step also gets the level of the protocol
 (<code>peep_set</code>), and crossing PEEP and best PEEP are given on those levels when every step
-matches one; otherwise they are given on the measured PEEP, and the log says which.
-Without <code>peep_levels</code>, <code>peep_set</code> is empty and the measured PEEP is used.</p>
+matches one; otherwise they are given on the PEEP of the steps (measured, or typed with
+the steps placed by hand), and the log says which. Without <code>peep_levels</code>, <code>peep_set</code> is
+empty and the PEEP of the steps is used.</p>
 <h2 id="3-a-recording-with-two-parts">3. A recording with two parts<a class="headerlink" href="#3-a-recording-with-two-parts" title="Permanent link">&para;</a></h2>
 <p>A baseline at one PEEP and a PEEP trial in the same file: preprocess the whole file once
 (same filters, same lung mask), then analyse each part. Times are in seconds from the
