@@ -185,7 +185,8 @@ def _check_typed_pressures(segments: Sequence[Segment], log: RunLog) -> None:
         typed = segment.parameters
         if typed.get("plateau") is None or typed.get("driving_pressure") is None:
             continue
-        peep, plateau = float(typed["peep"]), float(typed["plateau"])
+        peep = float(typed["peep"])
+        plateau = float(typed["plateau"])
         driving = float(typed["driving_pressure"])
         if abs(plateau - peep - driving) > TYPED_PRESSURE_TOLERANCE:
             log.warning(
@@ -231,10 +232,9 @@ def _step_driving_pressure(
     not reliable. Otherwise the curve (``_measured_driving_pressure``).
     """
     plateau, driving, source, n = _measured_driving_pressure(in_step, analysed, config)
-    measured = driving
     if np.isfinite(typed_plateau):
-        plateau, driving, source, n = typed_plateau, typed_plateau - level, "typed", 0
-    return plateau, driving, source, n, source is not None, measured
+        return typed_plateau, typed_plateau - level, "typed", 0, True, driving
+    return plateau, driving, source, n, source is not None, driving
 
 
 def _check_typed_driving_pressures(steps: pd.DataFrame, log: RunLog) -> None:
@@ -244,15 +244,12 @@ def _check_typed_driving_pressures(steps: pd.DataFrame, log: RunLog) -> None:
     compared = steps[typed & steps.driving_pressure_measured.notna()]
     differ = 0
     for _, step in compared.iterrows():
-        if (
-            abs(step.driving_pressure - step.driving_pressure_measured)
-            > DRIVING_PRESSURE_AGREEMENT
-        ):
+        measured = step.driving_pressure_measured
+        if abs(step.driving_pressure - measured) > DRIVING_PRESSURE_AGREEMENT:
             differ += 1
             log.warning(
                 f"Step {step.step}: driving pressure typed {step.driving_pressure:g}, "
-                f"measured {step.driving_pressure_measured:.1f} on the curve: the typed "
-                "value is used."
+                f"measured {measured:.1f} on the curve: the typed value is used."
             )
     if len(compared) and not differ:
         log.ok(
