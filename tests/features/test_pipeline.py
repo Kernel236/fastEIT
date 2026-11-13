@@ -240,7 +240,7 @@ def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
 
 SET_VT = {"A": 550, "B": 400}
 NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, EELI change in mL at the end, R/I
-    "A_park_bench": (4.7, 6.2, -1928, 0.73),
+    "A_park_bench": (4.8, 6.2, -1928, 0.73),  # 4.7 before the plateau fix (slow tails)
     "A_supine": (6.6, 6.2, -2484, 0.91),
     "B_park_bench": (9.9, 8.5, -1469, 1.42),
     "B_supine": (12.9, 12.7, -1141, 1.31),
