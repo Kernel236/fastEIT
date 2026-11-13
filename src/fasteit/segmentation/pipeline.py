@@ -38,10 +38,19 @@ MIN_FRACTION_READ = 0.5
 # the step gives a warning (a typing error, or one volume typed for a trial in pressure
 # control, where it changes with PEEP): a plausibility check, not a measured accuracy.
 TIDAL_VOLUME_AGREEMENT = 0.15
+# A typed driving pressure more than 2 cmH2O from the one read on the curve of the step
+# gives a warning: the curve may not be reliable (e.g. a damped line, a plateau read on
+# the fall of the pressure) or the value mistyped. A plausibility check, not a measured
+# accuracy; in cmH2O, not in %, because the driving pressure is a small number.
+DRIVING_PRESSURE_AGREEMENT = 2.0
+# A plateau and a driving pressure typed for the same step must agree (plateau - PEEP)
+# within the rounding of values read on the ventilator (cmH2O).
+TYPED_PRESSURE_TOLERANCE = 0.5
 STEP_COLUMNS = [
-    "step", "peep", "peep_set", "start_time", "end_time", "n_breaths", "n_analysed", "enough",
-    "plateau", "driving_pressure", "driving_pressure_source", "n_driving_pressure",
-    "enough_driving_pressure", "tidal_volume", "tidal_volume_source",
+    "step", "peep", "peep_set", "peep_measured", "start_time", "end_time", "n_breaths",
+    "n_analysed", "enough", "plateau", "driving_pressure", "driving_pressure_source",
+    "n_driving_pressure", "enough_driving_pressure", "driving_pressure_measured",
+    "tidal_volume", "tidal_volume_source",
 ]  # fmt: skip
 
 
@@ -84,8 +93,8 @@ def _check_readings(
     if with_peep.any() and with_plateau.mean() < MIN_FRACTION_READ:
         log.warning(
             "No end-inspiratory plateau in most breaths: the driving pressure of a step "
-            "comes from its breaths with an inspiratory hold, if any (the peak pressure "
-            "is not used instead)."
+            "is the one typed with it, otherwise from its breaths with an inspiratory "
+            "hold, if any (the peak pressure is not used instead)."
         )
 
 
@@ -169,37 +178,86 @@ def _check_manual_levels(
         log.ok("PEEP typed for each step agrees with the PEEP measured in it.")
 
 
+def _check_typed_pressures(segments: Sequence[Segment], log: RunLog) -> None:
+    """Warn when a plateau and a driving pressure typed for the same step disagree (the
+    plateau is used)."""
+    for k, segment in enumerate(sorted(segments, key=lambda s: s.start)):
+        typed = segment.parameters
+        if typed.get("plateau") is None or typed.get("driving_pressure") is None:
+            continue
+        peep, plateau = float(typed["peep"]), float(typed["plateau"])
+        driving = float(typed["driving_pressure"])
+        if abs(plateau - peep - driving) > TYPED_PRESSURE_TOLERANCE:
+            log.warning(
+                f"Step {k}: plateau {plateau:g} and driving pressure {driving:g} typed "
+                f"with PEEP {peep:g}: the plateau is used."
+            )
+
+
+def _measured_driving_pressure(
+    in_step: pd.DataFrame, analysed: pd.DataFrame, config: SegmentationConfig
+) -> tuple[float, float, str | None, int]:
+    """Plateau and driving pressure of a step read on the pressure curve, where they
+    come from and how many breaths.
+
+    In order: the analysed breaths if enough of them have a plateau (continuous
+    end-inspiratory pause); otherwise the breaths of the step with an inspiratory hold
+    (one is enough; a maneuver excluded by hand is not used).
+    """
+    with_plateau = analysed[analysed.driving_pressure.notna()]
+    if len(with_plateau) >= config.analysis_min_breaths:
+        used, source = with_plateau, "breaths"
+    else:
+        used = in_step[in_step.driving_pressure.notna() & ~in_step.excluded]
+        source = "hold"
+    if not len(used):
+        return np.nan, np.nan, None, 0
+    plateau, driving = used.plateau.median(), used.driving_pressure.median()
+    return float(plateau), float(driving), source, len(used)
+
+
 def _step_driving_pressure(
     in_step: pd.DataFrame,
     analysed: pd.DataFrame,
     level: float,
     typed_plateau: float,
     config: SegmentationConfig,
-) -> tuple[float, float, str | None, int, bool]:
-    """Plateau, driving pressure, where they come from, how many breaths, and enough.
+) -> tuple[float, float, str | None, int, bool, float]:
+    """Plateau, driving pressure, where they come from, how many breaths, enough, and
+    the driving pressure read on the curve.
 
-    In order: the analysed breaths if enough of them have a plateau (continuous
-    end-inspiratory pause); otherwise the breaths of the step with an inspiratory hold
-    (one is enough; a maneuver excluded by hand is not used); otherwise the value typed
-    with a step placed by hand.
+    The value typed with a step placed by hand comes first, as for the tidal volume:
+    it is typed on purpose, e.g. read on the ventilator because the curve is missing or
+    not reliable. Otherwise the curve (``_measured_driving_pressure``).
     """
-    # 1. Continuous end-inspiratory pause: enough analysed breaths have a plateau.
-    analysed_with_plateau = analysed[analysed.driving_pressure.notna()]
-    if len(analysed_with_plateau) >= config.analysis_min_breaths:
-        used = analysed_with_plateau
-        plateau, driving = used.plateau.median(), used.driving_pressure.median()
-        return float(plateau), float(driving), "breaths", len(used), True
-
-    # 2. Inspiratory holds: the breaths of the step with a plateau (one is enough).
-    holds = in_step[in_step.driving_pressure.notna() & ~in_step.excluded]
-    if len(holds):
-        plateau, driving = holds.plateau.median(), holds.driving_pressure.median()
-        return float(plateau), float(driving), "hold", len(holds), True
-
-    # 3. The plateau typed with a step placed by hand.
+    plateau, driving, source, n = _measured_driving_pressure(in_step, analysed, config)
+    measured = driving
     if np.isfinite(typed_plateau):
-        return typed_plateau, typed_plateau - level, "typed", 0, True
-    return np.nan, np.nan, None, 0, False
+        plateau, driving, source, n = typed_plateau, typed_plateau - level, "typed", 0
+    return plateau, driving, source, n, source is not None, measured
+
+
+def _check_typed_driving_pressures(steps: pd.DataFrame, log: RunLog) -> None:
+    """Warn when a typed driving pressure is far from the one read on the curve of the
+    step (``DRIVING_PRESSURE_AGREEMENT``)."""
+    typed = steps.driving_pressure_source == "typed"
+    compared = steps[typed & steps.driving_pressure_measured.notna()]
+    differ = 0
+    for _, step in compared.iterrows():
+        if (
+            abs(step.driving_pressure - step.driving_pressure_measured)
+            > DRIVING_PRESSURE_AGREEMENT
+        ):
+            differ += 1
+            log.warning(
+                f"Step {step.step}: driving pressure typed {step.driving_pressure:g}, "
+                f"measured {step.driving_pressure_measured:.1f} on the curve: the typed "
+                "value is used."
+            )
+    if len(compared) and not differ:
+        log.ok(
+            f"Typed driving pressure close to the measured one in {len(compared)} steps."
+        )
 
 
 def _typed_volumes(
@@ -295,8 +353,8 @@ def _steps_table(
     config: SegmentationConfig,
     log: RunLog,
 ) -> pd.DataFrame:
-    """One row per step, with its level of the protocol, plateau, driving pressure and
-    tidal volume."""
+    """One row per step, with its level of the protocol, PEEP measured (median of its
+    breaths), plateau, driving pressure and tidal volume."""
     peep_set = protocol_levels(levels, config.peep_levels, config.step_threshold)
     if config.peep_levels is None:
         log.warning(
@@ -316,7 +374,7 @@ def _steps_table(
         )
         volume = _step_tidal_volume(analysed, typed_volumes[k], recording_volume)
         rows.append([
-            k, float(level), float(peep_set[k]),
+            k, float(level), float(peep_set[k]), float(in_step.peep.median()),
             float(in_step.start_time.min()) if len(in_step) else np.nan,
             float(in_step.end_time.max()) if len(in_step) else np.nan,
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
@@ -379,7 +437,10 @@ def segment_peep_trial(
                     (``parameters["driving_pressure"]``) read on the ventilator, and
                     the tidal volume (``parameters["tidal_volume"]``, mL). If given,
                     they replace the steps found from the pressure, and the breaths
-                    analysed are the valid breaths inside them.
+                    analysed are the valid breaths inside them. A typed plateau or
+                    driving pressure is used before the pressure curve, which is
+                    still read (``driving_pressure_measured``, with a warning when
+                    the two differ by more than ``DRIVING_PRESSURE_AGREEMENT``).
         phase:      The PEEP trial part of the recording: a segment with
                     ``category="phase"`` and ``label="peep_trial"``. If None, the whole
                     recording.
@@ -393,9 +454,9 @@ def segment_peep_trial(
 
     Raises:
         ValueError: if there are no steps placed by hand and no pressure to find them,
-            a step placed by hand or the phase is not usable, no breath is inside the
-            phase or the steps placed by hand, or ``tidal_volumes`` does not have one
-            positive value per step.
+            a step placed by hand or the phase is not usable (e.g. a typed driving
+            pressure not positive), no breath is inside the phase or the steps placed by
+            hand, or ``tidal_volumes`` does not have one positive value per step.
     """
     config = config if config is not None else SegmentationConfig()
     log = RunLog(logger)
@@ -424,6 +485,7 @@ def segment_peep_trial(
         source = "manual"
         log.info(f"{len(levels)} PEEP steps placed by hand.")
         _check_manual_levels(peep, step, levels, config, log)
+        _check_typed_pressures(peep_steps, log)
     elif channel is not None:
         step, levels, analysed = _automatic_steps(
             peep, in_phase, excluded, valid, starts, config
@@ -453,6 +515,7 @@ def segment_peep_trial(
         config,
         log,
     )
+    _check_typed_driving_pressures(steps, log)
     plausible = TYPED_VOLUME_RANGE_ML
     _check_typed_volumes(steps, breaths, plausible, config, log)
 

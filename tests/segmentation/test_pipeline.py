@@ -312,6 +312,7 @@ def test_a_driving_pressure_can_be_typed_instead_of_the_plateau():
     assert trial.steps.driving_pressure.tolist() == [14.0]
     assert trial.steps.plateau.tolist() == [24.0]
     assert trial.steps.driving_pressure_source.tolist() == ["typed"]
+    assert trial.steps.driving_pressure_measured.isna().all()  # no curve
 
 
 # --- tidal volume of each step ---
@@ -416,6 +417,100 @@ def test_a_typed_tidal_volume_far_from_the_measured_one_gives_a_warning():
 def test_a_tidal_volume_typed_for_a_step_in_litres_gives_a_warning(recording):
     trial = segment_peep_trial(recording, tidal_volumes=[0.45, None, None, None])
     assert any("Step 0: typed tidal volume 0.45 mL" in m for m in trial.log)
+
+
+# --- pressures typed with the steps placed by hand ---
+
+
+def with_typed(typed):
+    """FOUR_STEPS with values typed in some of them: ``typed = {step: parameters}``."""
+    return [
+        Segment(s.start, s.end, category="peep_step",
+                parameters={**s.parameters, **typed.get(k, {})})
+        for k, s in enumerate(FOUR_STEPS)
+    ]  # fmt: skip
+
+
+@pytest.fixture(scope="module")
+def without_pressure():
+    return synthetic_trial(aux={})
+
+
+def test_a_typed_driving_pressure_wins_over_the_curve(recording):
+    # The curve gives 12 in every step; 9 is typed for the second one.
+    trial = segment_peep_trial(
+        recording, peep_steps=with_typed({1: {"driving_pressure": 9}})
+    )
+    steps = trial.steps
+    assert steps.driving_pressure_source.tolist() == [
+        "breaths", "typed", "breaths", "breaths",
+    ]  # fmt: skip
+    assert (steps.driving_pressure[1], steps.plateau[1]) == (9.0, 19.0)  # PEEP 10 + 9
+    assert steps.n_driving_pressure[1] == 0
+    np.testing.assert_allclose(steps.driving_pressure[[0, 2, 3]], 12, atol=0.2)
+    # The curve is still read: both values are in the table.
+    np.testing.assert_allclose(steps.driving_pressure_measured, 12, atol=0.2)
+
+
+def test_a_typed_driving_pressure_far_from_the_curve_gives_a_warning(recording):
+    far = segment_peep_trial(
+        recording, peep_steps=with_typed({1: {"driving_pressure": 9}})
+    )
+    assert any("Step 1: driving pressure typed 9, measured 12.0" in m for m in far.log)
+    close = segment_peep_trial(
+        recording,
+        peep_steps=with_typed({k: {"driving_pressure": 11} for k in range(4)}),
+    )
+    assert not any("driving pressure typed" in m for m in close.log)
+    assert "OK: Typed driving pressure close to the measured one in 4 steps." in (
+        close.log
+    )
+
+
+def test_plateau_and_driving_pressure_typed_in_disagreement(without_pressure):
+    # 13 - 4 = 9, not 10: the plateau is used, with a warning.
+    disagree = {"peep": 4, "plateau": 13, "driving_pressure": 10}
+    steps = [Segment(20, 60, category="peep_step", parameters=disagree)]
+    trial = segment_peep_trial(without_pressure, peep_steps=steps)
+    assert trial.steps.driving_pressure.tolist() == [9.0]
+    assert any(
+        "Step 0: plateau 13 and driving pressure 10 typed with PEEP 4" in m
+        for m in trial.log
+    )
+    agree = {"peep": 4, "plateau": 14, "driving_pressure": 10}
+    steps = [Segment(20, 60, category="peep_step", parameters=agree)]
+    trial = segment_peep_trial(without_pressure, peep_steps=steps)
+    assert not any("typed with PEEP" in m for m in trial.log)
+
+
+@pytest.mark.parametrize(
+    "typed", [{"plateau": 10}, {"plateau": 8}, {"driving_pressure": 0}]
+)
+def test_a_typed_plateau_not_above_the_peep_is_rejected(without_pressure, typed):
+    steps = [Segment(20, 60, category="peep_step", parameters={"peep": 10, **typed})]
+    with pytest.raises(ValueError, match="driving pressure must be positive"):
+        segment_peep_trial(without_pressure, peep_steps=steps)
+
+
+def test_a_pressure_of_none_in_a_segment_is_not_typed(without_pressure):
+    typed = {"peep": 10, "plateau": None, "driving_pressure": 14}
+    steps = [Segment(20, 60, category="peep_step", parameters=typed)]
+    trial = segment_peep_trial(without_pressure, peep_steps=steps)
+    assert trial.steps.driving_pressure.tolist() == [14.0]
+    assert not any("typed with PEEP" in m for m in trial.log)
+
+
+def test_the_measured_peep_of_each_step_is_in_the_table(recording, without_pressure):
+    typed = [Segment(20, 44, category="peep_step", parameters={"peep": 16})]
+    trial = segment_peep_trial(recording, peep_steps=typed)  # 12 measured
+    assert trial.steps.peep.tolist() == [16.0]
+    assert trial.steps.peep_measured.iloc[0] == pytest.approx(12, abs=0.1)
+    automatic = segment_peep_trial(recording)
+    np.testing.assert_allclose(
+        automatic.steps.peep_measured, automatic.steps.peep, atol=0.1
+    )
+    no_curve = segment_peep_trial(without_pressure, peep_steps=typed)
+    assert no_curve.steps.peep_measured.isna().all()
 
 
 def test_a_step_placed_by_hand_is_the_selection_of_breaths_to_analyse(recording):
