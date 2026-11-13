@@ -145,8 +145,9 @@ def steps_from_segments(
     A breath belongs to a segment when it starts and ends inside it: a breath cut by
     the edge of a segment is left out. Segments are numbered in time order. The plateau,
     or directly the driving pressure, is optional (e.g. read on the ventilator during an
-    inspiratory hold), for recordings without a pressure signal; so is the tidal volume
-    of the step (e.g. its mean on the case report form).
+    inspiratory hold), when the pressure curve is missing or not reliable; so is the
+    tidal volume of the step (e.g. its mean on the case report form). A value of None
+    is not typed.
 
     Args:
         breath_starts: Start time of each breath, in seconds.
@@ -164,7 +165,8 @@ def steps_from_segments(
 
     Raises:
         ValueError: if a segment is not a PEEP step, has no PEEP level, overlaps
-            another one, or no breath is inside any segment.
+            another one or has a typed driving pressure that is not positive, or no
+            breath is inside any segment.
     """
     ordered = sorted(segments, key=lambda s: s.start)
     for segment in ordered:
@@ -189,22 +191,33 @@ def steps_from_segments(
             "No breath is inside the PEEP steps placed by hand (times in s?)."
         )
     levels = np.array([float(s.parameters["peep"]) for s in ordered])
-    plateaus = np.array([_typed_plateau(s.parameters) for s in ordered])
+    plateaus = np.array([_typed_plateau(s) for s in ordered])
     volumes = np.array([_typed_value(s.parameters, "tidal_volume") for s in ordered])
     return step, levels, plateaus, volumes
 
 
 def _typed_value(parameters: dict, key: str) -> float:
+    """A value typed in the parameters of a segment; NaN if missing or None."""
     value = parameters.get(key)
     return np.nan if value is None else float(value)
 
 
-def _typed_plateau(parameters: dict) -> float:
-    if "plateau" in parameters:
-        return float(parameters["plateau"])
-    if "driving_pressure" in parameters:
-        return float(parameters["peep"]) + float(parameters["driving_pressure"])
-    return np.nan
+def _typed_plateau(segment: Segment) -> float:
+    """The plateau typed for a step, or PEEP + the driving pressure typed; NaN if none.
+
+    Raises:
+        ValueError: if the typed driving pressure (plateau - PEEP) is not positive.
+    """
+    peep = float(segment.parameters["peep"])
+    plateau = _typed_value(segment.parameters, "plateau")
+    if np.isnan(plateau):
+        plateau = peep + _typed_value(segment.parameters, "driving_pressure")
+    if plateau <= peep:
+        raise ValueError(
+            f"PEEP step {segment.start:g}-{segment.end:g} s: typed driving pressure "
+            f"{plateau - peep:g} (plateau - PEEP): the driving pressure must be positive."
+        )
+    return plateau
 
 
 def analysed_breaths(

@@ -24,16 +24,23 @@ ONSET_SEARCH_BEFORE_SECONDS = 1.0
 ONSET_SEARCH_AFTER_SECONDS = 0.5
 # Start of inspiration = last minimum in the 0.5 s before the steepest rise.
 ONSET_LOOKBACK_SECONDS = 0.5
-# Start of expiration = steepest fall in the 0.3 s before the pressure is back near PEEP.
-EXPIRATION_SEARCH_SECONDS = 0.3
+# Start of expiration = steepest point of the last steep fall before the pressure is
+# back near PEEP; a fall is steep when it is at least half as steep as the steepest one
+# after the peak. It is the fall from the plateau: not the slow end of expiration, which
+# comes after, nor the fall from the peak (resistive pressure), which comes before.
+STEEP_FALL_FRACTION = 0.5
 # The pressure is back near PEEP when it is within 2 cmH2O of it.
 BACK_TO_PEEP_MARGIN = 2.0
 # The highest part of a breath starts at the first frame within 1 cmH2O of its
 # maximum: the peak in volume control, the start of the flat pressure in pressure control.
 TOP_MARGIN = 1.0
-# A plateau needs an end-inspiratory hold of at least 0.5 s (0.9-1.3 s in the trials of
-# notebook 06; 5 of 606 breaths were shorter).
-MIN_PAUSE_SECONDS = 0.5
+# A plateau needs an end-inspiratory hold of at least 0.2 s from the highest part
+# (0.9-1.3 s in the trials of notebook 06): ventilators often set pauses of 0.2-0.3 s,
+# whose plateau is slightly overestimated (the pressure has not fully settled) but usable.
+MIN_PAUSE_SECONDS = 0.2
+# The plateau is never read in the first 0.15 s after the highest part: in volume
+# control the pressure is still falling from the peak (the resistive pressure).
+AFTER_PEAK_SECONDS = 0.15
 # PEEP = median pressure in the 0.2 s before the start of inspiration (section 2).
 PEEP_SECONDS = 0.2
 # Plateau = median pressure from 0.25 to 0.05 s before the start of expiration
@@ -126,11 +133,14 @@ def plateau_pressures(
 
     Between the start of inspiration of a breath and the next one: after the highest
     part of the breath (the peak in volume control, the flat pressure in pressure
-    control), the start of expiration is the steepest fall of the pressure in the 0.3 s
-    before it comes back within 2 of the next PEEP; the plateau is the median pressure
-    from ``window[0]`` to ``window[1]`` seconds before it (notebook 06, section 4).
+    control), the start of expiration is the steepest point of the last steep fall of
+    the pressure (``STEEP_FALL_FRACTION``) before it comes back within 2 of the next
+    PEEP, searched from 0.15 s after the highest part. So a slow end of expiration, which
+    is not steep, never moves it. The plateau is the median pressure from ``window[0]``
+    to ``window[1]`` seconds before the start of expiration, never in the first 0.15 s
+    after the highest part (notebook 06, section 4).
 
-    A valid plateau needs at least 0.5 s between the highest part and the expiration:
+    A valid plateau needs at least 0.2 s between the highest part and the expiration:
     an end-inspiratory hold with zero flow in volume control (continuous pause, or an
     inspiratory hold done by hand), or the flat inspiratory pressure in pressure
     control, which is a plateau only if the flow is zero at the end of inspiration.
@@ -153,8 +163,8 @@ def plateau_pressures(
     smoothed = _smooth(paw, fs)
     slope = np.gradient(smoothed) * fs
     first, last = _samples(window[0], fs), _samples(window[1], fs)
-    search = _samples(EXPIRATION_SEARCH_SECONDS, fs)
     min_pause = _samples(MIN_PAUSE_SECONDS, fs)
+    after_peak = _samples(AFTER_PEAK_SECONDS, fs)
 
     plateaus = np.full(len(onsets), np.nan)
     for i in range(len(onsets) - 1):
@@ -171,10 +181,22 @@ def plateau_pressures(
         if len(back_to_peep) == 0:
             continue
         reached = peak + back_to_peep[0]
-        lo = max(peak, reached - search)
-        expiration = lo + int(np.argmin(slope[lo : reached + 1]))
-        # The reading never starts before the highest part, whatever the window.
-        read_from, read_to = max(peak, expiration - first), expiration - last
+        lo = min(peak + after_peak, reached)
+        falls = slope[lo : reached + 1]
+        steepest_fall = falls.min()
+        # No fall, or missing pressure carried by the smoothing from the next breath.
+        if np.isnan(steepest_fall) or steepest_fall >= 0:
+            continue
+        # The last steep fall (frames ``start`` to ``end``) and its steepest point.
+        steep = falls <= STEEP_FALL_FRACTION * steepest_fall
+        end = np.flatnonzero(steep)[-1]
+        start = end
+        while start > 0 and steep[start - 1]:
+            start -= 1
+        expiration = lo + start + int(np.argmin(falls[start : end + 1]))
+        # The reading never starts on the fall from the peak, whatever the window.
+        read_from = max(peak + after_peak, expiration - first)
+        read_to = expiration - last
         if expiration - peak >= min_pause and read_to > read_from:
             plateaus[i] = np.median(paw[read_from:read_to])
     return plateaus

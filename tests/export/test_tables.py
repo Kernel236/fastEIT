@@ -112,7 +112,8 @@ def test_the_step_table_has_the_curve_of_the_trial(composite, tables):
     steps = tables[1]["steps"]
     assert steps.peep_set.tolist() == [16, 14, 12, 10]
     for column in ["driving_pressure", "tidal_volume", "compliance", "collapse",
-                   "overdistension", "compliance__ventral", "share__dorsal"]:  # fmt: skip
+                   "overdistension", "compliance__ventral", "share__dorsal",
+                   "peep_measured", "driving_pressure_measured"]:  # fmt: skip
         assert column in steps.columns
     np.testing.assert_allclose(steps.collapse, composite[1].steps.collapse)
 

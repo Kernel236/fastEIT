@@ -113,9 +113,14 @@ sensor cancels in the driving pressure:
 - **start of inspiration**: the last minimum of the pressure before its steepest rise,
   searched near the EIT valley;
 - **PEEP**: the median pressure in the 0.2 s before it;
+- **start of expiration**: the steepest point of the last steep fall of the pressure
+  before it comes back near PEEP (at least half as steep as the steepest fall after the
+  peak), so that a slow end of expiration never moves it;
 - **plateau**: the median pressure from 0.25 to 0.05 s before the start of
-  expiration, only after an end-inspiratory hold of at least 0.5 s. In pressure
-  control the flat inspiratory pressure is read the same way;
+  expiration, never in the first 0.15 s after the peak, only after an end-inspiratory
+  hold of at least 0.2 s (ventilators often set 0.2-0.3 s; a short hold gives a
+  plateau slightly overestimated). In pressure control the flat inspiratory pressure
+  is read the same way;
 - **driving pressure** = plateau - PEEP. The peak pressure is never used instead.
 
 The tidal volume is read in a window from half an expiration before the EIT breath
@@ -204,7 +209,7 @@ There are two kinds of record, kept apart on purpose:
 - PEEP is read at the airway opening, without intrinsic PEEP (with intrinsic PEEP the
   driving pressure is overestimated); the driving pressure is that of the respiratory
   system, in a passive patient.
-- The plateau needs a hold of at least 0.5 s (or a flat pressure in pressure control) and
+- The plateau needs a hold of at least 0.2 s (or a flat pressure in pressure control) and
   is not validated against the ventilator. Holds, pressure control, Medibus and Timpel
   pressures and the tidal volume from the curves are tested on synthetic data only.
 - The tidal volume is the one the ventilator measures, leaks and circuit compression

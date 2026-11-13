@@ -12,13 +12,22 @@ from fasteit.preprocessing.breath_pressures import (
 )
 
 
+def expiration(t, top, peep, tail=0.0, tail_seconds=1.0):
+    """Expiration from ``top``: a fall within about 0.1 s, to PEEP + ``tail``, then a
+    slow tail of time constant ``tail_seconds`` down to the PEEP."""
+    fast = (top - peep - tail) * np.exp(-t / 0.05)
+    return peep + fast + tail * np.exp(-t / tail_seconds)
+
+
 def vcv_pressure(
-    peeps, fs=50, period=4.0, inspiration=1.0, pause=0.8, peak=20.0, plateau=12.0
-):
+    peeps, fs=50, period=4.0, inspiration=1.0, pause=0.8, peak=20.0, plateau=12.0,
+    tail=0.0,
+):  # fmt: skip
     """Volume-control airway pressure: ramp, end-inspiratory pause, passive expiration.
 
     A new PEEP is applied from the expiration of the breath before, as a ventilator
-    does. Returns the pressure and the frame where each breath starts.
+    does; ``tail`` cmH2O of the expiration fall slowly (``expiration``). Returns the
+    pressure and the frame where each breath starts.
     """
     t = np.arange(0, period, 1 / fs)
     pauses = np.broadcast_to(pause, len(peeps))  # one pause, or one per breath
@@ -35,9 +44,7 @@ def vcv_pressure(
         # from the plateau, or from the peak if there is no pause.
         top = peep + (peak if pause == 0 else plateau)
         out = t >= inspiration + pause
-        p[out] = next_peep + (top - next_peep) * np.exp(
-            -(t[out] - inspiration - pause) / 0.05
-        )
+        p[out] = expiration(t[out] - inspiration - pause, top, next_peep, tail)
         starts.append(len(t) * len(breaths))
         breaths.append(p)
     return np.concatenate(breaths), np.array(starts)
@@ -87,14 +94,48 @@ def test_both_draeger_sampling_rates(fs):
     np.testing.assert_allclose(peep[1:], 8, atol=0.05)
 
 
-def test_a_short_hold_gives_no_plateau():
-    # A 0.3 s hold is too short: the reading would fall on the relaxation after the peak.
-    paw, starts = vcv_pressure([10] * 5, pause=0.3)
-    onsets = inspiration_onsets(paw, 50, starts)
-    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
-    assert np.isnan(
-        plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
-    ).all()
+def plateaus_of(paw, starts, fs=50):
+    onsets = inspiration_onsets(paw, fs, starts)
+    peep = pressure_before(paw, fs, onsets, PEEP_SECONDS)
+    return plateau_pressures(paw, fs, onsets, peep, PLATEAU_WINDOW_SECONDS)
+
+
+def test_a_hold_shorter_than_0_2_s_gives_no_plateau():
+    # The reading would fall on the relaxation after the peak.
+    paw, starts = vcv_pressure([10] * 5, pause=0.1)
+    assert np.isnan(plateaus_of(paw, starts)).all()
+
+
+def test_a_short_hold_of_0_25_s_gives_the_plateau():
+    # Ventilators set pauses of 0.2-0.3 s: the plateau slightly overestimated is used.
+    paw, starts = vcv_pressure([10] * 5, pause=0.25)
+    np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 22, atol=0.05)
+
+
+@pytest.mark.parametrize("pause", [0.25, 0.8])
+def test_a_slow_end_of_expiration_does_not_move_the_plateau(pause):
+    # A fast fall to PEEP + 4, then a tail of 1 s: the pressure is still 2 cmH2O above
+    # PEEP 0.7 s after the start of expiration, which is still the plateau's end.
+    paw, starts = vcv_pressure([10] * 5, pause=pause, tail=4.0)
+    np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 22, atol=0.05)
+
+
+def test_a_slow_end_of_expiration_without_pause_gives_no_plateau():
+    paw, starts = vcv_pressure([10] * 5, pause=0.0, tail=4.0)
+    assert np.isnan(plateaus_of(paw, starts)).all()
+
+
+def test_missing_pressure_at_the_start_of_the_next_breath_is_not_an_error():
+    # The pressure comes back near PEEP only at the end of the breath, and the next
+    # breath starts with missing pressure: the smoothing carries the gap into the fall.
+    paw = np.full(300, 10.0)
+    paw[:20] = np.linspace(10, 30, 20)  # inspiration
+    paw[20:60] = 22.0  # hold
+    paw[60:100] = np.linspace(22, 11.9, 40)  # slow expiration
+    paw[101:104] = np.nan
+    onsets, peeps = np.array([0, 100, 200]), np.full(3, 10.0)
+    plateau = plateau_pressures(paw, 50, onsets, peeps, PLATEAU_WINDOW_SECONDS)
+    assert np.isnan(plateau[1:]).all()  # missing pressure, then no next breath
 
 
 def test_missing_pressure_in_the_breath_gives_no_plateau():
@@ -119,8 +160,9 @@ def test_the_first_breath_at_the_start_of_the_recording():
     assert onsets[0] == 0  # no fake rise from padding at the edge
 
 
-def pcv_pressure(peeps, fs=50, period=4.0, inspiration=1.2, above_peep=15.0):
-    """Pressure-control airway pressure: fast rise, flat inspiratory pressure, expiration."""
+def pcv_pressure(peeps, fs=50, period=4.0, inspiration=1.2, above_peep=15.0, tail=0.0):
+    """Pressure-control airway pressure: fast rise, flat inspiratory pressure, expiration
+    (``tail`` cmH2O of it slow, as in ``vcv_pressure``)."""
     t = np.arange(0, period, 1 / fs)
     noise = np.random.default_rng(1).normal(0, 0.1, (len(peeps), len(t)))
     breaths, starts = [], []
@@ -133,7 +175,7 @@ def pcv_pressure(peeps, fs=50, period=4.0, inspiration=1.2, above_peep=15.0):
         p[flat] = peep + above_peep
         out = t >= inspiration
         top = peep + above_peep
-        p[out] = next_peep + (top - next_peep) * np.exp(-(t[out] - inspiration) / 0.05)
+        p[out] = expiration(t[out] - inspiration, top, next_peep, tail)
         starts.append(len(t) * k)
         breaths.append(p + noise[k])
     return np.concatenate(breaths), np.array(starts)
@@ -145,6 +187,14 @@ def test_pressure_control_reads_the_flat_inspiratory_pressure():
     peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
     plateau = plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
     np.testing.assert_allclose(plateau[1:-1] - peep[1:-1], 15, atol=0.2)
+
+
+def test_pressure_control_with_a_slow_end_of_expiration():
+    paw, starts = pcv_pressure([10] * 6, tail=4.0)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
+    plateau = plateau_pressures(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
+    np.testing.assert_allclose(plateau[1:-1] - 10, 15, atol=0.2)
 
 
 def test_one_inspiratory_hold_among_breaths_without_pause():

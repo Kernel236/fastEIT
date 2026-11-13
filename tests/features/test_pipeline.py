@@ -240,7 +240,7 @@ def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
 
 SET_VT = {"A": 550, "B": 400}
 NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, EELI change in mL at the end, R/I
-    "A_park_bench": (4.7, 6.2, -1928, 0.73),
+    "A_park_bench": (4.8, 6.2, -1928, 0.73),  # 4.7 before the plateau fix (slow tails)
     "A_supine": (6.6, 6.2, -2484, 0.91),
     "B_park_bench": (9.9, 8.5, -1469, 1.42),
     "B_supine": (12.9, 12.7, -1141, 1.31),
@@ -286,7 +286,12 @@ def test_results_of_the_trial_on_the_protocol_levels():
     levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
     protocol = peep_trial_features(segment_peep_trial(recording, levels), ri_config)
     assert value(protocol, "best_peep_compliance") in {12, 10, 8, 6}
-    assert any("on the measured PEEP" in m for m in measured.log)  # no protocol levels
+    # No protocol levels: the PEEP of the steps (measured, or typed by hand).
+    on_steps = (
+        "on the PEEP of the steps (measured, or typed with the steps placed by hand)"
+    )
+    assert any(on_steps in m for m in measured.log)
+    assert any(on_steps in m for m in measured.trial.log)
     assert (value(protocol, "ri_peep_high"), value(protocol, "ri_peep_low")) == (12, 6)
     # Same steps and same drop of measured PEEP: the same R/I.
     assert value(protocol, "ri") == pytest.approx(value(measured, "ri"))
