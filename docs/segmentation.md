@@ -58,12 +58,13 @@ from the pressure). A breath cut by the edge of the segment, or with a quality f
 left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
 looked for only inside the segment: include its breath, or type the plateau or the
 driving pressure.
-Without a pressure signal the plateau read on the ventilator can be typed with the
-step, `parameters={"peep": 16, "plateau": 28}`, or directly the driving pressure,
-`parameters={"peep": 16, "driving_pressure": 12}` (e.g. in pressure control, where it
-is set), and so can the tidal volume, `parameters={"peep": 16, "tidal_volume": 450}`.
-When there is a pressure signal, a typed PEEP more than 1 cmH2O from the measured one
-gives a warning. Parameters are in `SegmentationConfig`.
+When the pressure curve is missing or not reliable, the plateau read on the ventilator
+can be typed with the step, `parameters={"peep": 16, "plateau": 28}`, or directly the
+driving pressure, `parameters={"peep": 16, "driving_pressure": 12}` (e.g. in pressure
+control, where it is set), and so can the tidal volume,
+`parameters={"peep": 16, "tidal_volume": 450}`. A typed value is used before the curve
+(section 3); None is not typed. When there is a pressure signal, a typed PEEP more than
+1 cmH2O from the measured one gives a warning. Parameters are in `SegmentationConfig`.
 
 ## 2. Steps
 
@@ -90,14 +91,21 @@ notebook they were written from 2 s after to 14 s before the change of pressure.
 ## 3. Driving pressure and tidal volume of each step
 
 The driving pressure of each step (the input of compliance in layer 3) works with the
-usual protocols:
+usual protocols. In order, as for the tidal volume:
 
-| Protocol | Driving pressure of the step (`driving_pressure_source`) |
-|----------|-------------------------------------------------------|
-| Volume control with a continuous end-inspiratory pause | median of the analysed breaths (`"breaths"`) |
-| Volume control with one inspiratory hold per step | median of the breaths with a hold, one is enough (`"hold"`) |
-| Pressure control | the flat inspiratory pressure is read as plateau (`"breaths"`), valid if the flow is zero at the end of inspiration |
-| No pressure signal | typed with the step placed by hand (`"typed"`) |
+| Source | Driving pressure of the step | `driving_pressure_source` |
+|--------|------------------------------|---------------------------|
+| Typed with a step placed by hand | the plateau typed minus the PEEP typed, or the driving pressure typed (the plateau wins if both are typed, with a warning if they disagree by more than 0.5 cmH2O; a driving pressure not positive is an error) | `"typed"` |
+| Volume control with a continuous end-inspiratory pause | median of the analysed breaths | `"breaths"` |
+| Volume control with one inspiratory hold per step | median of the breaths with a hold, one is enough | `"hold"` |
+| Pressure control | the flat inspiratory pressure is read as plateau, valid if the flow is zero at the end of inspiration | `"breaths"` |
+
+A typed value comes first because it is typed on purpose, usually because the curve is
+missing or not reliable (an offset sensor, a damped line, an end-inspiratory pause too
+short). The curve is still read: `driving_pressure_measured` is the driving pressure of
+the curve (NaN without one), and a typed value more than 2 cmH2O from it gives a
+warning. `peep_measured` is the median PEEP of the breaths of the step: the measured
+level of a step placed by hand, close to `peep` for a step found from the pressure.
 
 The tidal volume of each step turns compliance into mL/cmH2O and EELI changes into
 mL. In order (`tidal_volume_source`):
@@ -140,7 +148,7 @@ not count when the steps are found. Without a phase the whole recording is segme
 | `recording`, `config` | the preprocessed recording and the parameters used |
 | `source` | `"pressure"` or `"manual"` |
 | `phase` | the PEEP trial part of the recording, or None for the whole recording |
-| `steps` | `step`, `peep` (level), `peep_set` (level of the protocol), `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure`, `tidal_volume`, `tidal_volume_source` |
+| `steps` | `step`, `peep` (level), `peep_set` (level of the protocol), `peep_measured`, `start_time`, `end_time`, `n_breaths`, `n_analysed`, `enough`, `plateau`, `driving_pressure`, `driving_pressure_source`, `n_driving_pressure`, `enough_driving_pressure`, `driving_pressure_measured`, `tidal_volume`, `tidal_volume_source` |
 | `breaths` | the breath table of the recording (with `peep`, `plateau`, `driving_pressure`, `tidal_volume`) plus `peep_step`, `analysed` |
 | `log` | what the segmentation did: checks passed (`OK:`), facts, warnings (`WARNING:`) |
 
