@@ -34,9 +34,9 @@ BACK_TO_PEEP_MARGIN = 2.0
 # The highest part of a breath starts at the first frame within 1 cmH2O of its
 # maximum: the peak in volume control, the start of the flat pressure in pressure control.
 TOP_MARGIN = 1.0
-# A plateau needs an end-inspiratory hold of at least 0.2 s from the highest part:
-# ventilators often set pauses of 0.2-0.3 s, whose plateau is slightly overestimated (the
-# pressure has not fully settled) but usable (0.9-1.3 s in the trials of notebook 06).
+# A plateau needs an end-inspiratory hold of at least 0.2 s from the highest part
+# (0.9-1.3 s in the trials of notebook 06): ventilators often set pauses of 0.2-0.3 s,
+# whose plateau is slightly overestimated (the pressure has not fully settled) but usable.
 MIN_PAUSE_SECONDS = 0.2
 # The plateau is never read in the first 0.15 s after the highest part: in volume
 # control the pressure is still falling from the peak (the resistive pressure).
@@ -183,10 +183,11 @@ def plateau_pressures(
         reached = peak + back_to_peep[0]
         lo = min(peak + after_peak, reached)
         falls = slope[lo : reached + 1]
-        if falls.min() >= 0:
+        steepest_fall = falls.min()
+        if steepest_fall >= 0:
             continue
         # The last steep fall (frames ``start`` to ``end``) and its steepest point.
-        steep = falls <= STEEP_FALL_FRACTION * falls.min()
+        steep = falls <= STEEP_FALL_FRACTION * steepest_fall
         end = np.flatnonzero(steep)[-1]
         start = end
         while start > 0 and steep[start - 1]:
