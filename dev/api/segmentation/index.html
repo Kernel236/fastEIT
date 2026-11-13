@@ -1731,7 +1731,10 @@ breaths are never analysed and do not count when the steps are found.</p>
         (<code>parameters["driving_pressure"]</code>) read on the ventilator, and
         the tidal volume (<code>parameters["tidal_volume"]</code>, mL). If given,
         they replace the steps found from the pressure, and the breaths
-        analysed are the valid breaths inside them.</p>
+        analysed are the valid breaths inside them. A typed plateau or
+        driving pressure is used before the pressure curve, which is
+        still read (<code>driving_pressure_measured</code>, with a warning when
+        the two differ by more than <code>DRIVING_PRESSURE_AGREEMENT</code>).</p>
               </div>
             </td>
             <td>
@@ -1828,9 +1831,9 @@ breaths are never analysed and do not count when the steps are found.</p>
             <td>
               <div class="doc-md-description">
                 <p>if there are no steps placed by hand and no pressure to find them,
-a step placed by hand or the phase is not usable, no breath is inside the
-phase or the steps placed by hand, or <code>tidal_volumes</code> does not have one
-positive value per step.</p>
+a step placed by hand or the phase is not usable (e.g. a typed driving
+pressure not positive), no breath is inside the phase or the steps placed by
+hand, or <code>tidal_volumes</code> does not have one positive value per step.</p>
               </div>
             </td>
           </tr>
@@ -2270,8 +2273,9 @@ the next level.</p>
 <p>A breath belongs to a segment when it starts and ends inside it: a breath cut by
 the edge of a segment is left out. Segments are numbered in time order. The plateau,
 or directly the driving pressure, is optional (e.g. read on the ventilator during an
-inspiratory hold), for recordings without a pressure signal; so is the tidal volume
-of the step (e.g. its mean on the case report form).</p>
+inspiratory hold), when the pressure curve is missing or not reliable; so is the
+tidal volume of the step (e.g. its mean on the case report form). A value of None
+is not typed.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2414,7 +2418,8 @@ of the step (e.g. its mean on the case report form).</p>
             <td>
               <div class="doc-md-description">
                 <p>if a segment is not a PEEP step, has no PEEP level, overlaps
-another one, or no breath is inside any segment.</p>
+another one or has a typed driving pressure that is not positive, or no
+breath is inside any segment.</p>
               </div>
             </td>
           </tr>

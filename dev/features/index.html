@@ -1745,9 +1745,11 @@ the analysed breaths, and <code>tiv_ml</code>, <code>compliance</code> and <code
 </table>
 <p>The PEEP of <code>crossing_peep</code>, the best PEEP and the R/I steps are on the levels of the
 protocol (<code>peep_set</code>, from <code>SegmentationConfig.peep_levels</code>) when every step has one, so
-that they can be compared between patients; otherwise on the measured PEEP. The R/I steps
-are chosen, and the drop of PEEP in its formula is computed, on the measured PEEP (the
-change of pressure that happened).</p>
+that they can be compared between patients; otherwise on the PEEP of the steps (<code>peep</code>:
+measured for the steps found from the pressure, typed for the steps placed by hand). The
+R/I steps are chosen, and the drop of PEEP in its formula is computed, on <code>peep</code>: the
+change of pressure that happened, or the levels typed when the pressure curve is not
+reliable.</p>
 <p><strong>Recruitment-to-inflation ratio</strong> (Chen et al., Am J Respir Crit Care Med 2020, DOI:
 10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
 PEEP 5 at least 10 below it (<code>AnalysisConfig</code>):</p>

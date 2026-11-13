@@ -6699,7 +6699,7 @@ and low amplitude at its edges, as reconstructed EIT images are.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Array</code></td>            <td>
-                  <code>(<span title="n_breaths">n_breaths</span>, <span title="rows">rows</span>, <span title="cols">cols</span>)</code>
+                  <code>(n_breaths, rows, cols)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8090,10 +8090,13 @@ pressure already rises quickly (notebook 06, section 2).</p>
         <p>Plateau pressure of each breath, read at the end of the end-inspiratory hold.</p>
 <p>Between the start of inspiration of a breath and the next one: after the highest
 part of the breath (the peak in volume control, the flat pressure in pressure
-control), the start of expiration is the steepest fall of the pressure in the 0.3 s
-before it comes back within 2 of the next PEEP; the plateau is the median pressure
-from <code>window[0]</code> to <code>window[1]</code> seconds before it (notebook 06, section 4).</p>
-<p>A valid plateau needs at least 0.5 s between the highest part and the expiration:
+control), the start of expiration is the steepest point of the last steep fall of
+the pressure (<code>STEEP_FALL_FRACTION</code>) before it comes back within 2 of the next
+PEEP, searched from 0.15 s after the highest part. So a slow end of expiration, which
+is not steep, never moves it. The plateau is the median pressure from <code>window[0]</code>
+to <code>window[1]</code> seconds before the start of expiration, never in the first 0.15 s
+after the highest part (notebook 06, section 4).</p>
+<p>A valid plateau needs at least 0.2 s between the highest part and the expiration:
 an end-inspiratory hold with zero flow in volume control (continuous pause, or an
 inspiratory hold done by hand), or the flat inspiratory pressure in pressure
 control, which is a plateau only if the flow is zero at the end of inspiration.
