@@ -73,8 +73,9 @@ The steps are found on the airway pressure. Without a pressure signal, or to cho
 breaths yourself, place the steps by hand ([cut a recording](segments.md)). With the
 levels of the protocol (`peep_levels`), each step also gets the level of the protocol
 (`peep_set`), and crossing PEEP and best PEEP are given on those levels when every step
-matches one; otherwise they are given on the measured PEEP, and the log says which.
-Without `peep_levels`, `peep_set` is empty and the measured PEEP is used.
+matches one; otherwise they are given on the PEEP of the steps (measured, or typed with
+the steps placed by hand), and the log says which. Without `peep_levels`, `peep_set` is
+empty and the PEEP of the steps is used.
 
 ## 3. A recording with two parts
 

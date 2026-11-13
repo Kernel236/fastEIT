@@ -286,7 +286,12 @@ def test_results_of_the_trial_on_the_protocol_levels():
     levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
     protocol = peep_trial_features(segment_peep_trial(recording, levels), ri_config)
     assert value(protocol, "best_peep_compliance") in {12, 10, 8, 6}
-    assert any("on the measured PEEP" in m for m in measured.log)  # no protocol levels
+    # No protocol levels: the PEEP of the steps (measured, or typed by hand).
+    on_steps = (
+        "on the PEEP of the steps (measured, or typed with the steps placed by hand)"
+    )
+    assert any(on_steps in m for m in measured.log)
+    assert any(on_steps in m for m in measured.trial.log)
     assert (value(protocol, "ri_peep_high"), value(protocol, "ri_peep_low")) == (12, 6)
     # Same steps and same drop of measured PEEP: the same R/I.
     assert value(protocol, "ri") == pytest.approx(value(measured, "ri"))

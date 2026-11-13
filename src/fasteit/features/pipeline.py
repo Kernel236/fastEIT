@@ -469,8 +469,10 @@ def _recruitment_rows(
     """R/I and recruited volume between the steps nearest to the two PEEP levels of the
     config, globally and for each region (rows of the summary).
 
-    The steps are chosen and the drop of PEEP is computed on the measured PEEP (the
-    change of pressure that happened); the two steps are reported on ``result_peep``."""
+    The steps are chosen and the drop of PEEP is computed on ``steps.peep``: the
+    measured PEEP of the steps found from the pressure (the change of pressure that
+    happened), the typed level of the steps placed by hand; the two steps are reported
+    on ``result_peep``."""
     pair = ri_steps(
         steps.peep.to_numpy(),
         config.ri_peep_high,
@@ -518,7 +520,8 @@ def _recruitment_rows(
 def _result_peep(trial: PeepTrial, steps: pd.DataFrame, log: RunLog) -> np.ndarray:
     """PEEP of each step on which the results of the trial are given: the level of the
     protocol (``peep_set``) when every step has one, so that the results can be compared
-    between patients; otherwise the measured level."""
+    between patients; otherwise ``steps.peep`` (measured, or typed with the steps placed
+    by hand)."""
     levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
     peep_set = levels.peep_set.to_numpy(dtype=float)
     if np.isfinite(peep_set).all():
@@ -526,7 +529,10 @@ def _result_peep(trial: PeepTrial, steps: pd.DataFrame, log: RunLog) -> np.ndarr
             "Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
         )
         return peep_set
-    log.info("Crossing PEEP, best PEEP and R/I steps on the measured PEEP.")
+    log.info(
+        "Crossing PEEP, best PEEP and R/I steps on the PEEP of the steps (measured, or "
+        "typed with the steps placed by hand)."
+    )
     return steps.peep.to_numpy(dtype=float)
 
 

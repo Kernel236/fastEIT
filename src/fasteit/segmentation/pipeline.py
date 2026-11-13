@@ -359,7 +359,8 @@ def _steps_table(
     if config.peep_levels is None:
         log.warning(
             "No PEEP levels of the protocol (SegmentationConfig.peep_levels): "
-            "peep_set is empty and the results are given on the measured PEEP."
+            "peep_set is empty and the results are given on the PEEP of the steps "
+            "(measured, or typed with the steps placed by hand)."
         )
     elif np.isfinite(peep_set).all():
         log.ok(f"Every step on a PEEP level of the protocol: {peep_set.tolist()}.")

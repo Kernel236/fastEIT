@@ -135,9 +135,11 @@ The summary is a long table (`region`, `feature`, `value`):
 
 The PEEP of `crossing_peep`, the best PEEP and the R/I steps are on the levels of the
 protocol (`peep_set`, from `SegmentationConfig.peep_levels`) when every step has one, so
-that they can be compared between patients; otherwise on the measured PEEP. The R/I steps
-are chosen, and the drop of PEEP in its formula is computed, on the measured PEEP (the
-change of pressure that happened).
+that they can be compared between patients; otherwise on the PEEP of the steps (`peep`:
+measured for the steps found from the pressure, typed for the steps placed by hand). The
+R/I steps are chosen, and the drop of PEEP in its formula is computed, on `peep`: the
+change of pressure that happened, or the levels typed when the pressure curve is not
+reliable.
 
 **Recruitment-to-inflation ratio** (Chen et al., Am J Respir Crit Care Med 2020, DOI:
 10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
