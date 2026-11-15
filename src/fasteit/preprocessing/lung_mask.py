@@ -3,8 +3,13 @@
 Reimplementation of eitprocessing ``WatershedLungspace`` (v1.8.8; Somhorst et al.,
 JOSS 2026;11(117):8179, DOI: 10.21105/joss.08179), with the pixel amplitude in its
 "phase shift" mode (``PixelBreath``) and the small-region filter ``FilterROIBySize``.
-Checked to give the same masks as eitprocessing on 11 real recordings when every
-breath is used (notebooks/05_preprocessing_choices.ipynb, sections 7b and 9).
+Checked against eitprocessing on 11 real recordings
+(notebooks/05_preprocessing_choices.ipynb, sections 7b, 7c and 9).
+
+One change from eitprocessing (section 7c): the timing of each pixel is found on the
+breaths used for the mask only, without their EELI. eitprocessing uses the whole
+recording with a linear trend removed, so a change of EELI (a new PEEP, a
+recalibration) or an artifact, even in excluded breaths, can hide most of the lung.
 
 The mask is the VENTILATED lung, not the anatomical lung: a collapsed region with a
 TIV below the threshold is outside it.
@@ -14,7 +19,7 @@ Steps:
    value at its start, mean over the breaths;
 2. amplitude map: the same, but on each pixel's own timing, found by
    cross-correlation with the global signal (it catches pixels that inflate late,
-   e.g. pendelluft);
+   e.g. pendelluft), with the pixel and the global signal both without their EELI;
 3. threshold: a fraction of the maximum of the TIV map, applied to both maps;
 4. watershed: the amplitude map is split into regions around its local maxima; a
    region is kept if its maximum is inside the TIV mask. Mask = kept regions inside
@@ -132,24 +137,52 @@ def _extremes(pixel: np.ndarray, edges: np.ndarray, find) -> np.ndarray:
     return np.array(positions, dtype=int)
 
 
+def breaths_only(x: np.ndarray, edges: np.ndarray, frames: np.ndarray) -> np.ndarray:
+    """The breaths of a signal for the cross-correlation: no EELI, nothing else.
+
+    The EELI is the line through the signal at the breath edges (start of every
+    breath and end of the last one). Without it every breath starts and ends near
+    zero, so the frames outside ``frames`` can be set to zero without a step. The
+    mean of ``frames`` is removed, as the linear detrend of eitprocessing does.
+
+    Args:
+        x:      1-D signal.
+        edges:  Increasing frames of the breath edges.
+        frames: Boolean array, True for the frames of the breaths used.
+
+    Returns:
+        Float array like ``x``, zero outside ``frames``.
+    """
+    tidal = x - np.interp(np.arange(len(x)), edges, x[edges])
+    tidal -= tidal[frames].mean()
+    tidal[~frames] = 0.0
+    return tidal
+
+
 def amplitude_per_breath(
-    pixels: np.ndarray, global_signal: np.ndarray, breaths: np.ndarray
+    pixels: np.ndarray,
+    global_signal: np.ndarray,
+    breaths: np.ndarray,
+    use_breath: np.ndarray | None = None,
 ) -> np.ndarray:
     """Amplitude of each pixel in each breath, on the pixel's own timing.
 
     For each pixel: the global peaks are moved to the pixel's own timing
-    (``pixel_lag``); between two shifted peaks the pixel minimum is its start of
+    (``pixel_lag``, on the breaths in ``use_breath`` without their EELI,
+    ``breaths_only``); between two shifted peaks the pixel minimum is its start of
     inspiration, between two minima its maximum is its peak; amplitude = peak -
     start. As in eitprocessing, the first and last breath have no value, a breath
     whose shifted peak falls outside the recording or whose order is wrong is
     skipped, and a pixel that loses more than ``MAX_SKIPPED_FRACTION`` of its
-    breaths is left out.
+    breaths (here: of those in ``use_breath``) is left out.
 
     Args:
         pixels:        Array (N, rows, cols); a pixel is either NaN in every frame
                        or in none.
         global_signal: 1-D signal used for the breath detection.
         breaths:       Integer array (n_breaths, 3), consecutive breaths.
+        use_breath:    Boolean array (n_breaths,): breaths the timing is found on
+                       (e.g. the valid breaths); None = every breath.
 
     Returns:
         Array (n_breaths, rows, cols), NaN where there is no amplitude.
@@ -157,33 +190,48 @@ def amplitude_per_breath(
     n_frames, n_rows, n_cols = pixels.shape
     global_peaks = breaths[:, 1]
     amplitudes = np.full((len(global_peaks), n_rows, n_cols), np.nan)
-    if len(global_peaks) < 3:
-        return amplitudes  # first and last breath never have a value
+    use = np.ones(len(breaths), dtype=bool)
+    if use_breath is not None:
+        use = np.asarray(use_breath, dtype=bool)
+    n_used = int(np.sum(use[1:-1]))  # the first and last breath never have a value
+    if n_used == 0:
+        return amplitudes
 
-    global_detrended = signal.detrend(global_signal, type="linear")
+    edges = np.append(breaths[:, 0], breaths[-1, 2])
+    frames = np.zeros(n_frames, dtype=bool)
+    for start, _, end in breaths[use]:
+        frames[start : end + 1] = True
+    global_breaths = breaths_only(global_signal, edges, frames)
     max_lag = MAX_LAG_BREATHS * np.mean(np.diff(global_peaks))
+    # Index k of ``skipped`` is the amplitude of breath k + 1 (there is none for the
+    # first breath): counted if that breath is used; a k past the last breath always.
+    counted = np.append(use[1:], True)
     for row in range(n_rows):
         for col in range(n_cols):
             pixel = pixels[:, row, col]
             if np.isnan(pixel).all() or np.std(pixel) == 0:
                 continue
-            lag = pixel_lag(
-                global_detrended, signal.detrend(pixel, type="linear"), max_lag
-            )
+            lag = pixel_lag(global_breaths, breaths_only(pixel, edges, frames), max_lag)
             if lag is None:
                 continue
 
             shifted = global_peaks - lag
             skipped = set(np.flatnonzero((shifted < 0) | (shifted >= n_frames)))
             shifted = np.clip(shifted, 0, n_frames - 1)
-            minima = _extremes(pixel, shifted, np.argmin)
+            # Minima and maxima only inside the breaths used: the window of the first
+            # breath after an excluded part starts in that part. A window without any
+            # frame of those breaths gives its edge, and its breath is skipped.
+            minima = _extremes(np.where(frames, pixel, np.inf), shifted, np.argmin)
             starts, ends = minima[:-1], minima[1:]
-            tops = _extremes(pixel, minima, np.argmax)
-            skipped |= set(np.flatnonzero((starts >= tops) | (tops >= ends)))
+            tops = _extremes(np.where(frames, pixel, -np.inf), minima, np.argmax)
+            wrong_order = (starts >= tops) | (tops >= ends)
+            outside = ~frames[starts] | ~frames[tops]
+            skipped |= set(np.flatnonzero(wrong_order | outside))
             # As in eitprocessing, a pixel that loses every breath is not dropped
             # here: it stays all NaN. eitprocessing counts twice a breath skipped for
             # two reasons; here it counts once, which can only matter near the limit.
-            if len(starts) > len(skipped) > len(starts) * MAX_SKIPPED_FRACTION:
+            lost = sum(counted[breath] for breath in skipped)
+            if n_used > lost > n_used * MAX_SKIPPED_FRACTION:
                 continue
 
             amplitude = pixel[tops] - pixel[starts]
@@ -204,8 +252,10 @@ def watershed_mask(
 
     TIV and amplitude are computed on all breaths, because the pixel timing needs
     consecutive breaths, and averaged only over the breaths in ``use_breath`` that
-    have both a TIV and an amplitude (e.g. the valid breaths). With every breath used
-    the result is the same as eitprocessing ``WatershedLungspace``.
+    have both a TIV and an amplitude (e.g. the valid breaths); the pixel timing is
+    found on the breaths in ``use_breath`` only (``amplitude_per_breath``). With every
+    breath used, on a recording without changes of EELI, the masks are those of
+    eitprocessing ``WatershedLungspace`` (Dice >= 0.99 on 11 recordings).
 
     Args:
         pixels:             Array (N, rows, cols), after the cardiac filter.
@@ -224,7 +274,7 @@ def watershed_mask(
             (inverted signal), or no amplitude peak lies inside the TIV mask.
     """
     tiv = tiv_per_breath(pixels, breaths)
-    amplitude = amplitude_per_breath(pixels, global_signal, breaths)
+    amplitude = amplitude_per_breath(pixels, global_signal, breaths, use_breath)
     has_values = ~np.isnan(tiv).all(axis=(1, 2)) & ~np.isnan(amplitude).all(axis=(1, 2))
     used = has_values & np.asarray(use_breath, dtype=bool)
     if not used.any():

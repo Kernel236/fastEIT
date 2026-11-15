@@ -44,6 +44,15 @@ def test_a_disconnection_spike_is_invalid():
     assert list(invalid(x)) == [1000, 1001, 1002, 1003, 1004]
 
 
+@pytest.mark.parametrize("artifact", [-50.0, 50.0])
+def test_a_long_artifact_is_invalid_and_the_breaths_are_not(artifact):
+    # 3 % of the samples far away (the belt off, a saturated image): the mean falls
+    # outside the 5th-95th percentiles, the median does not.
+    x = breathing()
+    x[-90:] = artifact
+    assert list(invalid(x)) == list(range(len(x) - 90, len(x)))
+
+
 def test_fill_with_nearest_splits_a_run_between_its_neighbours():
     x = np.array([1.0, np.nan, np.nan, np.nan, np.nan, 3.0])
     filled = fill_with_nearest(x, np.array([1, 2, 3, 4]))

@@ -129,6 +129,48 @@ def test_maps_are_averaged_only_over_the_chosen_breaths():
     assert without_it.max() < with_it.max()
 
 
+def test_a_change_of_eeli_does_not_hide_the_lung():
+    # A PEEP increase: from breath 15 the EELI of every pixel rises by twice its
+    # tidal swing. The pixel timing must follow the breaths, not the step. Breath 15
+    # is not used: here its EELI rises at once, so its amplitude holds the step.
+    pixels, global_signal, breaths, late_lung, _ = synthetic_recording()
+    use = np.ones(len(breaths), dtype=bool)
+    use[15] = False
+    clean, _, _ = mask_of(pixels, global_signal, breaths, use)
+    stepped = pixels.copy()
+    stepped[breaths[15, 0] :] += 2 * (pixels.max(axis=0) - pixels.min(axis=0))
+    mask, _, _ = mask_of(stepped, stepped.sum(axis=(1, 2)), breaths, use)
+    assert mask[late_lung].all()
+    np.testing.assert_array_equal(mask, clean)
+
+
+def test_breaths_not_used_do_not_change_the_mask():
+    # A disconnection in breaths 3-7, excluded: the mask is the one without it.
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    use = np.ones(len(breaths), dtype=bool)
+    use[3:8] = False
+    clean, _, _ = mask_of(pixels, global_signal, breaths, use)
+    broken = pixels.copy()
+    frames = slice(breaths[3, 0] + 1, breaths[7, 2])  # inside breaths 3-7
+    broken[frames] = np.random.default_rng(1).normal(0, 5, broken[frames].shape)
+    mask, _, _ = mask_of(broken, broken.sum(axis=(1, 2)), breaths, use)
+    np.testing.assert_array_equal(mask, clean)
+
+
+def test_a_pixel_is_dropped_only_for_breaths_lost_among_those_used():
+    # The lung centre is stuck in breaths 2-11, which are not used: almost half of
+    # all breaths lost, none of those used.
+    pixels, global_signal, breaths, _, _ = synthetic_recording()
+    stuck = pixels.copy()
+    frames = slice(breaths[2, 0], breaths[11, 2])
+    stuck[frames, 6, 5] = stuck[frames.start, 6, 5]
+    use = np.ones(len(breaths), dtype=bool)
+    use[2:12] = False
+    amplitude = amplitude_per_breath(stuck, global_signal, breaths, use)
+    use[[0, -1]] = False  # the first and last breath never have an amplitude
+    assert np.isfinite(amplitude[use, 6, 5]).all()
+
+
 def test_no_usable_breath_is_an_error():
     pixels, global_signal, breaths, _, _ = synthetic_recording()
     with pytest.raises(ValueError, match="No usable breaths"):

@@ -31,8 +31,8 @@ from scipy.signal import find_peaks
 
 # Defaults of eitprocessing ``BreathDetection`` (v1.8.8), not meant to be tuned
 # (notebooks/05_preprocessing_choices.ipynb, section 8):
-# - a sample is invalid beyond mean ± 4 x (distance between the mean and the 5th / 95th
-#   percentile);
+# - a sample is invalid beyond median ± 4 x (distance between the median and the 5th /
+#   95th percentile; eitprocessing uses the mean, see ``invalid_samples``);
 # - 15 s Blackman moving average as local threshold (it follows slow EELI drift; below
 #   about 8 breaths/min it starts to follow the breathing);
 # - peaks and valleys at least 2/3 s apart (at most 90 breaths/min);
@@ -51,26 +51,32 @@ def invalid_samples(
 ) -> np.ndarray:
     """Indices of the gross outliers of the signal (step 1).
 
-    A sample is invalid when it is below ``mean - multiplier * (mean - low)`` or above
-    ``mean + multiplier * (high - mean)``, where ``low`` and ``high`` are the
+    A sample is invalid when it is below ``median - multiplier * (median - low)`` or
+    above ``median + multiplier * (high - median)``, where ``low`` and ``high`` are the
     ``percentile`` and ``100 - percentile`` percentiles of the signal. With the
     defaults (5, 4) only gross outliers are caught: artefacts such as a disconnection
     spike, but also extreme manoeuvres such as a sustained inflation or a large
     recruitment step, which are physiological.
 
+    eitprocessing uses the mean. An artifact on a few percent of the recording (the
+    belt off, a saturated image) can move the mean outside ``low``-``high``: the limit
+    then falls inside the breaths and almost every sample is invalid. The median is
+    always between ``low`` and ``high`` (notebooks/05_preprocessing_choices.ipynb,
+    section 8b).
+
     Args:
         signal:     1-D global signal.
         percentile: Lower percentile; the upper one is ``100 - percentile``.
-        multiplier: How many times the mean-to-percentile distance is allowed.
+        multiplier: How many times the median-to-percentile distance is allowed.
 
     Returns:
         Sorted indices of the invalid samples (empty if none).
     """
-    mean = np.mean(signal)
+    centre = np.median(signal)
     low = np.percentile(signal, percentile)
     high = np.percentile(signal, 100 - percentile)
-    lower_cutoff = mean - (mean - low) * multiplier
-    upper_cutoff = mean + (high - mean) * multiplier
+    lower_cutoff = centre - (centre - low) * multiplier
+    upper_cutoff = centre + (high - centre) * multiplier
     return np.flatnonzero((signal < lower_cutoff) | (signal > upper_cutoff))
 
 
@@ -340,8 +346,8 @@ def detect_breaths(
         raise ValueError("Global signal contains NaN or inf.")
     no_breaths = (np.empty((0, 3), dtype=int), np.empty(0, dtype=bool))
 
-    # A constant signal has no breaths. Checked here because rounding in the mean can
-    # make every sample of a constant signal "invalid" (eitprocessing then fails).
+    # A constant signal has no breaths. Checked here because in eitprocessing rounding
+    # in the mean can make every sample of a constant signal "invalid" (it then fails).
     if np.ptp(signal) == 0:
         return no_breaths
 

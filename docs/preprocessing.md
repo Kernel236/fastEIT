@@ -63,13 +63,21 @@ with their source.
 | 2 | Device exclusions: frames with missing pixels (filled with the nearest frame), timing errors, gaps in the frame times | `exclusions` | - |
 | 3 | Respiratory rate from the Welch spectrum | `cardiac_filter` | eitprocessing `RateDetection` |
 | 4 | Cardiac step: MDN filter if the user gives the heart rate, otherwise a 0.1 s moving average (the heart is **not** removed) | `cardiac_filter` | Wisse et al., *Physiol Meas* 2024, DOI: 10.1088/1361-6579/ad46e3 |
-| 5 | Breath detection on the sum of all pixels: valley, peak, next valley | `breaths` | eitprocessing `BreathDetection` |
+| 5 | Breath detection on the sum of all pixels: valley, peak, next valley | `breaths` | eitprocessing `BreathDetection`, gross outliers around the median (notebook 05 §8b) |
 | 6 | Quality flags and exclusions of each breath; `is_valid` = no flag and not excluded | `breath_quality`, `exclusions` | notebook 05 §8 |
-| 7 | Lung mask from the valid breaths: watershed of the TIV and amplitude maps at 15 % of the maximum TIV, islands < 10 pixels removed | `lung_mask` | eitprocessing `WatershedLungspace`, `FilterROIBySize` |
+| 7 | Lung mask from the valid breaths: watershed of the TIV and amplitude maps at 15 % of the maximum TIV, islands < 10 pixels removed | `lung_mask` | eitprocessing `WatershedLungspace`, `FilterROIBySize`, pixel timing on the valid breaths without their EELI (notebook 05 §7c) |
 | 8 | Regions of interest inside the mask and their signals | `regions` | notebook 05 §9 |
 | 9 | Auxiliary signals (pressures, flow, volume, device breath markers): "no data" values as NaN, channels without data left out, not filtered, the same units for every vendor | `auxiliary` | - |
 | 10 | Airway pressures of each breath: PEEP, plateau, driving pressure | `breath_pressures` | notebook 06 §2, §4 |
 | 11 | Inspiratory tidal volume of each breath | `tidal_volume` | - |
+
+Two changes from eitprocessing keep a change of EELI (a new PEEP, a recalibration) or a
+long artifact from spoiling the whole recording. The timing of each pixel, needed for the
+amplitude map, is found on the valid breaths only and without their EELI, so excluded parts
+count nowhere; eitprocessing uses the whole recording, where a step of EELI can leave most
+of the lung out of the mask. Gross outliers are found around the median of the signal, not
+its mean, which an artifact on a few percent of the recording can move enough to make every
+sample invalid.
 
 Breaths are **flagged, never removed**: the clinician decides what to use. Every
 exclusion is widened by 0.5 s on each side (`exclusion_margin_seconds`) and a breath that
