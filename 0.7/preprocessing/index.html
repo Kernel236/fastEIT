@@ -1639,7 +1639,7 @@ with their source.</p>
 <td>5</td>
 <td>Breath detection on the sum of all pixels: valley, peak, next valley</td>
 <td><code>breaths</code></td>
-<td>eitprocessing <code>BreathDetection</code></td>
+<td>eitprocessing <code>BreathDetection</code>, gross outliers around the median (notebook 05 §8b)</td>
 </tr>
 <tr>
 <td>6</td>
@@ -1651,7 +1651,7 @@ with their source.</p>
 <td>7</td>
 <td>Lung mask from the valid breaths: watershed of the TIV and amplitude maps at 15 % of the maximum TIV, islands &lt; 10 pixels removed</td>
 <td><code>lung_mask</code></td>
-<td>eitprocessing <code>WatershedLungspace</code>, <code>FilterROIBySize</code></td>
+<td>eitprocessing <code>WatershedLungspace</code>, <code>FilterROIBySize</code>, pixel timing on the valid breaths without their EELI (notebook 05 §7c)</td>
 </tr>
 <tr>
 <td>8</td>
@@ -1679,6 +1679,13 @@ with their source.</p>
 </tr>
 </tbody>
 </table>
+<p>Two changes from eitprocessing keep a change of EELI (a new PEEP, a recalibration) or a
+long artifact from spoiling the whole recording. The timing of each pixel, needed for the
+amplitude map, is found on the valid breaths only and without their EELI, so excluded parts
+count nowhere; eitprocessing uses the whole recording, where a step of EELI can leave most
+of the lung out of the mask. Gross outliers are found around the median of the signal, not
+its mean, which an artifact on a few percent of the recording can move enough to make every
+sample invalid.</p>
 <p>Breaths are <strong>flagged, never removed</strong>: the clinician decides what to use. Every
 exclusion is widened by 0.5 s on each side (<code>exclusion_margin_seconds</code>) and a breath that
 touches it is excluded. In the later layers a breath belongs to a phase or a PEEP step
