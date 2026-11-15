@@ -1466,6 +1466,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.lung_mask.breaths_only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        breaths_only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fasteit.preprocessing.lung_mask.amplitude_per_breath" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2424,6 +2435,17 @@
     <span class="md-ellipsis">
       
         pixel_lag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.lung_mask.breaths_only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        breaths_only
       
     </span>
   </a>
@@ -4770,12 +4792,17 @@ Impedance is assumed to rise with inspiration (as in the Draeger .bin pixels).</
     <div class="doc doc-contents ">
 
         <p>Indices of the gross outliers of the signal (step 1).</p>
-<p>A sample is invalid when it is below <code>mean - multiplier * (mean - low)</code> or above
-<code>mean + multiplier * (high - mean)</code>, where <code>low</code> and <code>high</code> are the
+<p>A sample is invalid when it is below <code>median - multiplier * (median - low)</code> or
+above <code>median + multiplier * (high - median)</code>, where <code>low</code> and <code>high</code> are the
 <code>percentile</code> and <code>100 - percentile</code> percentiles of the signal. With the
 defaults (5, 4) only gross outliers are caught: artefacts such as a disconnection
 spike, but also extreme manoeuvres such as a sustained inflation or a large
 recruitment step, which are physiological.</p>
+<p>eitprocessing uses the mean. An artifact on a few percent of the recording (the
+belt off, a saturated image) can move the mean outside <code>low</code>-<code>high</code>: the limit
+then falls inside the breaths and almost every sample is invalid. The median is
+always between <code>low</code> and <code>high</code> (notebooks/05_preprocessing_choices.ipynb,
+section 8b).</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4830,7 +4857,7 @@ recruitment step, which are physiological.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>How many times the mean-to-percentile distance is allowed.</p>
+                <p>How many times the median-to-percentile distance is allowed.</p>
               </div>
             </td>
             <td>
@@ -6587,8 +6614,12 @@ and 3 duration outliers, all visible events (section 8 of the evidence notebook)
 <p>Reimplementation of eitprocessing <code>WatershedLungspace</code> (v1.8.8; Somhorst et al.,
 JOSS 2026;11(117):8179, DOI: 10.21105/joss.08179), with the pixel amplitude in its
 "phase shift" mode (<code>PixelBreath</code>) and the small-region filter <code>FilterROIBySize</code>.
-Checked to give the same masks as eitprocessing on 11 real recordings when every
-breath is used (notebooks/05_preprocessing_choices.ipynb, sections 7b and 9).</p>
+Checked against eitprocessing on 11 real recordings
+(notebooks/05_preprocessing_choices.ipynb, sections 7b, 7c and 9).</p>
+<p>One change from eitprocessing (section 7c): the timing of each pixel is found on the
+breaths used for the mask only, without their EELI. eitprocessing uses the whole
+recording with a linear trend removed, so a change of EELI (a new PEEP, a
+recalibration) or an artifact, even in excluded breaths, can hide most of the lung.</p>
 <p>The mask is the VENTILATED lung, not the anatomical lung: a collapsed region with a
 TIV below the threshold is outside it.</p>
 <p>Steps:
@@ -6596,7 +6627,7 @@ TIV below the threshold is outside it.</p>
    value at its start, mean over the breaths;
 2. amplitude map: the same, but on each pixel's own timing, found by
    cross-correlation with the global signal (it catches pixels that inflate late,
-   e.g. pendelluft);
+   e.g. pendelluft), with the pixel and the global signal both without their EELI;
 3. threshold: a fraction of the maximum of the TIV map, applied to both maps;
 4. watershed: the amplitude map is split into regions around its local maxima; a
    region is kept if its maximum is inside the TIV mask. Mask = kept regions inside
@@ -6950,24 +6981,135 @@ signal gives -10, and its own peaks are at <code>global_peaks - lag</code>.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="fasteit.preprocessing.lung_mask.breaths_only" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">breaths_only</span>
+
+
+<a href="#fasteit.preprocessing.lung_mask.breaths_only" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">breaths_only</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">frames</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The breaths of a signal for the cross-correlation: no EELI, nothing else.</p>
+<p>The EELI is the line through the signal at the breath edges (start of every
+breath and end of the last one). Without it every breath starts and ends near
+zero, so the frames outside <code>frames</code> can be set to zero without a step. The
+mean of <code>frames</code> is removed, as the linear detrend of eitprocessing does.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>x</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>1-D signal.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>edges</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Increasing frames of the breath edges.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>frames</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean array, True for the frames of the breaths used.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Float array like <code>x</code>, zero outside <code>frames</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="fasteit.preprocessing.lung_mask.amplitude_per_breath" class="doc doc-heading">
             <span class="doc doc-object-name doc-function-name">amplitude_per_breath</span>
 
 
 <a href="#fasteit.preprocessing.lung_mask.amplitude_per_breath" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">amplitude_per_breath</span><span class="p">(</span><span class="n">pixels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">global_signal</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">amplitude_per_breath</span><span class="p">(</span><span class="n">pixels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">global_signal</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">use_breath</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Amplitude of each pixel in each breath, on the pixel's own timing.</p>
 <p>For each pixel: the global peaks are moved to the pixel's own timing
-(<code>pixel_lag</code>); between two shifted peaks the pixel minimum is its start of
+(<code>pixel_lag</code>, on the breaths in <code>use_breath</code> without their EELI,
+<code>breaths_only</code>); between two shifted peaks the pixel minimum is its start of
 inspiration, between two minima its maximum is its peak; amplitude = peak -
 start. As in eitprocessing, the first and last breath have no value, a breath
 whose shifted peak falls outside the recording or whose order is wrong is
 skipped, and a pixel that loses more than <code>MAX_SKIPPED_FRACTION</code> of its
-breaths is left out.</p>
+breaths (here: of those in <code>use_breath</code>) is left out.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -7030,6 +7172,23 @@ breaths is left out.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>use_breath</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean array (n_breaths,): breaths the timing is found on
+           (e.g. the valid breaths); None = every breath.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -7077,8 +7236,10 @@ breaths is left out.</p>
         <p>Lung mask from the TIV and amplitude maps (steps 1-4).</p>
 <p>TIV and amplitude are computed on all breaths, because the pixel timing needs
 consecutive breaths, and averaged only over the breaths in <code>use_breath</code> that
-have both a TIV and an amplitude (e.g. the valid breaths). With every breath used
-the result is the same as eitprocessing <code>WatershedLungspace</code>.</p>
+have both a TIV and an amplitude (e.g. the valid breaths); the pixel timing is
+found on the breaths in <code>use_breath</code> only (<code>amplitude_per_breath</code>). With every
+breath used, on a recording without changes of EELI, the masks are those of
+eitprocessing <code>WatershedLungspace</code> (Dice &gt;= 0.99 on 11 recordings).</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
