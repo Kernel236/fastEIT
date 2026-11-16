@@ -3681,8 +3681,10 @@ are extrema of <code>detection_signal</code>, the signal they were found on.</p>
                 <p>One row per breath: times and frames of start, peak and end,
            quality flags, <code>excluded</code>, <code>exclusion_label</code>,
            <code>is_valid</code>; <code>peep</code>, <code>plateau</code> and <code>driving_pressure</code>
-           (cmH2O) and the inspiratory <code>tidal_volume</code> (mL), NaN where
-           not available.</p>
+           (cmH2O), where PEEP and plateau were read on the pressure
+           curve (<code>peep_from</code>, <code>peep_to</code>, <code>plateau_from</code>,
+           <code>plateau_to</code>, s) and the inspiratory <code>tidal_volume</code> (mL),
+           NaN where not available.</p>
               </div>
             </td>
           </tr>

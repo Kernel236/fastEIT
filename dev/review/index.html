@@ -647,6 +647,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#the-pressure-readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The pressure readings
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1415,6 +1426,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#the-pressure-readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The pressure readings
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1498,7 +1520,20 @@ on:</p>
 (<code>peep_set</code>, or the measured level without the protocol), and the PEEP of each breath is
 drawn below with the level of each step. On the right, the tidal image inside the lung
 mask (patient right on the left, ventral on top) and the count of each kind of breath.</p>
-<p>Both functions return a matplotlib figure: <code>fig.savefig("P01_T0_breaths.png")</code> keeps one
+<h2 id="the-pressure-readings">The pressure readings<a class="headerlink" href="#the-pressure-readings" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_pressure_readings</span>
+
+<span class="n">plot_pressure_readings</span><span class="p">(</span><span class="n">recording</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</code></pre></div>
+<p>The airway pressure curve the PEEP and the plateau were read on, with a short blue line
+at the PEEP of each breath over its reading (the 0.2 s before the start of inspiration)
+and an orange one at its plateau over its reading (before the start of expiration). A
+breath without a plateau (no end-inspiratory hold) has only its PEEP. A few breaths at a
+time show the readings best; the same readings are in the breath table (<code>peep_from</code>,
+<code>peep_to</code>, <code>plateau_from</code>, <code>plateau_to</code>; <a href="../preprocessing/">preprocessing</a>). Without a
+pressure curve (no pressure, or only the values computed by the ventilator) there is
+nothing to show and the function says so.</p>
+<p>The functions return a matplotlib figure: <code>fig.savefig("P01_T0_breaths.png")</code> keeps one
 image per recording next to the exported tables (<a href="../export/">export</a>). The times to
 write in the segments are found as in <a href="../guide/segments/">cut a recording</a>. The figures
 work on reconstructed images only (Dräger <code>.bin</code>, Timpel).</p>

@@ -1626,6 +1626,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.breath_pressures.plateau_readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plateau_readings
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2596,6 +2607,17 @@
     <span class="md-ellipsis">
       
         plateau_pressures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fasteit.preprocessing.breath_pressures.plateau_readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plateau_readings
       
     </span>
   </a>
@@ -8248,15 +8270,36 @@ pressure already rises quickly (notebook 06, section 2).</p>
 
     <div class="doc doc-contents ">
 
-        <p>Plateau pressure of each breath, read at the end of the end-inspiratory hold.</p>
+        <p>Plateau pressure of each breath (<code>plateau_readings</code> without the frames).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fasteit.preprocessing.breath_pressures.plateau_readings" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">plateau_readings</span>
+
+
+<a href="#fasteit.preprocessing.breath_pressures.plateau_readings" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">plateau_readings</span><span class="p">(</span><span class="n">paw</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">onsets</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">peeps</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Plateau pressure of each breath and the frames it is read on.</p>
 <p>Between the start of inspiration of a breath and the next one: after the highest
 part of the breath (the peak in volume control, the flat pressure in pressure
-control), the start of expiration is the steepest point of the last steep fall of
-the pressure (<code>STEEP_FALL_FRACTION</code>) before it comes back within 2 of the next
-PEEP, searched from 0.15 s after the highest part. So a slow end of expiration, which
-is not steep, never moves it. The plateau is the median pressure from <code>window[0]</code>
-to <code>window[1]</code> seconds before the start of expiration, never in the first 0.15 s
-after the highest part (notebook 06, section 4).</p>
+control), the start of expiration is the start of the last large fall of the
+pressure that starts before it comes back within 2 of the next PEEP, searched
+from 0.15 s after the highest part (<code>FALL_SLOPE_FRACTION</code>, <code>FALL_SIZE_FRACTION</code>).
+So neither the fall from the peak, which can be steeper, nor a slow end or a dip of
+the expiration moves it. The plateau is the median pressure from <code>window[0]</code> to
+<code>window[1]</code> seconds before the start of expiration, never in the first 0.15 s after
+the highest part (notebook 06, section 4).</p>
 <p>A valid plateau needs at least 0.2 s between the highest part and the expiration:
 an end-inspiratory hold with zero flow in volume control (continuous pause, or an
 inspiratory hold done by hand), or the flat inspiratory pressure in pressure
@@ -8376,7 +8419,7 @@ pressure.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>One plateau per breath; NaN for the last breath (no next breath), for unknown</p>
+                <p>One plateau per breath, and the first frame of its reading and the frame after</p>
               </div>
             </td>
           </tr>
@@ -8386,7 +8429,27 @@ pressure.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>onsets, for breaths with missing pressure and where no hold is found.</p>
+                <p>the last one (<code>paw[first:last]</code>). NaN and -1 for the last breath (no next</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>breath), for unknown onsets, for breaths with missing pressure and where no hold</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a>, <a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a>, <a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>is found.</p>
               </div>
             </td>
           </tr>
