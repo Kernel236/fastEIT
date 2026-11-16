@@ -5,7 +5,9 @@
   of the file, before ``preprocess()``;
 - ``plot_breaths(result)``: the breaths found by ``preprocess()``, which ones are used
   for the indices, flagged or excluded; for a PEEP trial the steps with their PEEP
-  level; the lung mask with its tidal image.
+  level; the lung mask with its tidal image;
+- ``plot_pressure_readings(recording, start, end)``: where the PEEP and the plateau of
+  each breath were read on the airway pressure curve.
 
 Colours and markers are fixed here, so that every figure shows the same thing in the
 same way. Each function returns a matplotlib Figure.
@@ -166,6 +168,64 @@ def plot_breaths(
         handles, labels, title="breaths", loc="upper center",
         bbox_to_anchor=(0.5, -0.12), frameon=False, fontsize=8,
     )  # fmt: skip
+    fig.tight_layout()
+    return fig
+
+
+def plot_pressure_readings(
+    recording: EITRecording,
+    start: float | None = None,
+    end: float | None = None,
+    title: str = "",
+) -> Figure:
+    """Where the PEEP and the plateau of each breath were read on the pressure curve.
+
+    The airway pressure the readings come from (``recording.pressure_channel``), from
+    ``start`` to ``end`` seconds; for each breath a short line at its PEEP over the PEEP
+    reading (``peep_from`` to ``peep_to``, blue) and one at its plateau over the plateau
+    reading (orange). A breath without a plateau has only its PEEP. A few breaths at a
+    time show the readings best.
+
+    Args:
+        recording: Output of ``preprocess()``.
+        start:     First second shown (None: the start of the recording).
+        end:       Last second shown (None: the end of the recording).
+        title:     Title of the figure.
+
+    Returns:
+        The figure.
+
+    Raises:
+        ValueError: if the recording has no airway pressure curve (no pressure, or only
+            the values computed by the ventilator).
+    """
+    channel = recording.pressure_channel
+    if channel not in PRESSURE_CHANNELS:
+        raise ValueError(
+            "The recording has no airway pressure curve: the PEEP and the plateau were "
+            "not read on a curve."
+        )
+    time = recording.time
+    start = time[0] if start is None else start
+    end = time[-1] if end is None else end
+    shown = (time >= start) & (time <= end)
+    breaths = recording.breaths
+    inside = breaths[(breaths.start_time >= start) & (breaths.end_time <= end)]
+
+    fig, ax = plt.subplots(figsize=(13, 3.6))
+    ax.plot(time[shown], recording.aux[channel].to_numpy()[shown], color=INK, lw=0.8,
+            label=channel)  # fmt: skip
+    for value, first, last, colour, name in [
+        ("peep", "peep_from", "peep_to", USED, "PEEP reading"),
+        ("plateau", "plateau_from", "plateau_to", FLAGGED, "plateau reading"),
+    ]:
+        read = inside[inside[value].notna()]
+        ax.hlines(read[value], read[first], read[last], color=colour, lw=4, label=name)
+    ax.set_xlim(start, end)
+    ax.set_xlabel("time (s)")
+    ax.set_ylabel("airway pressure (cmH2O)")
+    ax.set_title(title, loc="left")
+    ax.legend(loc="upper right", frameon=False, fontsize=8)
     fig.tight_layout()
     return fig
 

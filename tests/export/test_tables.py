@@ -81,6 +81,7 @@ def test_used_breaths_are_those_of_the_indices(composite, tables):
 def test_a_breath_row_joins_layers_2_and_3(composite, tables):
     trial = tables[1]["breaths"]
     for column in ["start_time", "is_valid", "peep", "driving_pressure",  # layer 2
+                   "peep_from", "peep_to", "plateau_from", "plateau_to",
                    "peep_step", "peep_set",                              # layer 2b
                    "eeli", "tiv", "compliance_ml"]:  # layer 3  # fmt: skip
         assert column in trial.columns

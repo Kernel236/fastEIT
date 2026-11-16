@@ -8,6 +8,7 @@ from fasteit.preprocessing.breath_pressures import (
     PLATEAU_WINDOW_SECONDS,
     inspiration_onsets,
     plateau_pressures,
+    plateau_readings,
     pressure_before,
 )
 
@@ -123,6 +124,67 @@ def test_a_slow_end_of_expiration_does_not_move_the_plateau(pause):
 def test_a_slow_end_of_expiration_without_pause_gives_no_plateau():
     paw, starts = vcv_pressure([10] * 5, pause=0.0, tail=4.0)
     assert np.isnan(plateaus_of(paw, starts)).all()
+
+
+def repeated(breath, n=5):
+    """``n`` copies of one breath, and the frame where each starts."""
+    return np.tile(breath, n), np.arange(n) * len(breath)
+
+
+def test_an_expiration_slower_than_the_fall_from_the_peak():
+    # A long hold, as in a PEEP trial of a new study at PEEP 8-16: from the peak the
+    # pressure falls 7 cmH2O (resistive) faster than it falls at the expiration.
+    t = np.arange(0, 6.0, 1 / 50)
+    p = np.full(len(t), 16.0)
+    p[t < 0.8] = 16 + 14 * t[t < 0.8] / 0.8
+    hold = (t >= 0.8) & (t < 2.4)
+    p[hold] = 23 + 7 * np.exp(-(t[hold] - 0.8) / 0.12)
+    p[t >= 2.4] = 16 + 7 * np.exp(-(t[t >= 2.4] - 2.4) / 0.6)
+    paw, starts = repeated(p)
+    np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 23, atol=0.05)
+
+
+def test_a_dip_after_the_expiration_does_not_move_the_plateau():
+    # The fall from the plateau stops just above PEEP + 2; then the pressure dips
+    # below PEEP and comes back to it.
+    points = [(0, 5), (0.8, 25), (1.0, 15), (2.0, 15), (2.12, 7.4), (2.3, 7.4),
+              (2.34, 3.0), (2.6, 5), (4.0, 5)]  # fmt: skip
+    times, values = zip(*points, strict=True)
+    paw, starts = repeated(np.interp(np.arange(0, 4.0, 1 / 50), times, values))
+    np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 15, atol=0.05)
+
+
+def test_an_expiration_that_speeds_up_is_read_from_its_start():
+    # The pressure leaves the plateau slowly, then falls fast: its steepest point is
+    # 0.15 s after the start of expiration.
+    points = [(0, 5), (0.8, 18), (1.0, 13), (2.0, 13), (2.15, 10.5), (2.27, 5),
+              (4.0, 5)]  # fmt: skip
+    times, values = zip(*points, strict=True)
+    paw, starts = repeated(np.interp(np.arange(0, 4.0, 1 / 50), times, values))
+    np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 13, atol=0.05)
+
+
+def test_the_plateau_is_the_median_of_its_reading():
+    paw, starts = vcv_pressure([10] * 5, pause=0.8)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
+    plateau, first, last = plateau_readings(
+        paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS
+    )
+    for i in range(1, 4):
+        assert plateau[i] == np.median(paw[first[i] : last[i]])
+        assert last[i] - first[i] == 10  # 0.25 to 0.05 s before the expiration
+        # Inside the hold: from 1 s (end of the ramp) to 1.8 s after the breath starts.
+        assert starts[i] + 50 < first[i] < last[i] <= starts[i] + 90
+    assert np.isnan(plateau[-1]) and first[-1] == last[-1] == -1
+
+
+def test_without_a_hold_there_is_no_reading():
+    paw, starts = vcv_pressure([10] * 5, pause=0.0)
+    onsets = inspiration_onsets(paw, 50, starts)
+    peep = pressure_before(paw, 50, onsets, PEEP_SECONDS)
+    _, first, last = plateau_readings(paw, 50, onsets, peep, PLATEAU_WINDOW_SECONDS)
+    assert (first == -1).all() and (last == -1).all()
 
 
 def test_missing_pressure_at_the_start_of_the_next_breath_is_not_an_error():

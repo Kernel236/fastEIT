@@ -143,8 +143,10 @@ class EITRecording:
         breaths:       One row per breath: times and frames of start, peak and end,
                        quality flags, ``excluded``, ``exclusion_label``,
                        ``is_valid``; ``peep``, ``plateau`` and ``driving_pressure``
-                       (cmH2O) and the inspiratory ``tidal_volume`` (mL), NaN where
-                       not available.
+                       (cmH2O), where PEEP and plateau were read on the pressure
+                       curve (``peep_from``, ``peep_to``, ``plateau_from``,
+                       ``plateau_to``, s) and the inspiratory ``tidal_volume`` (mL),
+                       NaN where not available.
         lung_mask:     (rows, cols) bool, ventilated lung (not the anatomical lung).
         tiv_map:       (rows, cols) mean TIV of the valid breaths (first and last
                        breath excluded), used for the mask.

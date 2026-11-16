@@ -157,7 +157,7 @@ on `breath_id`, `step` (with `peep`) and `region`.
 
 | Where | One row per | Content |
 |-------|-------------|---------|
-| `EITRecording.breaths` | breath | times and frames, quality flags, `excluded`, `is_valid`, PEEP, plateau, driving pressure, measured tidal volume |
+| `EITRecording.breaths` | breath | times and frames, quality flags, `excluded`, `is_valid`, PEEP, plateau, driving pressure and where they were read, measured tidal volume |
 | `EITRecording.aux` (+ `aux_units`) | frame | auxiliary signals in cmH2O, L/s, mL; device markers |
 | `EITRecording` arrays | - | `pixels`, `lung_mask`, `roi_masks`, `roi_signals`, `global_signal`, `time` |
 | `EITRecording.context` | - | `RecordingContext`: `patient_id`, `label`, `position`, `protocol`, `interface`, `tidal_volume_ml`, `notes` |
