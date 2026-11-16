@@ -49,7 +49,24 @@ For a PEEP trial the steps are shaded and labelled with their PEEP level of the 
 drawn below with the level of each step. On the right, the tidal image inside the lung
 mask (patient right on the left, ventral on top) and the count of each kind of breath.
 
-Both functions return a matplotlib figure: `fig.savefig("P01_T0_breaths.png")` keeps one
+## The pressure readings
+
+```python
+from fasteit.plotting import plot_pressure_readings
+
+plot_pressure_readings(recording, start=120, end=150)
+```
+
+The airway pressure curve the PEEP and the plateau were read on, with a short blue line
+at the PEEP of each breath over its reading (the 0.2 s before the start of inspiration)
+and an orange one at its plateau over its reading (before the start of expiration). A
+breath without a plateau (no end-inspiratory hold) has only its PEEP. A few breaths at a
+time show the readings best; the same readings are in the breath table (`peep_from`,
+`peep_to`, `plateau_from`, `plateau_to`; [preprocessing](preprocessing.md)). Without a
+pressure curve (no pressure, or only the values computed by the ventilator) there is
+nothing to show and the function says so.
+
+The functions return a matplotlib figure: `fig.savefig("P01_T0_breaths.png")` keeps one
 image per recording next to the exported tables ([export](export.md)). The times to
 write in the segments are found as in [cut a recording](guide/segments.md). The figures
 work on reconstructed images only (Dräger `.bin`, Timpel).

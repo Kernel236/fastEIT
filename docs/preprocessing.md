@@ -112,7 +112,7 @@ Then each breath gets, in the breath table, the first source available:
 
 | Columns | Source, in order of preference | Channel used |
 |---------|-------------------------------|--------------|
-| `peep`, `plateau`, `driving_pressure` (cmH2O) | 1. airway pressure waveform: Dräger PressurePod, then Medibus or Timpel `airway_pressure`; 2. without a waveform, the PEEP and plateau computed by the ventilator (Medibus), median over the breath | `pressure_channel` |
+| `peep`, `plateau`, `driving_pressure` (cmH2O), and where they were read | 1. airway pressure waveform: Dräger PressurePod, then Medibus or Timpel `airway_pressure`; 2. without a waveform, the PEEP and plateau computed by the ventilator (Medibus), median over the breath | `pressure_channel` |
 | `tidal_volume` (mL, inspiratory) | 1. volume curve: highest volume around the inspiration minus the lowest before it; 2. integral of the inspiratory flow; 3. the tidal volume computed by the ventilator (Medibus: mandatory, then spontaneous inspiratory value, then the generic "tidal volume"), median over the breath | `tidal_volume_channel` |
 
 The pressures are all read on the same channel, so that a constant offset of the
@@ -121,15 +121,24 @@ sensor cancels in the driving pressure:
 - **start of inspiration**: the last minimum of the pressure before its steepest rise,
   searched near the EIT valley;
 - **PEEP**: the median pressure in the 0.2 s before it;
-- **start of expiration**: the steepest point of the last steep fall of the pressure
-  before it comes back near PEEP (at least half as steep as the steepest fall after the
-  peak), so that a slow end of expiration never moves it;
+- **start of expiration**: the steepest point of the last large fall of the pressure
+  that starts before it comes back near PEEP. A fall is large when it brings the
+  pressure down towards PEEP (counting only the part above PEEP + 2) at least a quarter
+  as much as the largest fall after the peak. So the fall from the peak (resistive
+  pressure), which can be steeper than the expiration, a slow end of expiration and a
+  dip below PEEP after it never move it;
 - **plateau**: the median pressure from 0.25 to 0.05 s before the start of
   expiration, never in the first 0.15 s after the peak, only after an end-inspiratory
   hold of at least 0.2 s (ventilators often set 0.2-0.3 s; a short hold gives a
   plateau slightly overestimated). In pressure control the flat inspiratory pressure
   is read the same way;
 - **driving pressure** = plateau - PEEP. The peak pressure is never used instead.
+
+Where each was read, to check the method on the curve: `peep_from`, `peep_to`,
+`plateau_from`, `plateau_to` (seconds, from included to excluded, on the same time axis
+as `start_time`), NaN without a reading and for the values computed by the ventilator,
+which are not read on a curve. `plot_pressure_readings()` draws them
+([review figures](review.md)).
 
 The tidal volume is read in a window from half an expiration before the EIT breath
 (but not before the middle of the expiration before) to the middle of its own
@@ -162,7 +171,7 @@ typed volume outside 100-1500 mL gives a warning (litres typed instead of mL?).
 | `image_mask` | pixels with a signal, wider than the lung |
 | `detection_signal` | sum of all pixels: the breaths are its valleys and peaks |
 | `global_signal` | sum of the pixels inside the lung mask |
-| `breaths` | one row per breath: times and frames, flags, `excluded`, `exclusion_label`, `is_valid`, `peep`, `plateau`, `driving_pressure`, `tidal_volume` |
+| `breaths` | one row per breath: times and frames, flags, `excluded`, `exclusion_label`, `is_valid`, `peep`, `plateau`, `driving_pressure` and where they were read (`peep_from`...`plateau_to`), `tidal_volume` |
 | `lung_mask`, `tiv_map` | ventilated lung and the mean TIV map it comes from |
 | `roi_masks`, `roi_signals` | `ventral`, `dorsal`, `right`, `left`, `layer_1`-`layer_4`, four quadrants, cut on the ventilated lung (indices of a shift of ventilation use image coordinates) |
 | `aux`, `aux_units` | auxiliary signals with data, one row per frame (e.g. `airway_pressure_pod`, `esophageal_pressure_pod`, Medibus `peep`, `min_max_flag`), and the unit of each |
