@@ -24,11 +24,15 @@ ONSET_SEARCH_BEFORE_SECONDS = 1.0
 ONSET_SEARCH_AFTER_SECONDS = 0.5
 # Start of inspiration = last minimum in the 0.5 s before the steepest rise.
 ONSET_LOOKBACK_SECONDS = 0.5
-# Start of expiration = steepest point of the last steep fall before the pressure is
-# back near PEEP; a fall is steep when it is at least half as steep as the steepest one
-# after the peak. It is the fall from the plateau: not the slow end of expiration, which
-# comes after, nor the fall from the peak (resistive pressure), which comes before.
-STEEP_FALL_FRACTION = 0.5
+# Start of expiration = steepest point of the last large fall of the pressure that starts
+# before it is back near PEEP. A fall is a run of frames at least 0.2 times as steep as
+# the steepest one after the peak; its size is how far it brings the pressure down
+# towards PEEP (only the part above PEEP + 2 counts), and it is large when it is at least
+# a quarter of the largest. It is the fall from the plateau: not the fall from the peak
+# (resistive pressure), which comes before and can be steeper, nor a slow end or a dip
+# of the expiration, which come after and are small above PEEP + 2.
+FALL_SLOPE_FRACTION = 0.2
+FALL_SIZE_FRACTION = 0.25
 # The pressure is back near PEEP when it is within 2 cmH2O of it.
 BACK_TO_PEEP_MARGIN = 2.0
 # The highest part of a breath starts at the first frame within 1 cmH2O of its
@@ -129,16 +133,28 @@ def plateau_pressures(
     peeps: np.ndarray,
     window: tuple[float, float],
 ) -> np.ndarray:
-    """Plateau pressure of each breath, read at the end of the end-inspiratory hold.
+    """Plateau pressure of each breath (``plateau_readings`` without the frames)."""
+    return plateau_readings(paw, fs, onsets, peeps, window)[0]
+
+
+def plateau_readings(
+    paw: np.ndarray,
+    fs: float,
+    onsets: np.ndarray,
+    peeps: np.ndarray,
+    window: tuple[float, float],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Plateau pressure of each breath and the frames it is read on.
 
     Between the start of inspiration of a breath and the next one: after the highest
     part of the breath (the peak in volume control, the flat pressure in pressure
-    control), the start of expiration is the steepest point of the last steep fall of
-    the pressure (``STEEP_FALL_FRACTION``) before it comes back within 2 of the next
-    PEEP, searched from 0.15 s after the highest part. So a slow end of expiration, which
-    is not steep, never moves it. The plateau is the median pressure from ``window[0]``
-    to ``window[1]`` seconds before the start of expiration, never in the first 0.15 s
-    after the highest part (notebook 06, section 4).
+    control), the start of expiration is the steepest point of the last large fall of
+    the pressure that starts before it comes back within 2 of the next PEEP, searched
+    from 0.15 s after the highest part (``FALL_SLOPE_FRACTION``, ``FALL_SIZE_FRACTION``).
+    So neither the fall from the peak, which can be steeper, nor a slow end or a dip of
+    the expiration moves it. The plateau is the median pressure from ``window[0]`` to
+    ``window[1]`` seconds before the start of expiration, never in the first 0.15 s after
+    the highest part (notebook 06, section 4).
 
     A valid plateau needs at least 0.2 s between the highest part and the expiration:
     an end-inspiratory hold with zero flow in volume control (continuous pause, or an
@@ -156,8 +172,10 @@ def plateau_pressures(
         window: (start, end) of the reading, in seconds before the start of expiration.
 
     Returns:
-        One plateau per breath; NaN for the last breath (no next breath), for unknown
-        onsets, for breaths with missing pressure and where no hold is found.
+        One plateau per breath, and the first frame of its reading and the frame after
+        the last one (``paw[first:last]``). NaN and -1 for the last breath (no next
+        breath), for unknown onsets, for breaths with missing pressure and where no hold
+        is found.
     """
     paw = np.asarray(paw, dtype=float)
     smoothed = _smooth(paw, fs)
@@ -167,6 +185,8 @@ def plateau_pressures(
     after_peak = _samples(AFTER_PEAK_SECONDS, fs)
 
     plateaus = np.full(len(onsets), np.nan)
+    first_frames = np.full(len(onsets), -1, dtype=int)
+    last_frames = np.full(len(onsets), -1, dtype=int)
     for i in range(len(onsets) - 1):
         onset, next_onset = onsets[i], onsets[i + 1]
         if onset < 0 or next_onset <= onset or np.isnan(peeps[i + 1]):
@@ -175,28 +195,57 @@ def plateau_pressures(
             continue
         breath = paw[onset:next_onset]
         peak = onset + int(np.flatnonzero(breath >= breath.max() - TOP_MARGIN)[0])
-        back_to_peep = np.flatnonzero(
-            smoothed[peak:next_onset] < peeps[i + 1] + BACK_TO_PEEP_MARGIN
-        )
+        near_peep = peeps[i + 1] + BACK_TO_PEEP_MARGIN
+        back_to_peep = np.flatnonzero(smoothed[peak:next_onset] < near_peep)
         if len(back_to_peep) == 0:
             continue
         reached = peak + back_to_peep[0]
         lo = min(peak + after_peak, reached)
-        falls = slope[lo : reached + 1]
-        steepest_fall = falls.min()
-        # No fall, or missing pressure carried by the smoothing from the next breath.
-        if np.isnan(steepest_fall) or steepest_fall >= 0:
+        expiration = _start_of_expiration(
+            smoothed[lo:next_onset], slope[lo:next_onset], reached - lo, near_peep
+        )
+        if expiration is None:
             continue
-        # The last steep fall (frames ``start`` to ``end``) and its steepest point.
-        steep = falls <= STEEP_FALL_FRACTION * steepest_fall
-        end = np.flatnonzero(steep)[-1]
-        start = end
-        while start > 0 and steep[start - 1]:
-            start -= 1
-        expiration = lo + start + int(np.argmin(falls[start : end + 1]))
+        expiration += lo
         # The reading never starts on the fall from the peak, whatever the window.
         read_from = max(peak + after_peak, expiration - first)
         read_to = expiration - last
         if expiration - peak >= min_pause and read_to > read_from:
             plateaus[i] = np.median(paw[read_from:read_to])
-    return plateaus
+            first_frames[i], last_frames[i] = read_from, read_to
+    return plateaus, first_frames, last_frames
+
+
+def _start_of_expiration(
+    smoothed: np.ndarray, slope: np.ndarray, reached: int, near_peep: float
+) -> int | None:
+    """Steepest point above ``near_peep`` of the last large fall that starts by ``reached``.
+
+    Args:
+        smoothed:  Smoothed pressure from 0.15 s after the highest part of the breath.
+        slope:     Its slope.
+        reached:   First frame where the pressure is below ``near_peep``.
+        near_peep: The next PEEP + 2.
+
+    Returns:
+        The frame, or None if there is no fall above ``near_peep``.
+    """
+    steepest = slope[: reached + 1].min()
+    # No fall, or missing pressure carried by the smoothing from the next breath.
+    if np.isnan(steepest) or steepest >= 0:
+        return None
+    falling = slope <= FALL_SLOPE_FRACTION * steepest
+    edges = np.flatnonzero(np.diff(np.concatenate(([0], falling.astype(int), [0]))))
+    falls = [
+        (start, end - 1)
+        for start, end in zip(edges[::2], edges[1::2], strict=True)
+        if start <= reached
+    ]
+    # How far each fall brings the pressure down towards PEEP: a dip below PEEP + 2
+    # after the expiration does not count.
+    sizes = np.array([smoothed[a] - max(smoothed[b], near_peep) for a, b in falls])
+    if sizes.max() <= 0:
+        return None
+    start, end = falls[np.flatnonzero(sizes >= FALL_SIZE_FRACTION * sizes.max())[-1]]
+    above = start + np.flatnonzero(smoothed[start : end + 1] > near_peep)
+    return int(above[np.argmin(slope[above])])
