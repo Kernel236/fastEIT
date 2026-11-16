@@ -38,7 +38,7 @@ from fasteit.preprocessing.breath_pressures import (
     PEEP_SECONDS,
     PLATEAU_WINDOW_SECONDS,
     inspiration_onsets,
-    plateau_pressures,
+    plateau_readings,
     pressure_before,
 )
 from fasteit.preprocessing.breath_quality import LOCAL_MIN_BREATHS, quality_flags
@@ -101,6 +101,11 @@ SECONDS_PER_DAY = 86400.0
 PRESSURE_CHANNELS = ("airway_pressure_pod", "airway_pressure")
 PEEP_VALUE_CHANNEL = "peep"
 PLATEAU_VALUE_CHANNEL = "plateau_pressure"
+# The pressures of each breath and, in seconds, where they were read on the waveform: to
+# check the method on the curve, not for the statistics.
+PRESSURE_COLUMNS = [
+    "peep", "plateau", "peep_from", "peep_to", "plateau_from", "plateau_to",
+]  # fmt: skip
 VOLUME_CHANNEL = "volume"
 FLOW_CHANNEL = "flow"
 TIDAL_VOLUME_VALUE_CHANNELS = (
@@ -371,12 +376,13 @@ def _median_over_breaths(
 def _breath_pressures(
     aux: pd.DataFrame,
     fs: float,
+    time: np.ndarray,
     starts: np.ndarray,
     ends: np.ndarray,
     config: PreprocessingConfig,
     log: RunLog,
-) -> tuple[str | None, np.ndarray, np.ndarray]:
-    """PEEP and plateau of each breath, and the channel they come from.
+) -> tuple[str | None, pd.DataFrame]:
+    """PEEP and plateau of each breath, where they were read, and their channel.
 
     From the first airway pressure waveform of ``PRESSURE_CHANNELS``; without
     one, the PEEP and plateau computed by the ventilator (Medibus), median over each
@@ -385,40 +391,68 @@ def _breath_pressures(
     Args:
         aux:    Auxiliary signals (cmH2O).
         fs:     Sampling frequency in Hz.
+        time:   Time of each frame, in seconds.
         starts, ends: First and last frame of each breath.
         config: Parameters.
         log:    Run log.
+
+    Returns:
+        The channel, and one row per breath with ``PRESSURE_COLUMNS``: ``peep``,
+        ``plateau`` and where they were read on the waveform, in seconds, from
+        (included) to (excluded); NaN without a reading, and for the values computed
+        by the ventilator, which have no point on a curve.
     """
+    pressures = pd.DataFrame(np.nan, index=range(len(starts)), columns=PRESSURE_COLUMNS)
     channel = next((c for c in PRESSURE_CHANNELS if _has_data(aux, c)), None)
     if channel is not None:
         paw = aux[channel].to_numpy(dtype=float)
         # The valley that closes the last breath is one more start of inspiration, so
         # that the last breath also has a plateau.
-        valleys = np.append(starts, ends[-1])
-        onsets = inspiration_onsets(paw, fs, valleys)
+        onsets = inspiration_onsets(paw, fs, np.append(starts, ends[-1]))
         peep = pressure_before(paw, fs, onsets, PEEP_SECONDS)
-        plateau = plateau_pressures(paw, fs, onsets, peep, PLATEAU_WINDOW_SECONDS)
+        plateau, first, last = plateau_readings(
+            paw, fs, onsets, peep, PLATEAU_WINDOW_SECONDS
+        )
+        # The PEEP is read on the PEEP_SECONDS before the onset (pressure_before).
+        has_peep = np.isfinite(peep)
+        peep_first = onsets - int(round(PEEP_SECONDS * fs))
+        has_plateau = first >= 0
+        readings = {
+            "peep": peep,
+            "plateau": plateau,
+            "peep_from": _seconds(time, peep_first, has_peep),
+            "peep_to": _seconds(time, onsets, has_peep),
+            "plateau_from": _seconds(time, first, has_plateau),
+            "plateau_to": _seconds(time, last, has_plateau),
+        }
+        for column, values in readings.items():
+            pressures[column] = values[:-1]
         log.ok(f"PEEP and plateau of each breath read on {channel}.")
-        return channel, peep[:-1], plateau[:-1]
+        return channel, pressures
 
     if _has_data(aux, PEEP_VALUE_CHANNEL):
         values = aux[PEEP_VALUE_CHANNEL].to_numpy(dtype=float)
-        peep = _median_over_breaths(values, starts, ends)
-        plateau = np.full(len(starts), np.nan)
+        pressures["peep"] = _median_over_breaths(values, starts, ends)
         if _has_data(aux, PLATEAU_VALUE_CHANNEL):
             values = aux[PLATEAU_VALUE_CHANNEL].to_numpy(dtype=float)
-            plateau = _median_over_breaths(values, starts, ends)
+            pressures["plateau"] = _median_over_breaths(values, starts, ends)
         log.ok(
             "No airway pressure waveform: PEEP (and plateau, if there) computed by the "
             f"ventilator, median over each breath ({PEEP_VALUE_CHANNEL})."
         )
-        return PEEP_VALUE_CHANNEL, peep, plateau
+        return PEEP_VALUE_CHANNEL, pressures
 
     log.warning(
         "No airway pressure: no PEEP, plateau or driving pressure of the breaths."
     )
-    nothing = np.full(len(starts), np.nan)
-    return None, nothing, nothing.copy()
+    return None, pressures
+
+
+def _seconds(time: np.ndarray, frames: np.ndarray, known: np.ndarray) -> np.ndarray:
+    """Time of each frame, NaN where not ``known``; the frame after the last one is one
+    sample after it (the end of a reading is excluded)."""
+    after_end = np.append(time, 2 * time[-1] - time[-2])
+    return np.where(known, after_end[np.clip(frames, 0, len(time))], np.nan)
 
 
 def _check_inspiration_is_positive(
@@ -640,12 +674,14 @@ def preprocess(
         log.info("No auxiliary signals with data.")
 
     # 8. Airway pressures of each breath (cmH2O).
-    pressure_channel, peep, plateau = _breath_pressures(
-        aux, fs, table.start_idx.to_numpy(), table.end_idx.to_numpy(), config, log
+    pressure_channel, pressures = _breath_pressures(
+        aux, fs, time, table.start_idx.to_numpy(), table.end_idx.to_numpy(), config, log
     )
-    table["peep"] = peep
-    table["plateau"] = plateau
-    table["driving_pressure"] = plateau - peep
+    table["peep"] = pressures.peep.to_numpy()
+    table["plateau"] = pressures.plateau.to_numpy()
+    table["driving_pressure"] = table.plateau - table.peep
+    for column in PRESSURE_COLUMNS[2:]:  # where they were read
+        table[column] = pressures[column].to_numpy()
 
     # 9. Inspiratory tidal volume of each breath (mL).
     tidal_volume_channel, tidal_volume = _tidal_volumes(aux, fs, table, config, log)

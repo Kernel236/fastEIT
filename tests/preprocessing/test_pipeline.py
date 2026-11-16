@@ -291,6 +291,38 @@ def test_the_pressures_of_each_breath_are_read_on_the_airway_pressure():
     assert any("PEEP and plateau of each breath read on" in m for m in recording.log)
 
 
+READINGS = ["peep_from", "peep_to", "plateau_from", "plateau_to"]
+
+
+def median_between(recording, start, end):
+    """Median airway pressure from ``start`` (included) to ``end`` (excluded), in s."""
+    inside = (recording.time >= start) & (recording.time < end)
+    return np.median(recording.aux.airway_pressure.to_numpy()[inside])
+
+
+def test_each_breath_says_where_its_pressures_were_read():
+    raw, _ = synthetic_raw()
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)
+    raw.aux_signals = {"airway_pressure": paw[: len(raw.frames)].astype(np.float32)}
+    recording = preprocess(raw)
+    breaths = recording.breaths.iloc[1:-1]
+    for _, b in breaths.iterrows():
+        assert b.peep_to - b.peep_from == pytest.approx(0.2)  # ending at the onset
+        assert median_between(recording, b.peep_from, b.peep_to) == b.peep
+        assert b.start_time < b.plateau_from < b.plateau_to < b.end_time
+        assert median_between(recording, b.plateau_from, b.plateau_to) == b.plateau
+
+
+def test_without_a_hold_only_the_peep_has_a_reading():
+    raw, _ = synthetic_raw()
+    paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0, pause=0.0)
+    raw.aux_signals = {"airway_pressure": paw[: len(raw.frames)].astype(np.float32)}
+    breaths = preprocess(raw).breaths
+    assert breaths.plateau.isna().all()
+    assert breaths[["plateau_from", "plateau_to"]].isna().all().all()
+    assert breaths[["peep_from", "peep_to"]].iloc[1:].notna().all().all()
+
+
 def test_draeger_pressures_of_each_breath_are_in_cmh2o():
     raw, _ = synthetic_raw(vendor="draeger")
     paw, _ = vcv_pressure([10] * 23, fs=FS, period=4.0)  # in mbar, as recorded
@@ -313,6 +345,8 @@ def test_draeger_ventilator_pressures_without_a_waveform_are_in_cmh2o():
     np.testing.assert_allclose(
         recording.breaths.driving_pressure, 15 * CMH2O_PER_MBAR, rtol=1e-6
     )
+    # Values of the ventilator, not read on a curve: no reading to show.
+    assert recording.breaths[READINGS].isna().all().all()
 
 
 def test_the_pressurepod_comes_before_the_ventilator_pressure():
@@ -335,6 +369,7 @@ def test_without_pressure_the_pressures_of_the_breaths_are_missing():
     recording = preprocess(synthetic_raw()[0])
     assert recording.pressure_channel is None
     assert recording.breaths[["peep", "plateau", "driving_pressure"]].isna().all().all()
+    assert recording.breaths[READINGS].isna().all().all()
     # A missing input is a warning, with its consequence.
     assert any(line.startswith("WARNING: No airway pressure") for line in recording.log)
 
