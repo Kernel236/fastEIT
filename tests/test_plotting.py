@@ -11,7 +11,11 @@ import pytest  # noqa: E402
 from fasteit.config import SegmentationConfig  # noqa: E402
 from fasteit.features import tidal_features  # noqa: E402
 from fasteit.models import Segment  # noqa: E402
-from fasteit.plotting import plot_breaths, plot_segmentation  # noqa: E402
+from fasteit.plotting import (  # noqa: E402
+    plot_breaths,
+    plot_pressure_readings,
+    plot_segmentation,
+)
 from fasteit.preprocessing import preprocess  # noqa: E402
 from fasteit.segmentation import segment_peep_trial  # noqa: E402
 
@@ -109,3 +113,28 @@ def test_breaths_of_a_tidal_phase_are_used_only_inside_it(recording):
 def test_only_results_of_the_pipeline_are_accepted(raw):
     with pytest.raises(TypeError, match="preprocess"):
         plot_breaths(raw)
+
+
+def test_pressure_readings_mark_where_peep_and_plateau_were_read(recording):
+    fig = plot_pressure_readings(recording, start=40, end=60)
+    ax = fig.axes[0]
+    breaths = recording.breaths
+    shown = breaths[(breaths.start_time >= 40) & (breaths.end_time <= 60)]
+    peep_marks, plateau_marks = ax.collections  # one segment per reading
+    assert len(peep_marks.get_segments()) == shown.peep.notna().sum() > 0
+    assert len(plateau_marks.get_segments()) == shown.plateau.notna().sum() > 0
+    (x0, y0), (x1, _) = plateau_marks.get_segments()[0]
+    first = shown[shown.plateau.notna()].iloc[0]
+    assert (x0, x1, y0) == (first.plateau_from, first.plateau_to, first.plateau)
+    assert ax.get_xlim() == (40, 60)
+    assert legend_texts(ax) == [
+        "airway_pressure_pod",
+        "PEEP reading",
+        "plateau reading",
+    ]
+    plt.close(fig)
+
+
+def test_pressure_readings_need_a_pressure_curve():
+    with pytest.raises(ValueError, match="no airway pressure curve"):
+        plot_pressure_readings(preprocess(synthetic_raw()[0]))
