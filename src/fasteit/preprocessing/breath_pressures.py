@@ -24,13 +24,14 @@ ONSET_SEARCH_BEFORE_SECONDS = 1.0
 ONSET_SEARCH_AFTER_SECONDS = 0.5
 # Start of inspiration = last minimum in the 0.5 s before the steepest rise.
 ONSET_LOOKBACK_SECONDS = 0.5
-# Start of expiration = steepest point of the last large fall of the pressure that starts
-# before it is back near PEEP. A fall is a run of frames at least 0.2 times as steep as
-# the steepest one after the peak; its size is how far it brings the pressure down
-# towards PEEP (only the part above PEEP + 2 counts), and it is large when it is at least
-# a quarter of the largest. It is the fall from the plateau: not the fall from the peak
+# Start of expiration = start of the last large fall of the pressure that starts before
+# it is back near PEEP. A fall is a run of frames at least 0.2 times as steep as the
+# steepest one after the peak; its size is how far it brings the pressure down towards
+# PEEP (only the part above PEEP + 2 counts), and it is large when it is at least a
+# quarter of the largest. It is the fall from the plateau: not the fall from the peak
 # (resistive pressure), which comes before and can be steeper, nor a slow end or a dip
-# of the expiration, which come after and are small above PEEP + 2.
+# of the expiration, which come after and are small above PEEP + 2. Its start, not its
+# steepest point: an expiration that speeds up would put the reading on the fall.
 FALL_SLOPE_FRACTION = 0.2
 FALL_SIZE_FRACTION = 0.25
 # The pressure is back near PEEP when it is within 2 cmH2O of it.
@@ -148,8 +149,8 @@ def plateau_readings(
 
     Between the start of inspiration of a breath and the next one: after the highest
     part of the breath (the peak in volume control, the flat pressure in pressure
-    control), the start of expiration is the steepest point of the last large fall of
-    the pressure that starts before it comes back within 2 of the next PEEP, searched
+    control), the start of expiration is the start of the last large fall of the
+    pressure that starts before it comes back within 2 of the next PEEP, searched
     from 0.15 s after the highest part (``FALL_SLOPE_FRACTION``, ``FALL_SIZE_FRACTION``).
     So neither the fall from the peak, which can be steeper, nor a slow end or a dip of
     the expiration moves it. The plateau is the median pressure from ``window[0]`` to
@@ -219,7 +220,7 @@ def plateau_readings(
 def _start_of_expiration(
     smoothed: np.ndarray, slope: np.ndarray, reached: int, near_peep: float
 ) -> int | None:
-    """Steepest point above ``near_peep`` of the last large fall that starts by ``reached``.
+    """Start of the last large fall that starts by ``reached``.
 
     Args:
         smoothed:  Smoothed pressure from 0.15 s after the highest part of the breath.
@@ -246,6 +247,4 @@ def _start_of_expiration(
     sizes = np.array([smoothed[a] - max(smoothed[b], near_peep) for a, b in falls])
     if sizes.max() <= 0:
         return None
-    start, end = falls[np.flatnonzero(sizes >= FALL_SIZE_FRACTION * sizes.max())[-1]]
-    above = start + np.flatnonzero(smoothed[start : end + 1] > near_peep)
-    return int(above[np.argmin(slope[above])])
+    return int(falls[np.flatnonzero(sizes >= FALL_SIZE_FRACTION * sizes.max())[-1]][0])

@@ -121,12 +121,13 @@ sensor cancels in the driving pressure:
 - **start of inspiration**: the last minimum of the pressure before its steepest rise,
   searched near the EIT valley;
 - **PEEP**: the median pressure in the 0.2 s before it;
-- **start of expiration**: the steepest point of the last large fall of the pressure
-  that starts before it comes back near PEEP. A fall is large when it brings the
+- **start of expiration**: the start of the last large fall of the pressure that
+  starts before it comes back near PEEP. A fall is large when it brings the
   pressure down towards PEEP (counting only the part above PEEP + 2) at least a quarter
   as much as the largest fall after the peak. So the fall from the peak (resistive
   pressure), which can be steeper than the expiration, a slow end of expiration and a
-  dip below PEEP after it never move it;
+  dip below PEEP after it never move it. It is the start of the fall, not its steepest
+  point, so that an expiration that speeds up does not put the reading on the fall;
 - **plateau**: the median pressure from 0.25 to 0.05 s before the start of
   expiration, never in the first 0.15 s after the peak, only after an end-inspiratory
   hold of at least 0.2 s (ventilators often set 0.2-0.3 s; a short hold gives a

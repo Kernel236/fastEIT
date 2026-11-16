@@ -154,6 +154,16 @@ def test_a_dip_after_the_expiration_does_not_move_the_plateau():
     np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 15, atol=0.05)
 
 
+def test_an_expiration_that_speeds_up_is_read_from_its_start():
+    # The pressure leaves the plateau slowly, then falls fast: its steepest point is
+    # 0.15 s after the start of expiration.
+    points = [(0, 5), (0.8, 18), (1.0, 13), (2.0, 13), (2.15, 10.5), (2.27, 5),
+              (4.0, 5)]  # fmt: skip
+    times, values = zip(*points, strict=True)
+    paw, starts = repeated(np.interp(np.arange(0, 4.0, 1 / 50), times, values))
+    np.testing.assert_allclose(plateaus_of(paw, starts)[1:-1], 13, atol=0.05)
+
+
 def test_the_plateau_is_the_median_of_its_reading():
     paw, starts = vcv_pressure([10] * 5, pause=0.8)
     onsets = inspiration_onsets(paw, 50, starts)
