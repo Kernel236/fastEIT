@@ -1767,7 +1767,7 @@ when it starts and ends inside it. The user-facing rules are in
 </thead>
 <tbody>
 <tr>
-<td><code>peep</code>, <code>plateau</code>, <code>driving_pressure</code> (cmH2O)</td>
+<td><code>peep</code>, <code>plateau</code>, <code>driving_pressure</code> (cmH2O), and where they were read</td>
 <td>1. airway pressure waveform: Dräger PressurePod, then Medibus or Timpel <code>airway_pressure</code>; 2. without a waveform, the PEEP and plateau computed by the ventilator (Medibus), median over the breath</td>
 <td><code>pressure_channel</code></td>
 </tr>
@@ -1784,9 +1784,13 @@ sensor cancels in the driving pressure:</p>
 <li><strong>start of inspiration</strong>: the last minimum of the pressure before its steepest rise,
   searched near the EIT valley;</li>
 <li><strong>PEEP</strong>: the median pressure in the 0.2 s before it;</li>
-<li><strong>start of expiration</strong>: the steepest point of the last steep fall of the pressure
-  before it comes back near PEEP (at least half as steep as the steepest fall after the
-  peak), so that a slow end of expiration never moves it;</li>
+<li><strong>start of expiration</strong>: the start of the last large fall of the pressure that
+  starts before it comes back near PEEP. A fall is large when it brings the
+  pressure down towards PEEP (counting only the part above PEEP + 2) at least a quarter
+  as much as the largest fall after the peak. So the fall from the peak (resistive
+  pressure), which can be steeper than the expiration, a slow end of expiration and a
+  dip below PEEP after it never move it. It is the start of the fall, not its steepest
+  point, so that an expiration that speeds up does not put the reading on the fall;</li>
 <li><strong>plateau</strong>: the median pressure from 0.25 to 0.05 s before the start of
   expiration, never in the first 0.15 s after the peak, only after an end-inspiratory
   hold of at least 0.2 s (ventilators often set 0.2-0.3 s; a short hold gives a
@@ -1794,6 +1798,11 @@ sensor cancels in the driving pressure:</p>
   is read the same way;</li>
 <li><strong>driving pressure</strong> = plateau - PEEP. The peak pressure is never used instead.</li>
 </ul>
+<p>Where each was read, to check the method on the curve: <code>peep_from</code>, <code>peep_to</code>,
+<code>plateau_from</code>, <code>plateau_to</code> (seconds, from included to excluded, on the same time axis
+as <code>start_time</code>), NaN without a reading and for the values computed by the ventilator,
+which are not read on a curve. <code>plot_pressure_readings()</code> draws them
+(<a href="../review/">review figures</a>).</p>
 <p>The tidal volume is read in a window from half an expiration before the EIT breath
 (but not before the middle of the expiration before) to the middle of its own
 expiration, so that it holds the whole inspiration even when the EIT valley falls a
@@ -1853,7 +1862,7 @@ typed volume outside 100-1500 mL gives a warning (litres typed instead of mL?).<
 </tr>
 <tr>
 <td><code>breaths</code></td>
-<td>one row per breath: times and frames, flags, <code>excluded</code>, <code>exclusion_label</code>, <code>is_valid</code>, <code>peep</code>, <code>plateau</code>, <code>driving_pressure</code>, <code>tidal_volume</code></td>
+<td>one row per breath: times and frames, flags, <code>excluded</code>, <code>exclusion_label</code>, <code>is_valid</code>, <code>peep</code>, <code>plateau</code>, <code>driving_pressure</code> and where they were read (<code>peep_from</code>...<code>plateau_to</code>), <code>tidal_volume</code></td>
 </tr>
 <tr>
 <td><code>lung_mask</code>, <code>tiv_map</code></td>

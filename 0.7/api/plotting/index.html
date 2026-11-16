@@ -1184,6 +1184,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#fasteit.plotting.plot_pressure_readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plot_pressure_readings
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1444,6 +1455,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#fasteit.plotting.plot_pressure_readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plot_pressure_readings
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1496,7 +1518,9 @@
   of the file, before <code>preprocess()</code>;</li>
 <li><code>plot_breaths(result)</code>: the breaths found by <code>preprocess()</code>, which ones are used
   for the indices, flagged or excluded; for a PEEP trial the steps with their PEEP
-  level; the lung mask with its tidal image.</li>
+  level; the lung mask with its tidal image;</li>
+<li><code>plot_pressure_readings(recording, start, end)</code>: where the PEEP and the plateau of
+  each breath were read on the airway pressure curve.</li>
 </ul>
 <p>Colours and markers are fixed here, so that every figure shows the same thing in the
 same way. Each function returns a matplotlib Figure.</p>
@@ -1758,6 +1782,162 @@ breath is drawn below. On the right: the tidal image inside the lung mask.</p>
             <td>
               <div class="doc-md-description">
                 <p>The figure.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fasteit.plotting.plot_pressure_readings" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">plot_pressure_readings</span>
+
+
+<a href="#fasteit.plotting.plot_pressure_readings" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">plot_pressure_readings</span><span class="p">(</span><span class="n">recording</span><span class="p">:</span> <span class="n">EITRecording</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Where the PEEP and the plateau of each breath were read on the pressure curve.</p>
+<p>The airway pressure the readings come from (<code>recording.pressure_channel</code>), from
+<code>start</code> to <code>end</code> seconds; for each breath a short line at its PEEP over the PEEP
+reading (<code>peep_from</code> to <code>peep_to</code>, blue) and one at its plateau over the plateau
+reading (orange). A breath without a plateau has only its PEEP. A few breaths at a
+time show the readings best.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>recording</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="EITRecording
+
+
+  
+      dataclass
+   (fasteit.models.eit_recording.EITRecording)" href="../models/#fasteit.models.eit_recording.EITRecording">EITRecording</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output of <code>preprocess()</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>start</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>First second shown (None: the start of the recording).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>end</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Last second shown (None: the end of the recording).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>title</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Title of the figure.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="matplotlib.figure.Figure">Figure</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The figure.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if the recording has no airway pressure curve (no pressure, or only
+the values computed by the ventilator).</p>
               </div>
             </td>
           </tr>
