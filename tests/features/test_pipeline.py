@@ -240,11 +240,13 @@ def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
 
 SET_VT = {"A": 550, "B": 400}
 NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, EELI change in mL at the end, R/I
-    "A_park_bench": (4.8, 6.2, -1928, 0.73),  # 4.7 before the plateau fix (slow tails)
-    "A_supine": (6.6, 6.2, -2484, 0.91),
+    "A_park_bench": (4.8, 6.2, -1928, 0.74),  # 4.7 before the plateau fix (slow tails)
+    # Best PEEP 6.2 and R/I 0.91 when one breath of the step at PEEP 6 was read on the
+    # fall of the expiration (plateau read before the steepest point of the fall).
+    "A_supine": (6.6, 4.2, -2484, 0.93),
     # 9.9, -1469 and 1.42 before the pixel timing without EELI (11 more mask pixels)
-    "B_park_bench": (10.1, 8.5, -1508, 1.46),
-    "B_supine": (12.9, 12.7, -1141, 1.31),
+    "B_park_bench": (10.1, 8.5, -1508, 1.47),
+    "B_supine": (12.9, 12.7, -1141, 1.32),
 }
 
 
