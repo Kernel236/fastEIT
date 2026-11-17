@@ -435,6 +435,23 @@ def _step_tidal_volume(
     return np.nan, None
 
 
+def _check_missing_levels(
+    peep_set: np.ndarray, protocol: Sequence[float] | None, log: RunLog
+) -> None:
+    """Warn about levels of the protocol, between the highest and the lowest step
+    found, that have no step (a step inside an exclusion, or too short to be found)."""
+    found = peep_set[np.isfinite(peep_set)]
+    if protocol is None or not len(found):
+        return
+    inside = [lv for lv in protocol if found.min() < lv < found.max()]
+    missing = [lv for lv in inside if not np.isclose(found, lv).any()]
+    if missing:
+        log.warning(
+            f"PEEP levels {', '.join(f'{lv:g}' for lv in missing)} of the protocol have "
+            "no step: a step inside an exclusion, or too short to be found?"
+        )
+
+
 def _steps_table(
     breaths: pd.DataFrame,
     levels: np.ndarray,
@@ -445,8 +462,9 @@ def _steps_table(
     log: RunLog,
 ) -> pd.DataFrame:
     """One row per step, with its level of the protocol, PEEP measured (median of its
-    breaths), plateau, driving pressure and tidal volume."""
+    breaths not excluded), plateau, driving pressure and tidal volume."""
     peep_set = protocol_levels(levels, config.peep_levels, config.step_threshold)
+    _check_missing_levels(peep_set, config.peep_levels, log)
     if config.peep_levels is None:
         log.warning(
             "No PEEP levels of the protocol (SegmentationConfig.peep_levels): "
@@ -466,7 +484,8 @@ def _steps_table(
         )
         volume = _step_tidal_volume(analysed, typed_volumes[k], recording_volume)
         rows.append([
-            k, float(level), float(peep_set[k]), float(in_step.peep.median()),
+            k, float(level), float(peep_set[k]),
+            float(in_step.peep[~in_step.excluded].median()),
             float(in_step.start_time.min()) if len(in_step) else np.nan,
             float(in_step.end_time.max()) if len(in_step) else np.nan,
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,

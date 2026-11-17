@@ -272,6 +272,27 @@ def test_an_exclusion_next_to_a_change_of_peep_does_not_change_the_wait():
     assert 48 + skip <= first_analysed(after, 1) < 48 + skip + 4
 
 
+def test_the_measured_peep_of_a_step_leaves_its_excluded_breaths_out():
+    # 4-48 s excluded: the breaths at PEEP 12 take the PEEP of the next breath (10).
+    trial = trial_with_exclusion(Segment(4, 48, label="x"))
+    first = trial.breaths[trial.breaths.peep_step == 0]
+    assert first.excluded.sum() >= 8 and (first.peep[first.excluded] > 11).any()
+    expected = first.peep[~first.excluded].median()
+    assert trial.steps.peep_measured[0] == pytest.approx(expected)
+
+
+def test_a_level_of_the_protocol_without_a_step_is_warned():
+    # Every breath at PEEP 8 excluded: the step is not found.
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    raw, _ = synthetic_raw(seconds=200)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    recording = preprocess(raw, exclusions=[Segment(94, 142, label="x")])
+    levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
+    trial = segment_peep_trial(recording, levels)
+    assert trial.steps.peep_set.tolist() == [12, 10, 6]
+    assert any("PEEP levels 8 of the protocol have no step" in m for m in trial.log)
+
+
 def test_a_step_mostly_inside_an_exclusion_is_still_found():
     # Every breath at PEEP 8 but the last excluded: the excluded breaths take its PEEP.
     trial = trial_with_exclusion(Segment(96, 138, label="x"))

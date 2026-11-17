@@ -108,8 +108,10 @@ A typed value comes first because it is typed on purpose, usually because the cu
 missing or not reliable (an offset sensor, a damped line, an end-inspiratory pause too
 short). The curve is still read: `driving_pressure_measured` is the driving pressure of
 the curve (NaN without one), and a typed value more than 2 cmH2O from it gives a
-warning. `peep_measured` is the median PEEP of the breaths of the step: the measured
-level of a step placed by hand, close to `peep` for a step found from the pressure.
+warning. `peep_measured` is the median PEEP of the breaths of the step that are not
+excluded: the measured level of a step placed by hand, close to `peep` for a step found
+from the pressure. A level of the protocol between the highest and the lowest step found
+that has no step (a step inside an exclusion, or too short to be found) gives a warning.
 
 The tidal volume of each step turns compliance into mL/cmH2O and EELI changes into
 mL. In order (`tidal_volume_source`):
