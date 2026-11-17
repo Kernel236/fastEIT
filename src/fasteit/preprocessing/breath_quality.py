@@ -61,24 +61,32 @@ def breath_measures(signal: np.ndarray, fs: float, breaths: np.ndarray) -> pd.Da
 
 
 def ratio_to_local_median(
-    values: np.ndarray, window_breaths: int, min_breaths: int
+    values: np.ndarray,
+    window_breaths: int,
+    min_breaths: int,
+    ignore: np.ndarray | None = None,
 ) -> np.ndarray:
     """Each value divided by the median of the breaths around it.
 
     The window is centred on the breath and includes it. At the start and end of the
     recording the window is shorter; with fewer than ``min_breaths`` values the ratio
-    is NaN, so no outlier flag can be set there.
+    is NaN, so no outlier flag can be set there. The breaths to ignore (excluded) are
+    left out of every median, so that what happens inside an exclusion (an artefact, a
+    maneuver) does not flag the breaths around it.
 
     Args:
         values:         One value per breath, in time order (e.g. amplitudes).
         window_breaths: Number of breaths in the window (odd, e.g. 21).
         min_breaths:    Fewest breaths needed to compute the median.
+        ignore:         True for the breaths left out of the medians; None for none.
 
     Returns:
         Array of ratios, same length as ``values``.
     """
     series = pd.Series(values, dtype=float)
-    local_median = series.rolling(
+    reference = series if ignore is None else series.where(~np.asarray(ignore))
+    # The rolling median skips NaN and counts only the values that are not NaN.
+    local_median = reference.rolling(
         window_breaths, center=True, min_periods=min_breaths
     ).median()
     return (series / local_median).to_numpy()
@@ -98,6 +106,7 @@ def quality_flags(
     amplitude_ratio_low: float,
     amplitude_ratio_high: float,
     duration_ratio_high: float,
+    excluded: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """One true/false column per quality check, one row per breath.
 
@@ -105,9 +114,10 @@ def quality_flags(
       ``long_seconds``;
     - ``flag_suspect_ti_ratio``: Ti/Ttot outside ``ti_ratio_low``-``ti_ratio_high``;
     - ``flag_amplitude_outlier``: amplitude below ``amplitude_ratio_low`` or above
-      ``amplitude_ratio_high`` times the median of the surrounding breaths;
+      ``amplitude_ratio_high`` times the median of the surrounding breaths that are not
+      excluded;
     - ``flag_duration_outlier``: duration above ``duration_ratio_high`` times the
-      median of the surrounding breaths;
+      median of the surrounding breaths that are not excluded;
     - ``flag_invalid_data``: close to invalid data (``near_invalid`` of
       ``detect_breaths``).
 
@@ -128,6 +138,8 @@ def quality_flags(
         amplitude_ratio_low:  Lowest amplitude as a ratio to the local median.
         amplitude_ratio_high: Highest amplitude as a ratio to the local median.
         duration_ratio_high:  Longest duration as a ratio to the local median.
+        excluded:       True for the breaths inside an exclusion, left out of the local
+                        medians; None for none.
 
     Returns:
         DataFrame of booleans, one column per flag. The pipeline adds whether the
@@ -142,10 +154,10 @@ def quality_flags(
             f"near_invalid has {len(near_invalid)} values for {len(measures)} breaths."
         )
     amplitude_ratio = ratio_to_local_median(
-        measures.amplitude, window_breaths, min_breaths
+        measures.amplitude, window_breaths, min_breaths, excluded
     )
     duration_ratio = ratio_to_local_median(
-        measures.duration_s, window_breaths, min_breaths
+        measures.duration_s, window_breaths, min_breaths, excluded
     )
     # A NaN ratio (too few breaths around) compares as False: no flag.
     return pd.DataFrame(

@@ -157,6 +157,18 @@ def test_a_manual_exclusion_marks_the_breaths_it_touches():
     assert (excluded.start_time <= 40.5).all() and (excluded.end_time >= 29.5).all()
 
 
+def test_an_excluded_artefact_does_not_flag_the_breaths_around_it():
+    # 20-80 s of a 120 s recording 2.5 times larger (e.g. a movement), excluded: the
+    # local medians of the outlier flags leave its breaths out.
+    raw, _ = synthetic_raw(seconds=120)
+    time = np.arange(len(raw.frames)) / FS
+    raw.frames["pixels"][(time >= 20) & (time < 80)] *= 2.5
+    recording = preprocess(raw, exclusions=[Segment(20, 80, label="movement")])
+    outside = recording.breaths[~recording.breaths.excluded]
+    assert len(outside) >= 8
+    assert not outside.filter(like="flag_").any(axis=None)
+
+
 def test_missing_frames_and_timing_errors_are_filled_and_excluded():
     raw, _ = synthetic_raw()
     raw.frames["pixels"][600:605, 10, 10] = np.nan

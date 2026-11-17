@@ -62,6 +62,16 @@ def test_ratio_to_local_median_follows_a_change_of_level():
     assert np.all((ratios > 0.5) & (ratios < 2.0))
 
 
+def test_ratio_to_local_median_leaves_out_the_breaths_to_ignore():
+    # Large "breaths" of an excluded artefact between normal breaths, near the start.
+    values = np.r_[np.ones(5), np.full(15, 50.0), np.ones(10)]
+    ignore = values > 1
+    with_them = ratio_to_local_median(values, window_breaths=21, min_breaths=5)
+    assert with_them[4] < 0.5 and with_them[20] < 0.5  # the artefact is the median
+    ratios = ratio_to_local_median(values, 21, 5, ignore=ignore)
+    np.testing.assert_allclose(ratios[~ignore], 1.0)
+
+
 def test_ratio_is_nan_with_too_few_breaths():
     ratios = ratio_to_local_median(np.ones(3), window_breaths=21, min_breaths=5)
     assert np.all(np.isnan(ratios))

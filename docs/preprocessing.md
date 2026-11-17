@@ -95,6 +95,9 @@ Quality flags of each breath:
 | `flag_duration_outlier` | duration above 2× the median of the 21 surrounding breaths |
 | `flag_invalid_data` | within 0.5 s of a gross outlier of the signal |
 
+The medians of the surrounding breaths leave the excluded breaths out: an artefact
+inside an exclusion does not flag the good breaths next to it.
+
 ## 3. Ventilator values of each breath
 
 The auxiliary signals get the same units for every vendor, once, in `auxiliary`:
