@@ -90,7 +90,7 @@ Quality flags of each breath:
 | Column | Rule |
 |--------|------|
 | `flag_short`, `flag_long` | duration below 0.5 s or above 20 s |
-| `flag_suspect_ti_ratio` | Ti/Ttot (from impedance) outside 0.2-0.6 |
+| `flag_suspect_ti_ratio` | Ti/Ttot (from impedance) outside 0.1-0.6 (0.1: I:E up to 1:9, below slow breathing) |
 | `flag_amplitude_outlier` | amplitude below 0.5× or above 2× the median of the 21 surrounding breaths |
 | `flag_duration_outlier` | duration above 2× the median of the 21 surrounding breaths |
 | `flag_invalid_data` | within 0.5 s of a gross outlier of the signal |

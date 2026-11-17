@@ -59,7 +59,10 @@ class PreprocessingConfig:
         ti_ratio_low, ti_ratio_high: A breath with Ti/Ttot outside this range is
             flagged (``flag_suspect_ti_ratio``). Ti/Ttot here is the rise fraction of
             the impedance curve, a plausibility check on the detection, not a clinical
-            judgement (roadmap task 4.11, section 8).
+            judgement (roadmap task 4.11, section 8). The low limit, 0.1 (I:E of the
+            impedance curve up to 1:9), is below the slow breathing of anaesthesia: at
+            8 breaths/min with I:E 1:4 the impedance Ti/Ttot is about 0.2, and a limit
+            of 0.2 flagged about half of those breaths at random.
         local_window_breaths: Breaths, centred on each breath, whose median is the
             reference for the outlier flags: 21 are about 40 s at 30 breaths/min, long
             enough to ignore one event, short enough to follow a PEEP change (section 8).
@@ -81,7 +84,7 @@ class PreprocessingConfig:
     moving_average_seconds: float = 0.1
     breath_short_seconds: float = 0.5
     breath_long_seconds: float = 20.0
-    ti_ratio_low: float = 0.2
+    ti_ratio_low: float = 0.1
     ti_ratio_high: float = 0.6
     local_window_breaths: int = 21
     amplitude_ratio_low: float = 0.5

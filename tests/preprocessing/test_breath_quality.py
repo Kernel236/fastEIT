@@ -162,12 +162,13 @@ def test_values_exactly_on_a_limit_are_not_flagged():
 
 
 @pytest.mark.parametrize(
-    "ti_samples, flagged", [(6, True), (8, False), (24, False), (26, True)]
+    "ti_samples, flagged", [(3, True), (4, False), (8, False), (24, False), (26, True)]
 )
 def test_ti_ratio_limits(ti_samples, flagged):
     signal, breaths = breaths_from_durations([4.0] * 30)  # 40 samples per breath
     signal[breaths[15, 1]] = 0.0
-    breaths[15, 1] = breaths[15, 0] + ti_samples  # Ti/Ttot 0.15, 0.2, 0.6, 0.65
+    # Ti/Ttot 0.075, 0.1, 0.2 (slow breathing with I:E 1:4), 0.6, 0.65.
+    breaths[15, 1] = breaths[15, 0] + ti_samples
     signal[breaths[15, 1]] = 1.0
     assert flags(signal, 10, breaths).flag_suspect_ti_ratio[15] == flagged
 
@@ -223,7 +224,7 @@ NOTEBOOK_COUNTS = {
     "patient01_rec11.bin": (89, 1, 0, 0),
     "patient01_rec12.bin": (88, 1, 1, 1),
     "patient01_rec13.bin": (155, 1, 0, 0),
-    "patient02.bin": (147, 1, 0, 1),
+    "patient02.bin": (147, 0, 0, 1),  # Ti/Ttot 0.16 below 0.2: also a duration outlier
 }
 
 
