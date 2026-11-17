@@ -293,6 +293,14 @@ def test_a_level_of_the_protocol_without_a_step_is_warned():
     assert any("PEEP levels 8 of the protocol have no step" in m for m in trial.log)
 
 
+def test_a_step_excluded_whole_does_not_start_the_wait_of_the_next():
+    # Every breath at PEEP 10 excluded: they join the step at 8 (their PEEP is 10, not
+    # 8), so its wait starts at the change to 8 (96 s), not at the change to 10.
+    trial = trial_with_exclusion(Segment(48, 94, label="x"))
+    assert trial.steps.peep.round().tolist() == [12, 8, 6]
+    assert first_analysed(trial, 1) >= 96 + SegmentationConfig().analysis_skip_seconds
+
+
 def test_a_step_mostly_inside_an_exclusion_is_still_found():
     # Every breath at PEEP 8 but the last excluded: the excluded breaths take its PEEP.
     trial = trial_with_exclusion(Segment(96, 138, label="x"))

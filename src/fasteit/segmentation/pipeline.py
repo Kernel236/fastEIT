@@ -146,12 +146,17 @@ def _automatic_steps(
     at_level = np.abs(peep - level_of_breath) <= tolerance
 
     # The wait after a change is counted from the first breath measured away from the
-    # PEEP of the step before: ``peep`` is read on every breath, excluded ones too
-    # (a breath without a reading is not known to have changed).
+    # PEEP of the step before and near the PEEP of its own step: ``peep`` is read on
+    # every breath, excluded ones too (a breath without a reading is not known to have
+    # changed). Near: within 1.5 thresholds, so that a breath halfway between the two
+    # PEEP counts and an excluded breath at another level of the protocol (two
+    # thresholds away, e.g. a step excluded whole) does not.
     level_before = np.full(len(peep), np.nan)
     in_later_step = step >= 1
     level_before[in_later_step] = levels[step[in_later_step] - 1]
-    changed = (step == 0) | (np.abs(peep - level_before) > config.step_threshold)
+    near_own = np.abs(peep - level_of_breath) <= 1.5 * config.step_threshold
+    away_before = np.abs(peep - level_before) > config.step_threshold
+    changed = (step == 0) | (away_before & near_own)
 
     analysed = analysed_breaths(
         breath_starts,

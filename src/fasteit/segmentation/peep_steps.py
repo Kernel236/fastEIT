@@ -235,10 +235,10 @@ def analysed_breaths(
     The breaths in the first ``skip_seconds`` of the step are left out, as EELI is
     still moving; then the last ``max_breaths`` valid breaths of the step are analysed
     (notebook 06, section 5). The time is counted from the first breath of the step
-    whose PEEP was measured away from the PEEP of the step before, excluded or not
-    (without exclusions, the first breath of the step): an exclusion just before the
-    change of PEEP (its breaths are in the new step) does not shorten the wait, and one
-    just after it does not lengthen it.
+    whose PEEP was measured at the PEEP of the step and away from the PEEP of the step
+    before, excluded or not (without exclusions, the first breath of the step): an
+    exclusion just before the change of PEEP (its breaths are in the new step) does not
+    shorten the wait, and one just after it does not lengthen it.
 
     Args:
         breath_starts: Start time of each breath, in seconds.
@@ -246,9 +246,9 @@ def analysed_breaths(
         valid:         ``is_valid`` of each breath.
         skip_seconds:  Time left out after the change of PEEP.
         max_breaths:   Most breaths analysed per step.
-        changed:       True for the breaths whose PEEP was measured away from the PEEP
-                       of the step before; None: the time is counted from the first
-                       breath of the step.
+        changed:       True for the breaths whose PEEP was measured at the PEEP of
+                       their step and away from the PEEP of the step before; None: the
+                       time is counted from the first breath of the step.
 
     Returns:
         Boolean array, True for the analysed breaths.
