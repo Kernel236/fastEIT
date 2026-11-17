@@ -54,7 +54,9 @@ trial = segment_peep_trial(recording, peep_steps=steps)
 Steps placed by hand replace the automatic ones, and a segment is the selection of
 breaths to analyse: every valid breath entirely inside it is analysed, with no time left
 out after the change of PEEP and no limit of 10 (those rules apply only to the steps found
-from the pressure). A breath cut by the edge of the segment, or with a quality flag, is
+from the pressure). With a pressure curve, a warning says when a step analyses breaths
+less than 15 s after its change of PEEP, or more than 1 cmH2O from the PEEP of the step
+(a segment that crosses a change). A breath cut by the edge of the segment, or with a quality flag, is
 left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
 looked for only inside the segment: include its breath, or type the plateau or the
 driving pressure.

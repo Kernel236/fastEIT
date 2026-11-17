@@ -580,6 +580,35 @@ def test_typed_peep_and_tidal_volumes_that_agree_are_checks(recording):
     assert "OK: Tidal volume typed for each step in the plausible range." in trial.log
 
 
+def test_breaths_analysed_by_hand_after_a_change_or_at_another_peep_are_warned(
+    recording,
+):
+    # PEEP 12 -> 10 at 48 s: step 0 (20-56 s) takes 2 breaths at PEEP 10, step 1 starts
+    # 12 s after the change.
+    steps = [
+        Segment(20, 56, category="peep_step", parameters={"peep": 12}),
+        Segment(60, 96, category="peep_step", parameters={"peep": 10}),
+    ]
+    warnings = [m for m in segment_peep_trial(recording, peep_steps=steps).log
+                if m.startswith("WARNING: ")]  # fmt: skip
+    assert any(
+        m.startswith("WARNING: Step 0: 2 breaths analysed more than 1 cmH2O")
+        for m in warnings
+    )
+    assert any(
+        m.startswith("WARNING: Step 1: the first breath analysed starts 12 s after")
+        for m in warnings
+    )
+    # Steps inside their PEEP and at least 15 s after its change: a check, no warning.
+    steps = [
+        Segment(1, 47, category="peep_step", parameters={"peep": 12}),
+        Segment(64, 95, category="peep_step", parameters={"peep": 10}),
+    ]
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert not [m for m in trial.log if m.startswith("WARNING: Step")]
+    assert any("at least 15 s after its change" in m for m in checks(trial))
+
+
 def test_without_pressure_the_preprocessing_has_the_warning():
     recording = synthetic_trial(aux={})
     steps = [Segment(1, 47, category="peep_step", parameters={"peep": 12})]
