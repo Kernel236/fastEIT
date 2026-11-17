@@ -92,20 +92,25 @@ def _pct_of_best(values: pd.Series) -> pd.Series:
 
 
 def _breath_indices(
-    recording: EITRecording, tidal_volume: np.ndarray, source: np.ndarray
+    recording: EITRecording,
+    tidal_volume: np.ndarray,
+    source: np.ndarray,
+    driving_pressure: np.ndarray,
+    driving_source: np.ndarray,
 ) -> pd.DataFrame:
     """Global indices of each breath, one row per breath.
 
     Args:
-        recording:    The preprocessed recording.
-        tidal_volume: Tidal volume used for each breath (mL), NaN if none.
-        source:       Where the tidal volume of each breath comes from.
+        recording:        The preprocessed recording.
+        tidal_volume:     Tidal volume used for each breath (mL), NaN if none.
+        source:           Where the tidal volume of each breath comes from.
+        driving_pressure: Driving pressure used for each breath (cmH2O), NaN if none.
+        driving_source:   Where the driving pressure of each breath comes from.
     """
     breath_table = recording.breaths
     start_frame = breath_table.start_idx.to_numpy()
     peak_frame = breath_table.peak_idx.to_numpy()
     lung_signal = recording.global_signal  # sum of the pixels inside the lung mask
-    driving_pressure = breath_table.driving_pressure.to_numpy()
 
     eeli = lung_signal[start_frame]
     tiv = lung_signal[peak_frame] - lung_signal[start_frame]
@@ -129,13 +134,17 @@ def _breath_indices(
             "cov_rl": centres[:, 1],
             "tidal_volume_used": tidal_volume,
             "tidal_volume_source": source,
+            "driving_pressure_used": driving_pressure,
+            "driving_pressure_source": driving_source,
             "compliance": _ratio(tiv, driving_pressure),
             "compliance_ml": _ratio(tidal_volume, driving_pressure),
         }
     )
 
 
-def _region_indices(recording: EITRecording, tidal_volume: np.ndarray) -> pd.DataFrame:
+def _region_indices(
+    recording: EITRecording, tidal_volume: np.ndarray, driving_pressure: np.ndarray
+) -> pd.DataFrame:
     """Indices of each breath in each region, one row per breath and region.
 
     The rows of a region are in the order of the breath table. The compliance of a
@@ -147,7 +156,6 @@ def _region_indices(recording: EITRecording, tidal_volume: np.ndarray) -> pd.Dat
     peak_frame = breath_table.peak_idx.to_numpy()
     lung_signal = recording.global_signal
     lung_tiv = lung_signal[peak_frame] - lung_signal[start_frame]
-    driving_pressure = breath_table.driving_pressure.to_numpy()
 
     tables = []
     for region in recording.roi_signals.columns:
@@ -194,6 +202,21 @@ def _recording_tidal_volume(
     source[np.isnan(measured)] = None
     if not np.isnan(measured).all():
         log.info(f"Tidal volume measured on {recording.tidal_volume_channel}.")
+    return measured, source
+
+
+def _recording_driving_pressure(
+    recording: EITRecording,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Driving pressure of each breath read on the pressure curve (layer 2).
+
+    Returns:
+        The driving pressure (cmH2O, NaN if none) and its source (``"breaths"`` or
+        None) for each breath.
+    """
+    measured = recording.breaths.driving_pressure.to_numpy(dtype=float)
+    source = np.full(len(measured), "breaths", dtype=object)
+    source[np.isnan(measured)] = None
     return measured, source
 
 
@@ -273,8 +296,9 @@ def tidal_features(
         log.warning(
             "No tidal volume (none typed, no volume or flow curve): no values in mL."
         )
-    breaths = _breath_indices(recording, volume, source)
-    regions = _region_indices(recording, volume)
+    driving, driving_source = _recording_driving_pressure(recording)
+    breaths = _breath_indices(recording, volume, source, driving, driving_source)
+    regions = _region_indices(recording, volume, driving)
     breaths.insert(1, "in_phase", _in_phase(breath_table, phase, log))
 
     # The summary uses the valid breaths of the phase.
@@ -308,18 +332,20 @@ def tidal_features(
 # --- PEEP trials ---
 
 
-def _step_breath_volumes(
-    trial: PeepTrial, volume: np.ndarray, source: np.ndarray
+def _typed_for_steps(
+    trial: PeepTrial, column: str, values: np.ndarray, source: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """A tidal volume typed for a step goes to the breaths of that step."""
-    volume, source = volume.copy(), source.copy()
+    """A value typed for a step (``"tidal_volume"`` or ``"driving_pressure"``) goes to
+    the breaths of that step: typed on purpose, it wins over the curve, as for the step
+    itself, so that breaths and steps give the same compliance."""
+    values, source = values.copy(), source.copy()
     step_of_breath = trial.breaths.peep_step.to_numpy()
-    typed_steps = trial.steps[trial.steps.tidal_volume_source == "typed"]
+    typed_steps = trial.steps[trial.steps[f"{column}_source"] == "typed"]
     for _, step in typed_steps.iterrows():
         in_step = step_of_breath == step.step
-        volume[in_step] = step.tidal_volume
+        values[in_step] = step[column]
         source[in_step] = "typed"
-    return volume, source
+    return values, source
 
 
 def _steps_with_breaths(trial: PeepTrial):
@@ -613,11 +639,16 @@ def peep_trial_features(
     if len(trial.breaths) != len(recording.breaths):
         raise ValueError("The breaths of the trial are not those of its recording.")
 
-    # 1. Indices of each breath, with the tidal volume typed for its step if any.
+    # 1. Indices of each breath, with the tidal volume and the driving pressure typed
+    # for its step if any.
     volume, source = _recording_tidal_volume(recording, log)
-    volume, source = _step_breath_volumes(trial, volume, source)
-    breaths = _breath_indices(recording, volume, source)
-    regions = _region_indices(recording, volume)
+    volume, source = _typed_for_steps(trial, "tidal_volume", volume, source)
+    driving, driving_source = _recording_driving_pressure(recording)
+    driving, driving_source = _typed_for_steps(
+        trial, "driving_pressure", driving, driving_source
+    )
+    breaths = _breath_indices(recording, volume, source, driving, driving_source)
+    regions = _region_indices(recording, volume, driving)
 
     # 2. Indices of each step, from its analysed breaths.
     steps = _step_indices(trial, breaths)

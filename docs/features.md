@@ -72,8 +72,9 @@ end-expiratory valley, peak = end-inspiratory peak.
 | `cov_vd`, `cov_rl` | centre of ventilation on the image grid: 0 = ventral / patient right, 1 = dorsal / patient left | Frerichs 2006, DOI: 10.1164/rccm.200512-1942OC |
 | `respiratory_rate` | 60 / duration of the EIT breath (breaths/min) | - |
 | `tidal_volume_used`, `tidal_volume_source` | tidal volume used for the values in mL: typed for the step, typed for the recording, or measured | layer 2 and 2b |
+| `driving_pressure_used`, `driving_pressure_source` | driving pressure used for the compliance: typed for the step (it wins, as in the step table), or read on the curve for the breath | layer 2 and 2b |
 | `compliance` | TIV / driving pressure (EIT units per cmH2O) | - |
-| `compliance_ml` | tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume typed or measured | - |
+| `compliance_ml` | tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume and the driving pressure typed or measured | - |
 
 By region (`regions`, one row per breath and region; regions of layer 2: ventral and
 dorsal halves, layers, right and left, quadrants):

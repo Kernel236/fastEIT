@@ -16,7 +16,7 @@ from ..preprocessing.test_breath_pressures import vcv_pressure
 from ..preprocessing.test_breath_quality import TEST_FILES
 from ..preprocessing.test_pipeline import FS, synthetic_raw
 from ..preprocessing.test_tidal_volume import vcv_flow, volume_curve
-from ..segmentation.test_pipeline import FOUR_STEPS, PEEPS, synthetic_trial
+from ..segmentation.test_pipeline import FOUR_STEPS, PEEPS, synthetic_trial, with_typed
 
 
 def tidal_recording(context=None, volume=False):
@@ -233,6 +233,29 @@ def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
     np.testing.assert_allclose(
         features.steps.compliance_ml,
         np.array([400, 420, 440, 460]) / trial.steps.driving_pressure,
+    )
+
+
+def test_a_driving_pressure_typed_for_a_step_goes_to_its_breaths():
+    # Plateau 25 typed for step 1 (PEEP 10): driving pressure 15, the curve reads 12.
+    recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
+    trial = segment_peep_trial(recording, peep_steps=with_typed({1: {"plateau": 25}}))
+    features = peep_trial_features(trial)
+    b, step = features.breaths, trial.breaths.peep_step
+    in_step_1, in_step_2 = b[step == 1], b[step == 2]
+    assert (in_step_1.driving_pressure_used == 15).all()
+    assert (in_step_1.driving_pressure_source == "typed").all()
+    np.testing.assert_allclose(in_step_1.compliance_ml, 450 / 15)
+    measured = trial.recording.breaths.driving_pressure[step == 2]
+    np.testing.assert_allclose(in_step_2.driving_pressure_used, measured)
+    assert (in_step_2.driving_pressure_source == "breaths").all()
+    # The breaths and the step give the same compliance, globally and by region.
+    used_1 = trial.breaths.analysed & (step == 1)
+    assert features.steps.compliance_ml[1] == pytest.approx(450 / 15)
+    assert features.steps.compliance[1] == pytest.approx(b.compliance[used_1].median())
+    regions = features.regions[features.regions.region == "ventral"]
+    np.testing.assert_allclose(
+        regions.compliance.to_numpy()[used_1], regions.tiv.to_numpy()[used_1] / 15
     )
 
 
