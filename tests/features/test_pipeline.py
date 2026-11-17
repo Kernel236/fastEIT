@@ -181,9 +181,9 @@ def test_step_regions_and_summary(trial_features):
     np.testing.assert_allclose(halves.tiv_ml.sum(), 450, rtol=0.02)
     summary = trial_features.summary
     assert set(summary.columns) == {"region", "feature", "value"}
-    # Steps at PEEP 12-6: no pair near 15 and 5 with a drop of 10, so no R/I.
+    # No R/I levels in the config: no R/I, and the log says why.
     assert "ri" not in set(summary.feature)
-    assert any("no R/I" in line for line in trial_features.log)
+    assert any("No R/I" in line for line in trial_features.log)
 
 
 def test_layer_3_tables_do_not_copy_what_layers_2_and_2b_measured(trial_features):
@@ -239,14 +239,15 @@ def test_a_tidal_volume_typed_for_a_step_goes_to_its_breaths():
 # --- real PEEP trials (notebook 07, sections 3-4) ---
 
 SET_VT = {"A": 550, "B": 400}
-NOTEBOOK_07 = {  # crossing PEEP, best PEEP of Vt / driving, EELI change in mL at the end, R/I
-    "A_park_bench": (4.8, 6.2, -1928, 0.74),  # 4.7 before the plateau fix (slow tails)
-    # Best PEEP 6.2 and R/I 0.91 when one breath of the step at PEEP 6 was read on the
-    # fall of the expiration (plateau read before the steepest point of the fall).
-    "A_supine": (6.6, 4.2, -2484, 0.93),
-    # 9.9, -1469 and 1.42 before the pixel timing without EELI (11 more mask pixels)
-    "B_park_bench": (10.1, 8.5, -1508, 1.47),
-    "B_supine": (12.9, 12.7, -1141, 1.32),
+PROTOCOL = SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))
+RI_14_4 = AnalysisConfig(ri_peep_high=14, ri_peep_low=4)
+# Crossing PEEP, best PEEP of Vt / driving (both on the levels of the protocol), EELI
+# change in mL at the end, R/I between the steps at 14 and 4.
+NOTEBOOK_07 = {
+    "A_park_bench": (4.6, 6, -1928, 0.74),
+    "A_supine": (6.5, 4, -2484, 0.93),
+    "B_park_bench": (9.6, 8, -1508, 1.47),
+    "B_supine": (12.2, 12, -1141, 1.32),
 }
 
 
@@ -270,7 +271,7 @@ def test_real_peep_trials_give_the_indices_of_notebook_07():
         recording = preprocess(
             load_data(TEST_FILES / f"PEEP_trial_{name}.bin"), context=context
         )
-        features = peep_trial_features(segment_peep_trial(recording))
+        features = peep_trial_features(segment_peep_trial(recording, PROTOCOL), RI_14_4)
         assert value(features, "crossing_peep") == pytest.approx(crossing, abs=0.05), (
             name
         )
@@ -282,12 +283,14 @@ def test_real_peep_trials_give_the_indices_of_notebook_07():
         assert last == pytest.approx(eeli_ml, abs=1), name
 
 
+RI_12_6 = AnalysisConfig(ri_peep_high=12, ri_peep_low=6)
+LEVELS = SegmentationConfig(peep_levels=(12, 10, 8, 6))
+
+
 def test_results_of_the_trial_on_the_protocol_levels():
     recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
-    ri_config = AnalysisConfig(ri_peep_high=12, ri_peep_low=6, ri_min_peep_drop=6)
-    measured = peep_trial_features(segment_peep_trial(recording), ri_config)
-    levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
-    protocol = peep_trial_features(segment_peep_trial(recording, levels), ri_config)
+    measured = peep_trial_features(segment_peep_trial(recording), RI_12_6)
+    protocol = peep_trial_features(segment_peep_trial(recording, LEVELS), RI_12_6)
     assert value(protocol, "best_peep_compliance") in {12, 10, 8, 6}
     # No protocol levels: the PEEP of the steps (measured, or typed by hand).
     on_steps = (
@@ -295,20 +298,28 @@ def test_results_of_the_trial_on_the_protocol_levels():
     )
     assert any(on_steps in m for m in measured.log)
     assert any(on_steps in m for m in measured.trial.log)
-    assert (value(protocol, "ri_peep_high"), value(protocol, "ri_peep_low")) == (12, 6)
-    # Same steps and same drop of measured PEEP: the same R/I.
-    assert value(protocol, "ri") == pytest.approx(value(measured, "ri"))
     assert any("PEEP levels of the protocol" in m for m in protocol.log)
 
 
-def test_ri_between_the_steps_of_the_config_globally_and_by_region():
+def test_ri_only_between_the_two_levels_of_the_protocol_of_the_config():
     recording = synthetic_trial(context=RecordingContext(tidal_volume_ml=450))
-    trial = segment_peep_trial(recording)
-    config = AnalysisConfig(ri_peep_high=12, ri_peep_low=6, ri_min_peep_drop=6)
-    features = peep_trial_features(trial, config)
-    assert features.config == config  # kept with the results
-    assert value(features, "ri_peep_high") == pytest.approx(12, abs=0.1)
-    assert value(features, "ri_peep_low") == pytest.approx(6, abs=0.1)
+    trial = segment_peep_trial(recording, LEVELS)
+    # The steps are chosen on the levels of the protocol, never by nearness: 15 and 5
+    # are not levels, and without the levels of the protocol no step is at a level.
+    for config, steps in [
+        (AnalysisConfig(ri_peep_high=15, ri_peep_low=5), trial),
+        (RI_12_6, segment_peep_trial(recording)),
+    ]:
+        features = peep_trial_features(steps, config)
+        assert "ri" not in set(features.summary.feature)
+        assert any("No R/I" in m for m in warnings_of(features))
+
+    features = peep_trial_features(trial, RI_12_6)
+    assert features.config == RI_12_6  # kept with the results
+    assert (value(features, "ri_peep_high"), value(features, "ri_peep_low")) == (12, 6)
+    # The drop of PEEP of the formula is the measured one.
+    measured_drop = trial.steps.peep_measured[0] - trial.steps.peep_measured[3]
+    assert f"drop {measured_drop:.1f}" in " ".join(features.log)
     # The synthetic EELI does not follow the PEEP: no volume is lost, R/I = -1.
     assert value(features, "ri") == pytest.approx(-1, abs=0.05)
     volumes = features.summary[features.summary.feature == "recruited_volume_ml"]
@@ -359,9 +370,9 @@ def test_a_trial_with_its_protocol_levels_has_its_checks():
     features = peep_trial_features(trial)
     checks = [m for m in features.log if m.startswith("OK: ")]
     assert (
-        "OK: Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
-        in checks
+        "OK: Crossing PEEP and best PEEP on the PEEP levels of the protocol." in checks
     )
     assert "OK: Every step has a compliance." in checks
-    # Steps at PEEP 12-6 have no pair near 15 and 5: R/I is missing, with a warning.
-    assert any("no R/I" in m for m in warnings_of(features))
+    # No R/I levels in the config: no R/I, said once, not a warning.
+    assert not warnings_of(features)
+    assert sum("No R/I" in m for m in features.log) == 1

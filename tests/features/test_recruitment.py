@@ -5,23 +5,21 @@ import pytest
 
 from fasteit.features.recruitment import recruitment_to_inflation, ri_steps
 
-TRIAL_PEEP = [16.3, 14.4, 12.3, 10.2, 8.1, 6.2, 4.1, 2.2, 0.3]  # a decremental trial
+PROTOCOL = [16, 14, 12, 10, 8, 6, 4, 2, 0]  # peep_set of a decremental trial
 
 
-def test_the_steps_nearest_to_15_and_5():
-    assert ri_steps(np.array(TRIAL_PEEP), 15, 5, 10) == (1, 6)  # 14.4 and 4.1
+def test_the_steps_at_the_two_levels_of_the_protocol():
+    assert ri_steps(np.array(PROTOCOL, dtype=float), 14, 4) == (1, 6)
+    assert ri_steps(np.array(PROTOCOL, dtype=float), 16, 6) == (0, 5)
 
 
-def test_the_low_step_is_at_least_the_minimum_drop_below_the_high_one():
-    # High step 14; the nearest to 5 at least 10 below it is 4, not 6 (drop of 8).
-    assert ri_steps(np.array([14, 12, 10, 8, 6, 4]), 15, 5, 10) == (0, 5)
-    # Two steps equally near to 15 (16 and 14): the first one.
-    assert ri_steps(np.array([16, 14, 12, 10, 8, 6, 4]), 15, 5, 10) == (0, 5)
-
-
-def test_without_a_drop_large_enough_there_is_no_pair():
-    assert ri_steps(np.array([12.0, 10.0, 8.0, 6.0]), 15, 5, 10) is None
-    assert ri_steps(np.array([np.nan, 10.0]), 15, 5, 10) is None
+def test_a_level_that_is_not_one_step_of_the_protocol_gives_no_pair():
+    protocol = np.array(PROTOCOL, dtype=float)
+    # 15 and 5 are not levels: no step is taken for being the nearest.
+    assert ri_steps(protocol, 15, 5) is None
+    assert ri_steps(np.array([16, 14, 12, 10, 8, 6.0]), 14, 4) is None
+    assert ri_steps(np.array([14, 14, 4.0]), 14, 4) is None  # two steps at 14
+    assert ri_steps(np.full(9, np.nan), 14, 4) is None  # no levels of the protocol
 
 
 def test_ri_and_recruited_volume_with_a_known_answer():

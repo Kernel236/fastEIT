@@ -462,38 +462,44 @@ def _recruitment_rows(
     trial: PeepTrial,
     steps: pd.DataFrame,
     step_regions: pd.DataFrame,
-    result_peep: np.ndarray,
     config: AnalysisConfig,
     log: RunLog,
 ) -> list[dict]:
-    """R/I and recruited volume between the steps nearest to the two PEEP levels of the
-    config, globally and for each region (rows of the summary).
+    """R/I and recruited volume between the steps at the two PEEP levels of the config,
+    globally and for each region (rows of the summary).
 
-    The steps are chosen and the drop of PEEP is computed on ``steps.peep``: the
-    measured PEEP of the steps found from the pressure (the change of pressure that
-    happened), the typed level of the steps placed by hand; the two steps are reported
-    on ``result_peep``."""
-    pair = ri_steps(
-        steps.peep.to_numpy(),
-        config.ri_peep_high,
-        config.ri_peep_low,
-        config.ri_min_peep_drop,
-    )
+    The steps are those at the two levels of the protocol (``peep_set``); the drop of
+    PEEP of the formula is computed on ``steps.peep``: the measured PEEP of the steps
+    found from the pressure (the change of pressure that happened), the typed level of
+    the steps placed by hand."""
+    high_level, low_level = config.ri_peep_high, config.ri_peep_low
+    if high_level is None:
+        log.info(
+            "No R/I: no PEEP levels for it (AnalysisConfig.ri_peep_high, ri_peep_low)."
+        )
+        return []
+    levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
+    pair = ri_steps(levels.peep_set.to_numpy(dtype=float), high_level, low_level)
     if pair is None:
         log.warning(
-            f"No two steps near PEEP {config.ri_peep_high:g} and {config.ri_peep_low:g} "
-            f"with a drop of at least {config.ri_min_peep_drop:g}: no R/I."
+            f"No R/I: not one step at each of the PEEP levels {high_level:g} and "
+            f"{low_level:g} of the protocol (peep_set, from "
+            "SegmentationConfig.peep_levels)."
         )
         return []
     high, low = pair
     peep_high, peep_low = steps.peep[high], steps.peep[low]
     driving_low = trial.steps.driving_pressure[low]
     volume_low = trial.steps.tidal_volume[low]
-    log.ok(f"R/I between the steps at PEEP {peep_high:.1f} and {peep_low:.1f}.")
+    log.ok(
+        f"R/I between the steps at PEEP {high_level:g} and {low_level:g} of the "
+        f"protocol (PEEP {peep_high:.1f} and {peep_low:.1f}, drop "
+        f"{peep_high - peep_low:.1f})."
+    )
 
     rows = [
-        {"region": "global", "feature": "ri_peep_high", "value": result_peep[high]},
-        {"region": "global", "feature": "ri_peep_low", "value": result_peep[low]},
+        {"region": "global", "feature": "ri_peep_high", "value": high_level},
+        {"region": "global", "feature": "ri_peep_low", "value": low_level},
     ]
     ri, recruited = recruitment_to_inflation(
         steps.eeli[high], steps.eeli[low], steps.tiv[low], driving_low,
@@ -525,13 +531,11 @@ def _result_peep(trial: PeepTrial, steps: pd.DataFrame, log: RunLog) -> np.ndarr
     levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
     peep_set = levels.peep_set.to_numpy(dtype=float)
     if np.isfinite(peep_set).all():
-        log.ok(
-            "Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
-        )
+        log.ok("Crossing PEEP and best PEEP on the PEEP levels of the protocol.")
         return peep_set
     log.info(
-        "Crossing PEEP, best PEEP and R/I steps on the PEEP of the steps (measured, or "
-        "typed with the steps placed by hand)."
+        "Crossing PEEP and best PEEP on the PEEP of the steps (measured, or typed with "
+        "the steps placed by hand)."
     )
     return steps.peep.to_numpy(dtype=float)
 
@@ -593,8 +597,8 @@ def peep_trial_features(
     pressure of the step, in mL/cmH2O = tidal volume / driving pressure of the step
     (both kept: the EIT compliance also sees what changes in the slice); Costa
     collapse and overdistension from the median tidal image of each step; the
-    recruitment-to-inflation ratio between the steps nearest to the PEEP levels of the
-    config, globally and by region.
+    recruitment-to-inflation ratio between the steps at the two PEEP levels of the
+    protocol given in the config (none without them), globally and by region.
 
     Args:
         trial:  Output of ``segment_peep_trial()``.
@@ -641,9 +645,7 @@ def peep_trial_features(
     _check_steps(steps, trial, crossing, log)
 
     # 5. Recruitment-to-inflation ratio, globally and by region.
-    summary_rows += _recruitment_rows(
-        trial, steps, step_regions, result_peep, config, log
-    )
+    summary_rows += _recruitment_rows(trial, steps, step_regions, config, log)
     summary = pd.DataFrame(summary_rows)
 
     return PeepTrialFeatures(
