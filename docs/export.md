@@ -17,6 +17,7 @@ Only recordings that can be analysed (Dräger `.bin`, Timpel) have tables.
 ## 1. Entry point
 
 ```python
+from fasteit.config import AnalysisConfig, SegmentationConfig
 from fasteit.export import combine_tables, recording_tables, write_csv
 from fasteit.features import peep_trial_features, tidal_features
 from fasteit.models import RecordingContext, Segment
@@ -29,8 +30,10 @@ recording = preprocess(load_data("P01_T0.bin"), context=context)
 
 # A baseline, then a PEEP trial, in the same recording: one analysis per phase.
 baseline = tidal_features(recording, phase=Segment(0, 290, "phase", "tidal"))
+protocol = SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))
 trial = peep_trial_features(
-    segment_peep_trial(recording, phase=Segment(320, 1500, "phase", "peep_trial"))
+    segment_peep_trial(recording, protocol, phase=Segment(320, 1500, "phase", "peep_trial")),
+    AnalysisConfig(ri_peep_high=14, ri_peep_low=4),   # R/I between these two levels
 )
 
 tables = combine_tables([
@@ -71,8 +74,8 @@ recording here, one row per patient in R or SPSS (`tidyr::pivot_wider()` on `lab
 
 | Table | One row per | Content |
 |-------|-------------|---------|
-| `recordings` | analysis | `protocol`, `file`, `vendor`, `fs`, `start_time` and `end_time` of the breaths of the phase, `n_breaths`, `n_used`, typed `tidal_volume_ml`, `cardiac_filter`, `fasteit_version`; for a PEEP trial its results: crossing PEEP, best PEEP, R/I and recruited volume (global and by half) |
-| `breaths` | breath of the phase | times, quality flags, `excluded`, `exclusion_label`, `is_valid`, `used`, PEEP, plateau, driving pressure and where they were read on the curve (to check the method), measured tidal volume (preprocessing); `peep_step`, `peep_set` (PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (clinical indices); regional values as columns |
+| `recordings` | analysis | `protocol`, `file`, `vendor`, `fs`, `start_time` and `end_time` of the breaths of the phase, `n_breaths`, `n_used`, typed `tidal_volume_ml`, `cardiac_filter`, `fasteit_version`; for a PEEP trial its results: crossing PEEP, best PEEP, R/I and recruited volume (global and by half; R/I only with the two levels of `AnalysisConfig`) |
+| `breaths` | breath of the phase | times, quality flags, `excluded`, `exclusion_label`, `is_valid`, `used`, PEEP, plateau, driving pressure and where they were read on the curve (to check the method), measured tidal volume (preprocessing); `peep_step`, `peep_set` (PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume and driving pressure used with their sources (`driving_pressure_used`, `driving_pressure_source`: typed for the step or read on the breath), compliance (clinical indices); regional values as columns |
 | `steps` | PEEP step (PEEP trials) | `step`, `peep` (measured for the steps found from the pressure, typed for the steps placed by hand), `peep_measured`, `peep_set`, times, breaths analysed, driving pressure and tidal volume with their sources (segmentation); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (clinical indices); regional values as columns |
 | `settings` | parameter | `section` (`fasteit`, `preprocessing`, `context`, `segmentation`, `analysis`), `parameter`, `value`: with the file, enough to compute the same values again |
 | `log` | message | `layer` (`preprocessing`, `segmentation`, `indices`), `level` (`ok` for a check that passed, `info`, `warning`), `message` |
