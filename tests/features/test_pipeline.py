@@ -350,6 +350,15 @@ def test_ri_only_between_the_two_levels_of_the_protocol_of_the_config():
     assert halves == pytest.approx(value(features, "recruited_volume_ml"), rel=0.02)
 
 
+def test_an_ri_that_cannot_be_computed_is_a_warning_not_a_check():
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0, pause=0)  # no plateau, no ΔP
+    recording = synthetic_trial(aux={"airway_pressure_pod": paw.astype(np.float32)})
+    features = peep_trial_features(segment_peep_trial(recording, LEVELS), RI_12_6)
+    assert np.isnan(value(features, "ri"))
+    assert any(m.startswith("WARNING: No R/I between the steps") for m in features.log)
+    assert not any(m.startswith("OK: R/I") for m in features.log)
+
+
 # --- the log: checks that passed (OK), missing inputs warned once ---
 
 

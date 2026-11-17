@@ -517,10 +517,9 @@ def _recruitment_rows(
     peep_high, peep_low = steps.peep[high], steps.peep[low]
     driving_low = trial.steps.driving_pressure[low]
     volume_low = trial.steps.tidal_volume[low]
-    log.ok(
-        f"R/I between the steps at PEEP {high_level:g} and {low_level:g} of the "
-        f"protocol (PEEP {peep_high:.1f} and {peep_low:.1f}, drop "
-        f"{peep_high - peep_low:.1f})."
+    pair_text = (
+        f"the steps at PEEP {high_level:g} and {low_level:g} of the protocol (PEEP "
+        f"{peep_high:.1f} and {peep_low:.1f}, drop {peep_high - peep_low:.1f})"
     )
 
     rows = [
@@ -531,6 +530,13 @@ def _recruitment_rows(
         steps.eeli[high], steps.eeli[low], steps.tiv[low], driving_low,
         peep_high - peep_low, volume_low,
     )  # fmt: skip
+    if np.isnan(ri):
+        log.warning(
+            f"No R/I between {pair_text}: the step at {low_level:g} has no compliance "
+            "(no driving pressure or no analysed breaths), or the drop is not positive."
+        )
+    else:
+        log.ok(f"R/I between {pair_text}.")
     rows += [
         {"region": "global", "feature": "ri", "value": ri},
         {"region": "global", "feature": "recruited_volume_ml", "value": recruited},
