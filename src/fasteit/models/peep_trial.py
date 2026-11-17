@@ -30,8 +30,10 @@ class PeepTrial:
                           ``n_analysed``, ``enough`` (at least the minimum), ``plateau``
                           and ``driving_pressure`` with ``driving_pressure_source``:
                           ``"breaths"`` (median of the analysed breaths, continuous
-                          pause), ``"hold"`` (median of the breaths of the step with an
-                          inspiratory hold) or ``"typed"`` (step placed by hand);
+                          pause), ``"hold"`` (fewer analysed breaths with a plateau
+                          than the minimum: median of every breath of the step with one
+                          that is not excluded, e.g. an inspiratory hold) or
+                          ``"typed"`` (step placed by hand);
                           ``n_driving_pressure`` and ``enough_driving_pressure``;
                           ``tidal_volume`` (mL) with ``tidal_volume_source``:
                           ``"typed"`` (for the step), ``"typed_recording"``

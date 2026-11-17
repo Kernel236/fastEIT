@@ -79,6 +79,11 @@ of the lung out of the mask. Gross outliers are found around the median of the s
 its mean, which an artifact on a few percent of the recording can move enough to make every
 sample invalid.
 
+There is one lung mask per recording, from the valid breaths of the whole recording:
+`preprocess()` does not know the phases. When a recording holds more than the part to
+analyse (a baseline before a PEEP trial, a part at another setting), exclude what is
+outside it if the mask must come from that part only.
+
 Breaths are **flagged, never removed**: the clinician decides what to use. Every
 exclusion is widened by 0.5 s on each side (`exclusion_margin_seconds`) and a breath that
 touches it is excluded. In the later layers a breath belongs to a phase or a PEEP step

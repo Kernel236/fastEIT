@@ -56,10 +56,10 @@ breaths to analyse: every valid breath entirely inside it is analysed, with no t
 out after the change of PEEP and no limit of 10 (those rules apply only to the steps found
 from the pressure). With a pressure curve, a warning says when a step analyses breaths
 less than 15 s after its change of PEEP, or more than 1 cmH2O from the PEEP of the step
-(a segment that crosses a change). A breath cut by the edge of the segment, or with a quality flag, is
-left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
-looked for only inside the segment: include its breath, or type the plateau or the
-driving pressure.
+(a segment that crosses a change). A breath cut by the edge of the segment, or with a
+quality flag, is left out: draw the segment a little wider than the breaths chosen. An
+inspiratory hold is looked for only inside the segment: include its breath, or type the
+plateau or the driving pressure.
 When the pressure curve is missing or not reliable, the plateau read on the ventilator
 can be typed with the step, `parameters={"peep": 16, "plateau": 28}`, or directly the
 driving pressure, `parameters={"peep": 16, "driving_pressure": 12}` (e.g. in pressure
@@ -99,7 +99,7 @@ usual protocols. In order, as for the tidal volume:
 |--------|------------------------------|---------------------------|
 | Typed with a step placed by hand | the plateau typed minus the PEEP typed, or the driving pressure typed (the plateau wins if both are typed, with a warning if they disagree by more than 0.5 cmH2O; a driving pressure not positive is an error) | `"typed"` |
 | Volume control with a continuous end-inspiratory pause | median of the analysed breaths | `"breaths"` |
-| Volume control with one inspiratory hold per step | median of the breaths with a hold, one is enough | `"hold"` |
+| Volume control with one inspiratory hold per step | when fewer than 5 analysed breaths have a plateau: median of every breath of the step with one that is not excluded (a hold, but also breaths of the first 15 s, or a single breath), one is enough; `n_driving_pressure` says how many | `"hold"` |
 | Pressure control | the flat inspiratory pressure is read as plateau, valid if the flow is zero at the end of inspiration | `"breaths"` |
 
 A typed value comes first because it is typed on purpose, usually because the curve is
