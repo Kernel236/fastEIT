@@ -1,5 +1,7 @@
 """Tests for segment_peep_trial()."""
 
+import logging
+
 import numpy as np
 import pytest
 
@@ -8,7 +10,8 @@ from fasteit.models.eit_recording import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 from fasteit.preprocessing.auxiliary import CMH2O_PER_MBAR
-from fasteit.segmentation.pipeline import segment_peep_trial
+from fasteit.run_log import RunLog
+from fasteit.segmentation.pipeline import _check_manual_breaths, segment_peep_trial
 
 from ..preprocessing.test_breath_pressures import pcv_pressure, vcv_pressure
 from ..preprocessing.test_breath_quality import TEST_FILES
@@ -597,6 +600,10 @@ def test_typed_peep_and_tidal_volumes_that_agree_are_checks(recording):
     assert "OK: Tidal volume typed for each step in the plausible range." in trial.log
 
 
+def warnings_of(trial):
+    return [m for m in trial.log if m.startswith("WARNING: ")]
+
+
 def test_breaths_analysed_by_hand_after_a_change_or_at_another_peep_are_warned(
     recording,
 ):
@@ -606,14 +613,12 @@ def test_breaths_analysed_by_hand_after_a_change_or_at_another_peep_are_warned(
         Segment(20, 56, category="peep_step", parameters={"peep": 12}),
         Segment(60, 96, category="peep_step", parameters={"peep": 10}),
     ]
-    warnings = [m for m in segment_peep_trial(recording, peep_steps=steps).log
-                if m.startswith("WARNING: ")]  # fmt: skip
+    warnings = warnings_of(segment_peep_trial(recording, peep_steps=steps))
     assert any(
-        m.startswith("WARNING: Step 0: 2 breaths analysed more than 1 cmH2O")
-        for m in warnings
+        m.startswith("WARNING: Step 0: 2 of 8 breaths analysed more") for m in warnings
     )
     assert any(
-        m.startswith("WARNING: Step 1: the first breath analysed starts 12 s after")
+        m.startswith("WARNING: Step 1: the first breath analysed starts 12.0 s after")
         for m in warnings
     )
     # Steps inside their PEEP and at least 15 s after its change: a check, no warning.
@@ -622,8 +627,36 @@ def test_breaths_analysed_by_hand_after_a_change_or_at_another_peep_are_warned(
         Segment(64, 95, category="peep_step", parameters={"peep": 10}),
     ]
     trial = segment_peep_trial(recording, peep_steps=steps)
-    assert not [m for m in trial.log if m.startswith("WARNING: Step")]
-    assert any("at least 15 s after its change" in m for m in checks(trial))
+    assert not [m for m in warnings_of(trial) if m.startswith("WARNING: Step")]
+    assert any("none less than 15 s after a change" in m for m in checks(trial))
+
+
+def test_two_breaths_far_from_their_median_do_not_break_the_check():
+    # 16.31 and 14.28: both more than 1 cmH2O from their median (an IndexError before).
+    peep = np.array([16.3, 16.3, 16.31, 14.28, 14.3, 14.3])
+    starts = np.arange(6) * 4.0
+    step = np.array([-1, -1, 0, 0, -1, -1])
+    log = RunLog(logging.getLogger(__name__))
+    _check_manual_breaths(
+        peep,
+        step,
+        np.array([15.0]),
+        step >= 0,
+        starts,
+        starts + 4,
+        SegmentationConfig(),
+        log,
+    )
+    assert any("2 of 2 breaths analysed more" in m for m in log.messages)
+
+
+def test_a_step_by_hand_of_two_breaths_across_a_change_is_warned(recording):
+    # One breath at PEEP 12 and one at 10: neither is at the PEEP of the step.
+    step = [Segment(43.8, 52.2, category="peep_step", parameters={"peep": 11})]
+    warnings = warnings_of(segment_peep_trial(recording, peep_steps=step))
+    assert any(
+        m.startswith("WARNING: Step 0: 2 of 2 breaths analysed more") for m in warnings
+    )
 
 
 def test_without_pressure_the_preprocessing_has_the_warning():
