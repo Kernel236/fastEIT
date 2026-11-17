@@ -121,7 +121,7 @@ def quality_flags(
     - ``flag_invalid_data``: close to invalid data (``near_invalid`` of
       ``detect_breaths``).
 
-    On 946 breaths of 11 regular recordings these rules flagged 9 Ti/Ttot, 1 amplitude
+    On 946 breaths of 11 regular recordings these rules flagged 8 Ti/Ttot, 1 amplitude
     and 3 duration outliers, all visible events (section 8 of the evidence notebook).
 
     Args:
