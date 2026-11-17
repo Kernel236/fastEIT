@@ -58,9 +58,14 @@ def test_incremental_steps_and_steps_of_one_with_a_lower_threshold():
     assert find_steps(peep, 0.5, 3, 0.5).tolist() == [0, 6, 12]
 
 
-def test_breaths_without_peep_take_the_next_one():
-    peep = np.r_[np.full(6, 10.0), [np.nan], np.full(6, 8.0)]
-    assert steps(peep).tolist() == [0, 6]
+def test_breaths_without_peep_stay_in_the_step_before():
+    # Breaths without PEEP (excluded) just before a change of PEEP stay in the step
+    # before: the new step starts at its first breath measured at the new PEEP.
+    peep = np.r_[np.full(6, 10.0), np.full(3, np.nan), np.full(6, 8.0)]
+    assert steps(peep).tolist() == [0, 9]
+    # At the start they take the first PEEP measured.
+    peep = np.r_[np.full(2, np.nan), np.full(6, 10.0), np.full(6, 8.0)]
+    assert steps(peep).tolist() == [0, 8]
 
 
 def test_no_peep_at_all_is_an_error():

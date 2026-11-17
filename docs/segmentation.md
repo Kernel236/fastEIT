@@ -71,7 +71,7 @@ control, where it is set), and so can the tidal volume,
 | # | Step | Module |
 |---|------|--------|
 | 1 | Breaths of the PEEP trial phase, with the PEEP and plateau of each breath read in layer 2 | `pipeline` |
-| 2 | Steps: a new step when 3 breaths in a row are more than 1 cmH2O (half of the step of the protocol) from the current level and within 1 cmH2O of each other; level = median PEEP. Excluded breaths (maneuvers) do not count | `peep_steps` |
+| 2 | Steps: a new step when 3 breaths in a row are more than 1 cmH2O (half of the step of the protocol) from the current level and within 1 cmH2O of each other; level = median PEEP. Excluded breaths (maneuvers) do not count: they stay in the step before them, so a step starts at a breath measured at its PEEP and its first 15 s are never spent inside an exclusion | `peep_steps` |
 | 3 | Breaths analysed: the first 15 s after each change are left out; then the last valid breaths whose PEEP is within 0.5 cmH2O of the step level (a breath without a PEEP reading is not analysed), up to 10; fewer than 5 give a warning | `peep_steps` |
 | 4 | Step table: level of the protocol, driving pressure and tidal volume of each step | `pipeline` |
 

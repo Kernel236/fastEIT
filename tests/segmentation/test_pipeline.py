@@ -245,6 +245,19 @@ def test_an_excluded_maneuver_at_another_peep_does_not_open_a_step():
     assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
 
 
+def test_an_exclusion_at_the_end_of_a_step_does_not_shorten_the_wait_after_it():
+    # PEEP 12 -> 10 at 48 s; the last 8 s at PEEP 12 are excluded (e.g. a hold).
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    raw, _ = synthetic_raw(seconds=200)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    trial = segment_peep_trial(preprocess(raw, exclusions=[Segment(40, 48, label="x")]))
+    breaths = trial.breaths
+    excluded = breaths[breaths.excluded]
+    assert len(excluded) and (excluded.peep_step == 0).all()  # in the step before
+    first_analysed = breaths[(breaths.peep_step == 1) & breaths.analysed].start_time
+    assert first_analysed.min() >= 48 + trial.config.analysis_skip_seconds
+
+
 def test_a_pressure_missing_in_most_breaths_gives_a_warning():
     paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
     paw = paw.astype(np.float32)

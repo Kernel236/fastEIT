@@ -28,8 +28,11 @@ def find_steps(
     ``threshold`` from the level of the current step and within ``agreement`` of each
     other; the level of the current step is the median PEEP of its breaths so far (of
     the first ``min_breaths`` breaths at the start). With ``min_breaths`` of 2 or more a
-    single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN) takes
-    the PEEP of the next breath that has one.
+    single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN, e.g.
+    excluded) takes the PEEP of the breath before it that has one (the first ones the
+    first PEEP): excluded breaths just before a change of PEEP stay in the step before,
+    so a new step starts at a breath measured at the new PEEP and the time left out
+    after the change (``analysed_breaths``) is never spent inside the exclusion.
 
     Args:
         peep:        PEEP of each breath.
@@ -43,7 +46,7 @@ def find_steps(
     Raises:
         ValueError: if no breath has a PEEP.
     """
-    peep = _fill_backward(np.asarray(peep, dtype=float))
+    peep = _fill_forward(np.asarray(peep, dtype=float))
     step_starts = [0]
     level = np.median(peep[:min_breaths])  # level of the first step: its first breaths
     breath = 1
@@ -71,12 +74,13 @@ def find_steps(
     return np.array(step_starts, dtype=int)
 
 
-def _fill_backward(values: np.ndarray) -> np.ndarray:
-    """NaN replaced with the next value that is not NaN (the last ones with the last)."""
+def _fill_forward(values: np.ndarray) -> np.ndarray:
+    """NaN replaced with the value before that is not NaN (the first ones with the
+    first)."""
     if np.isnan(values).all():
         raise ValueError("No breath has a PEEP: the steps cannot be found.")
-    # bfill: each NaN takes the next value; ffill: NaN at the end take the last value.
-    return pd.Series(values).bfill().ffill().to_numpy()
+    # ffill: each NaN takes the value before; bfill: NaN at the start take the first.
+    return pd.Series(values).ffill().bfill().to_numpy()
 
 
 def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
