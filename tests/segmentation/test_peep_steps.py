@@ -58,14 +58,9 @@ def test_incremental_steps_and_steps_of_one_with_a_lower_threshold():
     assert find_steps(peep, 0.5, 3, 0.5).tolist() == [0, 6, 12]
 
 
-def test_breaths_without_peep_stay_in_the_step_before():
-    # Breaths without PEEP (excluded) just before a change of PEEP stay in the step
-    # before: the new step starts at its first breath measured at the new PEEP.
-    peep = np.r_[np.full(6, 10.0), np.full(3, np.nan), np.full(6, 8.0)]
-    assert steps(peep).tolist() == [0, 9]
-    # At the start they take the first PEEP measured.
-    peep = np.r_[np.full(2, np.nan), np.full(6, 10.0), np.full(6, 8.0)]
-    assert steps(peep).tolist() == [0, 8]
+def test_breaths_without_peep_take_the_next_one():
+    peep = np.r_[np.full(6, 10.0), [np.nan], np.full(6, 8.0)]
+    assert steps(peep).tolist() == [0, 6]
 
 
 def test_no_peep_at_all_is_an_error():
@@ -184,6 +179,16 @@ def test_a_short_step_keeps_what_is_left_after_the_skip():
         starts, np.zeros(10, dtype=int), np.ones(10, dtype=bool), 15.0, 10
     )
     assert np.flatnonzero(analysed).tolist() == [4, 5, 6, 7, 8, 9]  # from 16 s on
+
+
+def test_the_wait_is_counted_from_the_first_breath_measured_after_the_change():
+    starts = np.arange(0, 80, 4.0)  # one step of 20 breaths, every 4 s
+    changed = np.ones(20, dtype=bool)
+    changed[:3] = False  # its first 3 breaths still at the PEEP before (excluded)
+    analysed = analysed_breaths(
+        starts, np.zeros(20, dtype=int), np.ones(20, dtype=bool), 15.0, 20, changed
+    )
+    assert np.flatnonzero(analysed)[0] == 7  # 28 s: 16 s after the breath at 12 s
 
 
 def test_at_least_one_breath_must_be_analysed():

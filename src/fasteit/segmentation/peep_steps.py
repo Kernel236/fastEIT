@@ -29,10 +29,9 @@ def find_steps(
     other; the level of the current step is the median PEEP of its breaths so far (of
     the first ``min_breaths`` breaths at the start). With ``min_breaths`` of 2 or more a
     single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN, e.g.
-    excluded) takes the PEEP of the breath before it that has one (the first ones the
-    first PEEP): excluded breaths just before a change of PEEP stay in the step before,
-    so a new step starts at a breath measured at the new PEEP and the time left out
-    after the change (``analysed_breaths``) is never spent inside the exclusion.
+    excluded) takes the PEEP of the next breath that has one, so a step can start
+    inside an exclusion; the time left out after the change is counted from the first
+    breath measured at the level of the step (``analysed_breaths``).
 
     Args:
         peep:        PEEP of each breath.
@@ -46,7 +45,7 @@ def find_steps(
     Raises:
         ValueError: if no breath has a PEEP.
     """
-    peep = _fill_forward(np.asarray(peep, dtype=float))
+    peep = _fill_backward(np.asarray(peep, dtype=float))
     step_starts = [0]
     level = np.median(peep[:min_breaths])  # level of the first step: its first breaths
     breath = 1
@@ -74,13 +73,12 @@ def find_steps(
     return np.array(step_starts, dtype=int)
 
 
-def _fill_forward(values: np.ndarray) -> np.ndarray:
-    """NaN replaced with the value before that is not NaN (the first ones with the
-    first)."""
+def _fill_backward(values: np.ndarray) -> np.ndarray:
+    """NaN replaced with the next value that is not NaN (the last ones with the last)."""
     if np.isnan(values).all():
         raise ValueError("No breath has a PEEP: the steps cannot be found.")
-    # ffill: each NaN takes the value before; bfill: NaN at the start take the first.
-    return pd.Series(values).ffill().bfill().to_numpy()
+    # bfill: each NaN takes the next value; ffill: NaN at the end take the last value.
+    return pd.Series(values).bfill().ffill().to_numpy()
 
 
 def step_of_each_breath(step_starts: np.ndarray, n_breaths: int) -> np.ndarray:
@@ -230,12 +228,17 @@ def analysed_breaths(
     valid: np.ndarray,
     skip_seconds: float,
     max_breaths: int,
+    changed: np.ndarray | None = None,
 ) -> np.ndarray:
     """Breaths analysed in each automatic step.
 
-    The breaths in the first ``skip_seconds`` of the step (from its first breath) are
-    left out, as EELI is still moving; then the last ``max_breaths`` valid breaths of
-    the step are analysed (notebook 06, section 5).
+    The breaths in the first ``skip_seconds`` of the step are left out, as EELI is
+    still moving; then the last ``max_breaths`` valid breaths of the step are analysed
+    (notebook 06, section 5). The time is counted from the first breath of the step
+    whose PEEP was measured away from the PEEP of the step before, excluded or not
+    (without exclusions, the first breath of the step): an exclusion just before the
+    change of PEEP (its breaths are in the new step) does not shorten the wait, and one
+    just after it does not lengthen it.
 
     Args:
         breath_starts: Start time of each breath, in seconds.
@@ -243,6 +246,9 @@ def analysed_breaths(
         valid:         ``is_valid`` of each breath.
         skip_seconds:  Time left out after the change of PEEP.
         max_breaths:   Most breaths analysed per step.
+        changed:       True for the breaths whose PEEP was measured away from the PEEP
+                       of the step before; None: the time is counted from the first
+                       breath of the step.
 
     Returns:
         Boolean array, True for the analysed breaths.
@@ -255,7 +261,8 @@ def analysed_breaths(
     analysed = np.zeros(len(step), dtype=bool)
     for step_number in np.unique(step[step >= 0]):
         in_step = np.flatnonzero(step == step_number)  # breaths of the step, in order
-        step_start = breath_starts[in_step[0]]
+        after = in_step if changed is None else in_step[changed[in_step]]
+        step_start = breath_starts[after[0] if len(after) else in_step[0]]
         after_skip = breath_starts[in_step] >= step_start + skip_seconds
         usable = in_step[after_skip & valid[in_step]]
         last_usable = usable[-max_breaths:]

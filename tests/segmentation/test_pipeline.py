@@ -245,17 +245,34 @@ def test_an_excluded_maneuver_at_another_peep_does_not_open_a_step():
     assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
 
 
-def test_an_exclusion_at_the_end_of_a_step_does_not_shorten_the_wait_after_it():
-    # PEEP 12 -> 10 at 48 s; the last 8 s at PEEP 12 are excluded (e.g. a hold).
+def trial_with_exclusion(exclusion):
+    """The synthetic trial (PEEP 12 -> 10 at 48 s, 10 -> 8 at 96 s, 8 -> 6 at 144 s)
+    with one exclusion."""
     paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
     raw, _ = synthetic_raw(seconds=200)
     raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
-    trial = segment_peep_trial(preprocess(raw, exclusions=[Segment(40, 48, label="x")]))
+    return segment_peep_trial(preprocess(raw, exclusions=[exclusion]))
+
+
+def first_analysed(trial, step):
     breaths = trial.breaths
-    excluded = breaths[breaths.excluded]
-    assert len(excluded) and (excluded.peep_step == 0).all()  # in the step before
-    first_analysed = breaths[(breaths.peep_step == 1) & breaths.analysed].start_time
-    assert first_analysed.min() >= 48 + trial.config.analysis_skip_seconds
+    return breaths[(breaths.peep_step == step) & breaths.analysed].start_time.min()
+
+
+def test_an_exclusion_next_to_a_change_of_peep_does_not_change_the_wait():
+    skip = SegmentationConfig().analysis_skip_seconds
+    # The last 8 s at PEEP 12 excluded (e.g. a hold): no breath analysed early.
+    before = trial_with_exclusion(Segment(40, 48, label="x"))
+    assert first_analysed(before, 1) >= 48 + skip
+    # The first 10 s at PEEP 10 excluded: the wait is not counted from its end.
+    after = trial_with_exclusion(Segment(48, 58, label="x"))
+    assert 48 + skip <= first_analysed(after, 1) < 48 + skip + 4
+
+
+def test_a_step_mostly_inside_an_exclusion_is_still_found():
+    # Every breath at PEEP 8 but the last excluded: the excluded breaths take its PEEP.
+    trial = trial_with_exclusion(Segment(96, 138, label="x"))
+    assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
 
 
 def test_a_pressure_missing_in_most_breaths_gives_a_warning():
