@@ -1949,8 +1949,8 @@ medians of the breath indices; compliance in EIT units = median TIV / driving
 pressure of the step, in mL/cmH2O = tidal volume / driving pressure of the step
 (both kept: the EIT compliance also sees what changes in the slice); Costa
 collapse and overdistension from the median tidal image of each step; the
-recruitment-to-inflation ratio between the steps nearest to the PEEP levels of the
-config, globally and by region.</p>
+recruitment-to-inflation ratio between the steps at the two PEEP levels of the
+protocol given in the config (none without them), globally and by region.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2675,15 +2675,12 @@ a step, as in Wang 2020.</p>
 
 
 <a href="#fasteit.features.recruitment.ri_steps" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ri_steps</span><span class="p">(</span><span class="n">peep</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">min_drop</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ri_steps</span><span class="p">(</span><span class="n">levels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">low</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>The two steps used for R/I: the nearest to the high and to the low PEEP.</p>
-<p>The high step is the step nearest to <code>high</code>; the low step is the step nearest to
-<code>low</code> among those at least <code>min_drop</code> below the high step (the first one if two
-are equally near).</p>
+        <p>The two steps used for R/I: the steps at the two PEEP levels of the protocol.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2699,14 +2696,14 @@ are equally near).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>peep</code>
+                <code>levels</code>
             </td>
             <td>
                   <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>PEEP of each step.</p>
+                <p>PEEP level of the protocol of each step (<code>peep_set</code>), NaN if none.</p>
               </div>
             </td>
             <td>
@@ -2722,7 +2719,7 @@ are equally near).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Target high PEEP (e.g. 15).</p>
+                <p>The high level (e.g. 14).</p>
               </div>
             </td>
             <td>
@@ -2738,23 +2735,7 @@ are equally near).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Target low PEEP (e.g. 5).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>min_drop</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Smallest drop of PEEP between the two steps.</p>
+                <p>The low level (e.g. 4).</p>
               </div>
             </td>
             <td>
@@ -2780,7 +2761,17 @@ are equally near).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Index of the high and of the low step, or None if no pair drops enough.</p>
+                <p>Index of the high and of the low step, or None unless exactly one step is at</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>each level.</p>
               </div>
             </td>
           </tr>

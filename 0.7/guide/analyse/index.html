@@ -1566,7 +1566,7 @@ to be computed by hand.</p>
 0.1 s moving average only). Without a tidal volume (typed, or measured on the ventilator
 curves) the values in mL stay empty and compliance is in EIT units only.</p>
 <h2 id="2-a-peep-trial">2. A PEEP trial<a class="headerlink" href="#2-a-peep-trial" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">SegmentationConfig</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalysisConfig</span><span class="p">,</span> <span class="n">SegmentationConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordingContext</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
@@ -1582,7 +1582,9 @@ curves) the values in mL stay empty and compliance is in EIT units only.</p>
     <span class="n">recording</span><span class="p">,</span>
     <span class="n">SegmentationConfig</span><span class="p">(</span><span class="n">peep_levels</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>   <span class="c1"># the protocol</span>
 <span class="p">)</span>
-<span class="n">trial_features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>
+<span class="n">trial_features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span>
+    <span class="n">trial</span><span class="p">,</span> <span class="n">AnalysisConfig</span><span class="p">(</span><span class="n">ri_peep_high</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">ri_peep_low</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>   <span class="c1"># the two levels of R/I</span>
+<span class="p">)</span>
 </code></pre></div>
 <table>
 <thead>
@@ -1605,7 +1607,7 @@ curves) the values in mL stay empty and compliance is in EIT units only.</p>
 <td><code>trial_features.steps</code></td>
 </tr>
 <tr>
-<td>crossing PEEP, best PEEP, recruitment-to-inflation ratio (global and by region)</td>
+<td>crossing PEEP, best PEEP, recruitment-to-inflation ratio (global and by region; only with the two levels of <code>AnalysisConfig</code>)</td>
 <td><code>trial_features.summary</code></td>
 </tr>
 </tbody>
@@ -1616,12 +1618,15 @@ levels of the protocol (<code>peep_levels</code>), each step also gets the level
 (<code>peep_set</code>), and crossing PEEP and best PEEP are given on those levels when every step
 matches one; otherwise they are given on the PEEP of the steps (measured, or typed with
 the steps placed by hand), and the log says which. Without <code>peep_levels</code>, <code>peep_set</code> is
-empty and the PEEP of the steps is used.</p>
+empty and the PEEP of the steps is used. The recruitment-to-inflation ratio needs both:
+it is computed between the steps at the two levels of <code>AnalysisConfig</code>, which must be
+levels of the protocol (no R/I without them).</p>
 <h2 id="3-a-recording-with-two-parts">3. A recording with two parts<a class="headerlink" href="#3-a-recording-with-two-parts" title="Permanent link">&para;</a></h2>
 <p>A baseline at one PEEP and a PEEP trial in the same file: preprocess the whole file once
 (same filters, same lung mask), then analyse each part. Times are in seconds from the
 start of the file; <a href="../segments/">cut a recording</a> shows how to find them.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span><span class="p">,</span> <span class="n">tidal_features</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalysisConfig</span><span class="p">,</span> <span class="n">SegmentationConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span><span class="p">,</span> <span class="n">tidal_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordingContext</span><span class="p">,</span> <span class="n">Segment</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">preprocess</span>
@@ -1633,8 +1638,12 @@ start of the file; <a href="../segments/">cut a recording</a> shows how to find 
     <span class="n">context</span><span class="o">=</span><span class="n">RecordingContext</span><span class="p">(</span><span class="n">patient_id</span><span class="o">=</span><span class="s2">"P02"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"T0"</span><span class="p">,</span> <span class="n">tidal_volume_ml</span><span class="o">=</span><span class="mi">450</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">baseline</span> <span class="o">=</span> <span class="n">tidal_features</span><span class="p">(</span><span class="n">recording</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="n">Segment</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">290</span><span class="p">,</span> <span class="s2">"phase"</span><span class="p">,</span> <span class="s2">"tidal"</span><span class="p">))</span>
-<span class="n">trial</span> <span class="o">=</span> <span class="n">segment_peep_trial</span><span class="p">(</span><span class="n">recording</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="n">Segment</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">1500</span><span class="p">,</span> <span class="s2">"phase"</span><span class="p">,</span> <span class="s2">"peep_trial"</span><span class="p">))</span>
-<span class="n">trial_features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>
+<span class="n">trial</span> <span class="o">=</span> <span class="n">segment_peep_trial</span><span class="p">(</span>
+    <span class="n">recording</span><span class="p">,</span>
+    <span class="n">SegmentationConfig</span><span class="p">(</span><span class="n">peep_levels</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="n">phase</span><span class="o">=</span><span class="n">Segment</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">1500</span><span class="p">,</span> <span class="s2">"phase"</span><span class="p">,</span> <span class="s2">"peep_trial"</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">trial_features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">AnalysisConfig</span><span class="p">(</span><span class="n">ri_peep_high</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">ri_peep_low</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
 </code></pre></div>
 <p>Each part is an analysis of its own. A breath belongs to a part when it starts and ends
 inside it. In the exported tables the parts are told apart by the name of the phase

@@ -4025,8 +4025,10 @@ call it again. Do not modify the DataFrames in place: make a copy.</p>
               <code>n_analysed</code>, <code>enough</code> (at least the minimum), <code>plateau</code>
               and <code>driving_pressure</code> with <code>driving_pressure_source</code>:
               <code>"breaths"</code> (median of the analysed breaths, continuous
-              pause), <code>"hold"</code> (median of the breaths of the step with an
-              inspiratory hold) or <code>"typed"</code> (step placed by hand);
+              pause), <code>"hold"</code> (fewer analysed breaths with a plateau
+              than the minimum: median of every breath of the step with one
+              that is not excluded, e.g. an inspiratory hold) or
+              <code>"typed"</code> (step placed by hand);
               <code>n_driving_pressure</code> and <code>enough_driving_pressure</code>;
               <code>tidal_volume</code> (mL) with <code>tidal_volume_source</code>:
               <code>"typed"</code> (for the step), <code>"typed_recording"</code>
@@ -4229,7 +4231,9 @@ breath, or step, and region), so that they can be joined with the clinical data
                 <p>One row per breath of the recording: <code>breath_id</code>,
        <code>in_phase</code>, <code>respiratory_rate</code>, <code>eeli</code>, <code>tiv</code>, <code>gi</code>,
        <code>cov_vd</code>, <code>cov_rl</code>, <code>tidal_volume_used</code> (typed or
-       measured) and its <code>tidal_volume_source</code>, <code>compliance</code> (EIT
+       measured) and its <code>tidal_volume_source</code>,
+       <code>driving_pressure_used</code> (measured; typed for a step of a PEEP
+       trial) and its <code>driving_pressure_source</code>, <code>compliance</code> (EIT
        units per cmH2O), <code>compliance_ml</code> (mL/cmH2O). Times, quality and
        pressures: <code>recording.breaths</code>.</p>
               </div>
