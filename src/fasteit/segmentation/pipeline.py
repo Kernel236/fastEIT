@@ -157,6 +157,15 @@ def _automatic_steps(
     near_own = np.abs(peep - level_of_breath) <= 1.5 * config.step_threshold
     away_before = np.abs(peep - level_before) > config.step_threshold
     changed = (step == 0) | (away_before & near_own)
+    # The excluded breaths before the first kept breath of a step came before the change
+    # (the backward fill puts them in the new step): when one of them still reads the
+    # PEEP before, the change came after it, whatever was read earlier (e.g. a leak).
+    still_before = np.abs(peep - level_before) <= tolerance
+    for number in range(1, n_steps):
+        in_step = np.flatnonzero(step == number)
+        leading = in_step[: np.argmax(~excluded[in_step])]
+        if still_before[leading].any():
+            changed[in_step[in_step <= leading[still_before[leading]][-1]]] = False
 
     analysed = analysed_breaths(
         breath_starts,

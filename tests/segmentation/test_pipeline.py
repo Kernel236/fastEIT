@@ -248,10 +248,10 @@ def test_an_excluded_maneuver_at_another_peep_does_not_open_a_step():
     assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
 
 
-def trial_with_exclusion(exclusion):
+def trial_with_exclusion(exclusion, peeps=PEEPS):
     """The synthetic trial (PEEP 12 -> 10 at 48 s, 10 -> 8 at 96 s, 8 -> 6 at 144 s)
     with one exclusion."""
-    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    paw, _ = vcv_pressure(peeps, fs=FS, period=4.0)
     raw, _ = synthetic_raw(seconds=200)
     raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
     return segment_peep_trial(preprocess(raw, exclusions=[exclusion]))
@@ -270,6 +270,15 @@ def test_an_exclusion_next_to_a_change_of_peep_does_not_change_the_wait():
     # The first 10 s at PEEP 10 excluded: the wait is not counted from its end.
     after = trial_with_exclusion(Segment(48, 58, label="x"))
     assert 48 + skip <= first_analysed(after, 1) < 48 + skip + 4
+
+
+def test_a_peep_read_low_inside_an_exclusion_before_the_change_does_not_start_the_wait():
+    # Inside an exclusion before the change 12 -> 10 (48 s), two breaths read 10.5 (e.g.
+    # a leak), then 12 again: the wait starts at the change, not at those breaths.
+    peeps = PEEPS.copy()
+    peeps[7:9] = [10.5, 10.5]  # 28-36 s
+    trial = trial_with_exclusion(Segment(24, 47.4, label="x"), peeps)
+    assert first_analysed(trial, 1) >= 48 + SegmentationConfig().analysis_skip_seconds
 
 
 def test_the_measured_peep_of_a_step_leaves_its_excluded_breaths_out():

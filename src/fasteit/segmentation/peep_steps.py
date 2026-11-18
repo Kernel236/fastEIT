@@ -30,8 +30,8 @@ def find_steps(
     the first ``min_breaths`` breaths at the start). With ``min_breaths`` of 2 or more a
     single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN, e.g.
     excluded) takes the PEEP of the next breath that has one, so a step can start
-    inside an exclusion; the time left out after the change is counted from the first
-    breath measured at the level of the step (``analysed_breaths``).
+    inside an exclusion; the time left out after the change is counted from the change
+    measured on the breaths (``analysed_breaths``).
 
     Args:
         peep:        PEEP of each breath.
@@ -236,9 +236,10 @@ def analysed_breaths(
     still moving; then the last ``max_breaths`` valid breaths of the step are analysed
     (notebook 06, section 5). The time is counted from the first breath of the step
     whose PEEP was measured at the PEEP of the step and away from the PEEP of the step
-    before, excluded or not (without exclusions, the first breath of the step): an
-    exclusion just before the change of PEEP (its breaths are in the new step) does not
-    shorten the wait, and one just after it does not lengthen it.
+    before, excluded or not, and after the last excluded breath still at the PEEP before
+    (without exclusions, the first breath of the step): an exclusion just before the
+    change of PEEP (its breaths are in the new step) does not shorten the wait, and one
+    just after it does not lengthen it.
 
     Args:
         breath_starts: Start time of each breath, in seconds.
@@ -246,9 +247,10 @@ def analysed_breaths(
         valid:         ``is_valid`` of each breath.
         skip_seconds:  Time left out after the change of PEEP.
         max_breaths:   Most breaths analysed per step.
-        changed:       True for the breaths whose PEEP was measured at the PEEP of
-                       their step and away from the PEEP of the step before; None: the
-                       time is counted from the first breath of the step.
+        changed:       True for the breaths that can start the wait: measured at
+                       the PEEP of their step, away from the PEEP of the step before,
+                       after the last excluded breath still at it; None: the time is
+                       counted from the first breath of the step.
 
     Returns:
         Boolean array, True for the analysed breaths.
