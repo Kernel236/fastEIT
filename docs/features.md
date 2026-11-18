@@ -169,12 +169,11 @@ first step has no analysed breaths, the changes vs the first step are NaN.
 
 ## 5. Limits
 
-- Tested on four decremental PEEP trials from two patients and on synthetic data with a
-  known answer; Costa is implemented from its published formulas, not checked against
-  another implementation.
+- Costa is implemented from its published formulas and checked on synthetic data with a
+  known answer, not against another implementation.
 - EELI is in arbitrary units: only its changes count. Its change in mL assumes the same
   impedance per mL for the tidal and the end-expiratory change (Hinz et al., Intensive
-  Care Med 2003, DOI: 10.1007/s00134-002-1555-4); in the four trials it was 1.6-2.3
+  Care Med 2003, DOI: 10.1007/s00134-002-1555-4); where it was checked it was 1.6-2.3
   times compliance × change of PEEP, cause unknown, so it is exploratory.
 - The mL of a region share the tidal volume as seen in the imaged slice: a distribution,
   not independent measurements.

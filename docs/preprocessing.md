@@ -227,17 +227,18 @@ There are two kinds of record, kept apart on purpose:
 
 ## 6. Limits
 
-- Checked against eitprocessing (946 breaths, two patients and a volunteer) and the
-  pressures on four PEEP trials (notebook 06), not against a gold standard. Dräger
-  PulmoVista and adults only (respiratory rate 6-60/min).
+- The EIT steps are checked against eitprocessing, not against a gold standard. Adults
+  only (respiratory rate 6-60/min).
 - Breaths are timed on the impedance, not on the ventilator: asynchrony is not detected,
   and breaths within about 15 s of a sudden change of EELI are unreliable.
 - PEEP is read at the airway opening, without intrinsic PEEP (with intrinsic PEEP the
   driving pressure is overestimated); the driving pressure is that of the respiratory
   system, in a passive patient.
 - The plateau needs a hold of at least 0.2 s (or a flat pressure in pressure control) and
-  is not validated against the ventilator. Holds, pressure control, Medibus and Timpel
-  pressures and the tidal volume from the curves are tested on synthetic data only.
+  is not validated against the ventilator.
+- Real recordings are Dräger PulmoVista 500 files. Timpel files, pressure control, the
+  Medibus pressures and the tidal volume from the curves are tested on synthetic data
+  only.
 - The tidal volume is the one the ventilator measures, leaks and circuit compression
   included.
 
