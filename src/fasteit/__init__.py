@@ -15,7 +15,7 @@ import logging
 # EITRecording.log.
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-__version__ = "0.7.0a6"
+__version__ = "0.7.0a7"
 __author__ = "Riccardo Del Signore"
 __license__ = "Apache-2.0"
 
