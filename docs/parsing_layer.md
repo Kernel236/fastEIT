@@ -1,159 +1,16 @@
-# fastEIT - Parsing Layer: How It Works and How to Extend It
+# fastEIT - Extending the parsers
 
-This document explains the architecture of the parsing layer and provides
-step-by-step recipes for the most common extension tasks:
+How to add what the parsing layer does not read yet. How a file is recognised and read
+is in [parsers](parsers.md); every step below plugs into that flow.
 
-1. [How the parsing layer works](#1-how-the-parsing-layer-works)
-2. [Add a new Dräger `.bin` frame size](#2-add-a-new-dräger-bin-frame-size)
-3. [Add a new parser](#3-add-a-new-parser)
-4. [Testing checklist](#4-testing-checklist)
-5. [File layout](#5-file-layout)
-
----
-
-## 1. How the parsing layer works
-
-### The single entry point
-
-Everything starts from `load_data(path)` in `parsers/loader.py`. You call it
-with a file path; it returns the right data container without you knowing which
-parser was used.
-
-```python
-from fasteit.parsers.loader import load_data
-
-data = load_data("patient01.bin")   # → ReconstructedFrameData
-data = load_data("patient01.asc")   # → ContinuousSignalData
-```
-
-Internally it does three things in sequence:
-
-```
-1. detect_vendor_and_format(path)   ← What file is this?
-2. build_parser_from_detection(...)  ← Which parser handles it?
-3. parser.parse_safe(path)           ← Read and return data
-```
-
-### Detection (`parsers/detection.py`)
-
-Detection maps a file to `(vendor, extension, optional_bin_format)`.
-The strategy depends on the extension:
-
-| Extension | Strategy | How it works |
-|-----------|----------|--------------|
-| `.bin` | size-based | `file_size % frame_size == 0` for each registered `FormatSpec` |
-| `.eit` | header-based | reads first bytes, looks for ASCII magic string for each registered `HeaderFormatSpec` |
-| `.asc` `.txt` `.csv` | content-based | reads first 40 lines, looks for a vendor keyword; Timpel is also recognised by its 1030-column row |
-
-`.bin` is special: there is no header. The only way to identify the format is
-that the file size must be an exact multiple of the frame size in bytes. The
-`BIN_FORMAT_SPECS` list in `parsers/bin_formats.py` holds every known frame
-size. If only one spec matches → that's the format. If zero match → error.
-If more than one match → `AmbiguousFormatError` (rare, requires two frame
-sizes that divide the same file size).
-
-### Parser registry (`parsers/loader.py`)
-
-`default_parser_registry()` returns a plain dict:
-
-```python
-{
-    ("draeger", ".bin"): lambda: DragerBinParser(),
-    ("draeger", ".eit"): lambda: DragerEitParser(),
-    ("draeger", ".asc"): lambda: DragerAscParser(),
-    ("draeger", ".txt"): lambda: DragerAscParser(),
-    ("draeger", ".csv"): lambda: DragerAscParser(),
-    ("timpel",  ".csv"): lambda: TimpelTabularParser(),
-    ("timpel",  ".txt"): lambda: TimpelTabularParser(),
-    ("timpel",  ".asc"): lambda: TimpelTabularParser(),
-}
-```
-
-Key = `(vendor_lowercase, extension_with_dot_lowercase)`.
-Value = zero-argument factory that returns a fresh parser instance.
-
-### `BaseParser` and `parse_safe`
-
-Every parser inherits from `BaseParser` (Template Method pattern):
-
-```
-BaseParser
-  ├── validate(path) → bool        ← you implement this
-  ├── parse(path) → BaseData       ← you implement this
-  └── parse_safe(path) → BaseData  ← free: validates then parses
-```
-
-`parse_safe` raises `FileNotFoundError` if the file is missing and
-`ValueError` if `validate()` returns False. Callers always use `parse_safe`
-(or `load_data`, which calls it). Direct `parse()` skips validation and is
-used internally or in tests.
-
-### Data flow summary
-
-```
-load_data("patient01.bin")
-    │
-    ├─ detect_vendor_and_format()
-    │   └─ file_size 4358000 % 4358 == 0
-    │       → FormatSpec("Draeger_base_4358", vendor="draeger", frame_size=4358)
-    │       → FileDetection(extension=".bin", vendor="draeger", bin_format=spec)
-    │
-    ├─ build_parser_from_detection()
-    │   └─ registry[("draeger", ".bin")] → DragerBinParser()
-    │
-    ├─ parser.parse_safe("patient01.bin")
-    │   ├─ validate() → file exists, size divisible by known frame size → True
-    │   └─ parse()
-    │       ├─ np.memmap with spec.dtype
-    │       ├─ fs estimation from timestamps
-    │       └─ ReconstructedFrameData(frames, aux_signals, fs, ...)
-    │
-    └─ attach detected vendor/extension to data.metadata
-       return ReconstructedFrameData
-```
-
-### Multi-file loaders
-
-Two convenience wrappers built on top of `load_data()`:
-
-**`load_many(paths)`** - takes an explicit list of paths, returns a list of
-`BaseData` in the same order. Vendor and format can be mixed freely.
-
-```python
-from fasteit.parsers.loader import load_many
-
-recordings = load_many([
-    "patient01.bin",
-    "patient02.bin",
-    "patient01.asc",
-])
-```
-
-**`load_folder(folder, pattern="*")`** - scans a directory (alphabetically),
-parses every file that has a registered parser, and **skips** files that raise
-an error (no registered parser, malformed file, wrong extension). Each skipped
-file prints a one-line message to `stderr`; the scan is never aborted.
-
-```python
-from fasteit.parsers.loader import load_folder
-
-# All files in a folder (mixed formats)
-recordings = load_folder("/data/session01/")
-
-# Only .bin files
-recordings = load_folder("/data/session01/", pattern="*.bin")
-
-# Recursive search
-recordings = load_folder("/data/", pattern="**/*.bin")
-```
-
-Both functions accept the same optional `registry=` argument as `load_data()`,
-making it easy to inject a custom parser registry for testing or for formats
-not yet registered by default.
+1. [Add a new Dräger `.bin` frame size](#1-add-a-new-dräger-bin-frame-size)
+2. [Add a new parser](#2-add-a-new-parser)
+3. [Testing checklist](#3-testing-checklist)
+4. [Where a new device goes](#4-where-a-new-device-goes)
 
 ---
 
-## 2. Add a new Dräger `.bin` frame size
+## 1. Add a new Dräger `.bin` frame size
 
 If a new PulmoVista firmware introduces a new frame layout (e.g., 4406
 bytes with 6 additional Medibus fields).
@@ -164,36 +21,20 @@ bytes with 6 additional Medibus fields).
 
 File: `src/fasteit/parsers/draeger/bin/draeger_dtypes.py`
 
-Add the new structured dtype and field list following the existing pattern.
-The layout must sum exactly to the new frame size - verify with a comment.
+Add the new structured dtype and its Medibus field list, following the existing ones.
+The layout must add up exactly to the new frame size: check it with an assertion.
 
 ```python
-# New extended frame (4406 bytes) - hypothetical example
-FRAME_NEWEXT_DTYPE = np.dtype([
-    ("ts",           "<f8"),          #   8 bytes
-    ("dummy",        "<f4"),          #   4 bytes
-    ("pixels",       "<f4", (32, 32)),# 4096 bytes
-    ("min_max_flag", "<i4"),          #   4 bytes
-    ("event_marker", "<i4"),          #   4 bytes
-    ("event_text",   "S30"),          #  30 bytes
-    ("timing_error", "<i4"),          #   4 bytes
-    ("medibus_data", "<f4", (64,)),   # 256 bytes  ← was 208 or 232
-])
-# Total: 8+4+4096+4+4+30+4+256 = 4406 bytes
+# New extended frame (4406 bytes) - hypothetical example: the fields of the existing
+# extended frame, with a larger Medibus block.
+FRAME_NEWEXT_DTYPE = np.dtype([*FRAME_EXT_DTYPE.descr[:-1], ("medibus_data", "<f4", (64,))])
+assert FRAME_NEWEXT_DTYPE.itemsize == 4406
 
 MEDIBUS_NEWEXT_FIELDS: list[tuple[str, str, bool]] = _MEDIBUS_COMMON + [
-    # idx 51: first new field
-    ("high_pressure", "mbar", False),
-    # idx 52-63: remaining new fields ...
+    ("high_pressure", "mbar", False),  # (name, unit, is_continuous) of each new channel
+    # ...
 ]
-
-MEDIBUS_NEWEXT_INDEX: dict[str, int] = {
-    name: i for i, (name, _, _) in enumerate(MEDIBUS_NEWEXT_FIELDS)
-}
 ```
-
-**Rule:** the frame layout must be byte-exact. Add the arithmetic comment
-(`# Total: ...`) and verify it matches the new frame size before continuing.
 
 ### Step 2 - Register the format spec
 
@@ -230,7 +71,7 @@ the spec - no parser changes needed.
 
 ---
 
-## 3. Add a new parser
+## 2. Add a new parser
 
 This recipe covers any combination: new vendor or existing vendor, binary or
 tabular. The five steps are always the same; only the content of steps 1 and 2
@@ -316,7 +157,7 @@ Then add the `HeaderFormatSpec` to `HEADER_FORMAT_SPECS` as above.
 
 **Binary without a header (size-based, `.bin`)**
 
-Add a `FormatSpec` to `BIN_FORMAT_SPECS` (see [section 2](#2-add-a-new-dräger-bin-frame-size)).
+Add a `FormatSpec` to `BIN_FORMAT_SPECS` (see [section 2](#1-add-a-new-dräger-bin-frame-size)).
 No changes to `detection.py` needed.
 
 ---
@@ -503,7 +344,7 @@ correct parser is called.
 
 ---
 
-## 4. Testing checklist
+## 3. Testing checklist
 
 Every new parser must have tests before it is considered done.
 Minimal coverage for a tabular parser:
@@ -521,44 +362,10 @@ Minimal coverage for a tabular parser:
 
 ---
 
-## 5. File layout
+## 4. Where a new device goes
 
-```
-src/fasteit/
-├── models/
-│   ├── base_data.py              BaseData - common fields for all containers
-│   ├── reconstructed_data.py     ReconstructedFrameData - 32×32 pixel frames
-│   ├── continuous_data.py        ContinuousSignalData - tabular signal export
-│   └── raw_impedance_data.py     RawImpedanceData - 208 transimpedances per frame
-│
-└── parsers/
-    ├── base.py                   BaseParser (validate / parse / parse_safe)
-    ├── bin_formats.py            BIN_FORMAT_SPECS - all known .bin frame sizes
-    ├── detection.py              detect_vendor_and_format() - routes any file
-    ├── errors.py                 ParserError and subclasses (UnsupportedFrameSize, AmbiguousFormat, InvalidSlice)
-    ├── header_formats.py         HEADER_FORMAT_SPECS - known .eit ASCII headers
-    ├── loader.py                 load_data / load_many / load_folder
-    │
-    ├── draeger/
-    │   ├── asc/
-    │   │   └── asc_parser.py     DragerAscParser - .asc continuous export
-    │   ├── bin/
-    │   │   ├── bin_parser.py     DragerBinParser - .bin reconstructed frames
-    │   │   ├── bin_utils.py      Frame slicing, fs estimation, sentinel helpers
-    │   │   └── draeger_dtypes.py FRAME_BASE_DTYPE, FRAME_EXT_DTYPE, MEDIBUS_* fields
-    │   └── eit/
-    │       ├── eit_parser.py     DragerEitParser - .eit raw transimpedances
-    │       ├── eit_dtypes.py     FRAME_EIT_DTYPE (5495-byte frame layout)
-    │       ├── eit_utils.py      Header parsing, calibration constants FT_A/FT_B/FC_CURRENT/FV_VOLTAGE
-    │       └── eit_pyeit_bridge.py  build_greit() / reconstruct_greit() - pyEIT bridge
-    │
-    └── timpel/
-        ├── timpel_parser.py      TimpelTabularParser - .csv/.txt/.asc reconstructed frames
-        └── timpel_dtypes.py      TIMPEL_AUX_FIELDS - auxiliary signal columns
-```
+Create `parsers/<vendor>/` like the existing ones ([file layout](parsers.md#6-file-layout)):
+one `<vendor>_parser.py`, one `<vendor>_dtypes.py`, one `__init__.py`. Then follow the
+steps of [section 2](#2-add-a-new-parser).
 
-**Where to add a new vendor** - create `parsers/<vendor>/` mirroring the structure above:
-one `<vendor>_parser.py`, one `<vendor>_dtypes.py`, one `__init__.py`.
-Then follow steps 1-5 in [section 3](#3-add-a-new-parser).
-
----
+*Research use only - not a medical device.*

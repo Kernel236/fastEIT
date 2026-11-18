@@ -59,7 +59,7 @@ nav:
       - Review figures: api/plotting.md
       - Configuration: api/config.md
   - Development:
-      - Parsing layer architecture: parsing_layer.md
+      - Extend the parsers: parsing_layer.md
       - Contributing: contributing.md
       - License: license.md
 
