@@ -2726,7 +2726,8 @@
 3. respiratory rate from the spectrum, cardiac step (MDN with a heart rate given by
    the user, otherwise only a moving average);
 4. breath detection on the global signal (sum of all pixels);
-5. quality flags and exclusions of each breath;
+5. exclusions, then quality flags of each breath (local medians without the excluded
+   breaths);
 6. lung mask from the valid breaths, regions of interest, regional signals;
 7. auxiliary signals (pressures, flow, volume, device markers) with "no data" as NaN,
    in the same units for every vendor (cmH2O, L/s, mL);
@@ -6199,7 +6200,7 @@ fall from the peak to the end valley, as in eitprocessing <code>BreathDetection<
 
 
 <a href="#fasteit.preprocessing.breath_quality.ratio_to_local_median" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ratio_to_local_median</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">window_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">min_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ratio_to_local_median</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">window_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">min_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ignore</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6207,7 +6208,9 @@ fall from the peak to the end valley, as in eitprocessing <code>BreathDetection<
         <p>Each value divided by the median of the breaths around it.</p>
 <p>The window is centred on the breath and includes it. At the start and end of the
 recording the window is shorter; with fewer than <code>min_breaths</code> values the ratio
-is NaN, so no outlier flag can be set there.</p>
+is NaN, so no outlier flag can be set there. The breaths to ignore (excluded) are
+left out of every median, so that what happens inside an exclusion (an artefact, a
+maneuver) does not flag the breaths around it.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -6269,6 +6272,22 @@ is NaN, so no outlier flag can be set there.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ignore</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True for the breaths left out of the medians; None for none.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -6308,7 +6327,7 @@ is NaN, so no outlier flag can be set there.</p>
 
 
 <a href="#fasteit.preprocessing.breath_quality.quality_flags" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">quality_flags</span><span class="p">(</span><span class="n">signal</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">near_invalid</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">short_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">long_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ti_ratio_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ti_ratio_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">window_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">min_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">amplitude_ratio_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">amplitude_ratio_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">duration_ratio_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">quality_flags</span><span class="p">(</span><span class="n">signal</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">breaths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">near_invalid</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">short_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">long_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ti_ratio_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ti_ratio_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">window_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">min_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">amplitude_ratio_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">amplitude_ratio_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">duration_ratio_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">excluded</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6319,13 +6338,14 @@ is NaN, so no outlier flag can be set there.</p>
   <code>long_seconds</code>;</li>
 <li><code>flag_suspect_ti_ratio</code>: Ti/Ttot outside <code>ti_ratio_low</code>-<code>ti_ratio_high</code>;</li>
 <li><code>flag_amplitude_outlier</code>: amplitude below <code>amplitude_ratio_low</code> or above
-  <code>amplitude_ratio_high</code> times the median of the surrounding breaths;</li>
+  <code>amplitude_ratio_high</code> times the median of the surrounding breaths that are not
+  excluded;</li>
 <li><code>flag_duration_outlier</code>: duration above <code>duration_ratio_high</code> times the
-  median of the surrounding breaths;</li>
+  median of the surrounding breaths that are not excluded;</li>
 <li><code>flag_invalid_data</code>: close to invalid data (<code>near_invalid</code> of
   <code>detect_breaths</code>).</li>
 </ul>
-<p>On 946 breaths of 11 regular recordings these rules flagged 9 Ti/Ttot, 1 amplitude
+<p>On 946 breaths of 11 regular recordings these rules flagged 8 Ti/Ttot, 1 amplitude
 and 3 duration outliers, all visible events (section 8 of the evidence notebook).</p>
 
 
@@ -6546,6 +6566,23 @@ and 3 duration outliers, all visible events (section 8 of the evidence notebook)
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>excluded</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True for the breaths inside an exclusion, left out of the local
+            medians; None for none.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>

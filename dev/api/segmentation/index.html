@@ -1908,8 +1908,10 @@ ones (notebooks/06_peep_trial_segmentation.ipynb, sections 3, 5 and 7).</p>
 <code>threshold</code> from the level of the current step and within <code>agreement</code> of each
 other; the level of the current step is the median PEEP of its breaths so far (of
 the first <code>min_breaths</code> breaths at the start). With <code>min_breaths</code> of 2 or more a
-single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN) takes
-the PEEP of the next breath that has one.</p>
+single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN, e.g.
+excluded) takes the PEEP of the next breath that has one, so a step can start
+inside an exclusion; the time left out after the change is counted from the change
+measured on the breaths (<code>analysed_breaths</code>).</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2439,15 +2441,20 @@ breath is inside any segment.</p>
 
 
 <a href="#fasteit.segmentation.peep_steps.analysed_breaths" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">analysed_breaths</span><span class="p">(</span><span class="n">breath_starts</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">valid</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">skip_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">max_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">analysed_breaths</span><span class="p">(</span><span class="n">breath_starts</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">valid</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">skip_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">max_breaths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">changed</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Breaths analysed in each automatic step.</p>
-<p>The breaths in the first <code>skip_seconds</code> of the step (from its first breath) are
-left out, as EELI is still moving; then the last <code>max_breaths</code> valid breaths of
-the step are analysed (notebook 06, section 5).</p>
+<p>The breaths in the first <code>skip_seconds</code> of the step are left out, as EELI is
+still moving; then the last <code>max_breaths</code> valid breaths of the step are analysed
+(notebook 06, section 5). The time is counted from the first breath of the step
+whose PEEP was measured at the PEEP of the step and away from the PEEP of the step
+before, excluded or not, and after the last excluded breath still at the PEEP before
+(without exclusions, the first breath of the step): an exclusion just before the
+change of PEEP (its breaths are in the new step) does not shorten the wait, and one
+just after it does not lengthen it.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2539,6 +2546,25 @@ the step are analysed (notebook 06, section 5).</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>changed</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True for the breaths that can start the wait: measured at
+           the PEEP of their step, away from the PEEP of the step before,
+           after the last excluded breath still at it; None: the time is
+           counted from the first breath of the step.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>

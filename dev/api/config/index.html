@@ -1586,7 +1586,7 @@ preprocessing functions work in Hz and the pipeline converts.</p>
   </span>
 
 <a href="#fasteit.config.PreprocessingConfig" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PreprocessingConfig</span><span class="p">(</span><span class="n">heart_rate_bpm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">moving_average_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">breath_short_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">breath_long_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span> <span class="n">ti_ratio_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">ti_ratio_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span> <span class="n">local_window_breaths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">21</span><span class="p">,</span> <span class="n">amplitude_ratio_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">amplitude_ratio_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">duration_ratio_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">lung_mask_threshold_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span> <span class="n">exclusion_margin_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PreprocessingConfig</span><span class="p">(</span><span class="n">heart_rate_bpm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">moving_average_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">breath_short_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">breath_long_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span> <span class="n">ti_ratio_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">ti_ratio_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span> <span class="n">local_window_breaths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">21</span><span class="p">,</span> <span class="n">amplitude_ratio_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">amplitude_ratio_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">duration_ratio_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">lung_mask_threshold_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span> <span class="n">exclusion_margin_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1670,7 +1670,10 @@ breath (section 8).</p>
                 <p>A breath with Ti/Ttot outside this range is
 flagged (<code>flag_suspect_ti_ratio</code>). Ti/Ttot here is the rise fraction of
 the impedance curve, a plausibility check on the detection, not a clinical
-judgement (roadmap task 4.11, section 8).</p>
+judgement (roadmap task 4.11, section 8). The low limit, 0.1 (I:E of the
+impedance curve up to 1:9), is below the slow breathing of anaesthesia: at
+8 breaths/min with I:E 1:4 the impedance Ti/Ttot is about 0.2, and a limit
+of 0.2 flagged about half of those breaths at random.</p>
               </div>
             </td>
           </tr>
@@ -1907,7 +1910,7 @@ none, with a warning, if further than <code>step_threshold</code>. None:
   </span>
 
 <a href="#fasteit.config.AnalysisConfig" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">AnalysisConfig</span><span class="p">(</span><span class="n">ri_peep_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span><span class="p">,</span> <span class="n">ri_peep_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">ri_min_peep_drop</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">AnalysisConfig</span><span class="p">(</span><span class="n">ri_peep_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ri_peep_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1932,15 +1935,19 @@ only the recruitment-to-inflation ratio has parameters.</p>
           <tr class="doc-section-item">
             <td><code><span title="fasteit.config.AnalysisConfig.ri_peep_high,">ri_peep_high,</span></code></td>
             <td>
-                  <code>(<span title="fasteit.config.AnalysisConfig.ri_peep_low">ri_peep_low</span>, <span title="fasteit.config.AnalysisConfig.ri_min_peep_drop">ri_min_peep_drop</span>)</code>
+                  <code><span title="fasteit.config.AnalysisConfig.ri_peep_low">ri_peep_low</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The R/I of a PEEP trial compares the
-step nearest to <code>ri_peep_high</code> with the step nearest to <code>ri_peep_low</code>
-among those at least <code>ri_min_peep_drop</code> below it (cmH2O). 15 and 5 are the
-levels of the original method (Chen et al., Am J Respir Crit Care Med
-2020;201:178-187, DOI: 10.1164/rccm.201902-0334OC).</p>
+                <p>The two PEEP levels of the protocol (cmH2O) between
+which the recruitment-to-inflation ratio (R/I) of a PEEP trial is computed:
+15 and 5 in the original method (Chen et al., Am J Respir Crit Care Med
+2020;201:178-187, DOI: 10.1164/rccm.201902-0334OC), for example 14 and 4 in
+a trial with steps of 2 from 16. The steps are those at these levels of the
+protocol (<code>peep_set</code>, from <code>SegmentationConfig.peep_levels</code>), never the
+nearest ones: chosen by nearness, the pair changed between patients of the
+same study (16 and 14 equally near to 15; a measured drop of 9.99 instead of
+10 skipped the step at 4). None (the default): no R/I.</p>
               </div>
             </td>
           </tr>

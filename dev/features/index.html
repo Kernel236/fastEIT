@@ -1526,7 +1526,8 @@ PEEP, the best PEEP and the change of EELI in mL of the notebook.</p>
 </ol>
 <hr />
 <h2 id="1-entry-points">1. Entry points<a class="headerlink" href="#1-entry-points" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span><span class="p">,</span> <span class="n">tidal_features</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalysisConfig</span><span class="p">,</span> <span class="n">SegmentationConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span><span class="p">,</span> <span class="n">tidal_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordingContext</span><span class="p">,</span> <span class="n">Segment</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">preprocess</span>
@@ -1540,10 +1541,12 @@ PEEP, the best PEEP and the change of EELI in mL of the notebook.</p>
 <span class="n">tidal</span><span class="o">.</span><span class="n">regions</span>    <span class="c1"># one row per breath and region</span>
 <span class="n">tidal</span><span class="o">.</span><span class="n">summary</span>    <span class="c1"># median and quartiles over the valid breaths, by region and index</span>
 
-<span class="c1"># A PEEP trial.</span>
+<span class="c1"># A PEEP trial, with the PEEP levels of its protocol and the two levels of R/I.</span>
 <span class="n">context</span> <span class="o">=</span> <span class="n">RecordingContext</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="s2">"peep_trial"</span><span class="p">,</span> <span class="n">tidal_volume_ml</span><span class="o">=</span><span class="mi">450</span><span class="p">)</span>
-<span class="n">trial</span> <span class="o">=</span> <span class="n">segment_peep_trial</span><span class="p">(</span><span class="n">preprocess</span><span class="p">(</span><span class="n">load_data</span><span class="p">(</span><span class="s2">"peep_trial.bin"</span><span class="p">),</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">))</span>
-<span class="n">features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>   <span class="c1"># parameters in features.config (AnalysisConfig)</span>
+<span class="n">protocol</span> <span class="o">=</span> <span class="n">SegmentationConfig</span><span class="p">(</span><span class="n">peep_levels</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">trial</span> <span class="o">=</span> <span class="n">segment_peep_trial</span><span class="p">(</span><span class="n">preprocess</span><span class="p">(</span><span class="n">load_data</span><span class="p">(</span><span class="s2">"peep_trial.bin"</span><span class="p">),</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">),</span>
+                           <span class="n">protocol</span><span class="p">)</span>
+<span class="n">features</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">AnalysisConfig</span><span class="p">(</span><span class="n">ri_peep_high</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">ri_peep_low</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
 <span class="n">features</span><span class="o">.</span><span class="n">steps</span>          <span class="c1"># one row per PEEP step</span>
 <span class="n">features</span><span class="o">.</span><span class="n">step_regions</span>   <span class="c1"># one row per step and region</span>
 <span class="n">features</span><span class="o">.</span><span class="n">summary</span>        <span class="c1"># crossing PEEP, best PEEP, R/I (global and by region)</span>
@@ -1599,13 +1602,18 @@ end-expiratory valley, peak = end-inspiratory peak.</p>
 <td>layer 2 and 2b</td>
 </tr>
 <tr>
+<td><code>driving_pressure_used</code>, <code>driving_pressure_source</code></td>
+<td>driving pressure used for the compliance: typed for the step (it wins, as in the step table), or read on the curve for the breath</td>
+<td>layer 2 and 2b</td>
+</tr>
+<tr>
 <td><code>compliance</code></td>
 <td>TIV / driving pressure (EIT units per cmH2O)</td>
 <td>-</td>
 </tr>
 <tr>
 <td><code>compliance_ml</code></td>
-<td>tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume typed or measured</td>
+<td>tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume and the driving pressure typed or measured</td>
 <td>-</td>
 </tr>
 </tbody>
@@ -1729,7 +1737,7 @@ the analysed breaths, and <code>tiv_ml</code>, <code>compliance</code> and <code
 <tr>
 <td><code>ri_peep_high</code>, <code>ri_peep_low</code></td>
 <td>global</td>
-<td>PEEP of the two steps used for R/I</td>
+<td>levels of the protocol of the two steps used for R/I</td>
 </tr>
 <tr>
 <td><code>ri</code></td>
@@ -1743,16 +1751,20 @@ the analysed breaths, and <code>tiv_ml</code>, <code>compliance</code> and <code
 </tr>
 </tbody>
 </table>
-<p>The PEEP of <code>crossing_peep</code>, the best PEEP and the R/I steps are on the levels of the
-protocol (<code>peep_set</code>, from <code>SegmentationConfig.peep_levels</code>) when every step has one, so
-that they can be compared between patients; otherwise on the PEEP of the steps (<code>peep</code>:
-measured for the steps found from the pressure, typed for the steps placed by hand). The
-R/I steps are chosen, and the drop of PEEP in its formula is computed, on <code>peep</code>: the
-change of pressure that happened, or the levels typed when the pressure curve is not
-reliable.</p>
+<p><code>crossing_peep</code> and the best PEEP are on the levels of the protocol
+(<code>peep_set</code>, from <code>SegmentationConfig.peep_levels</code>) when every step has one, so that they
+can be compared between patients; otherwise on the PEEP of the steps (<code>peep</code>: measured
+for the steps found from the pressure, typed for the steps placed by hand).</p>
 <p><strong>Recruitment-to-inflation ratio</strong> (Chen et al., Am J Respir Crit Care Med 2020, DOI:
-10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
-PEEP 5 at least 10 below it (<code>AnalysisConfig</code>):</p>
+10.1164/rccm.201902-0334OC), between the steps at the two PEEP levels of the protocol
+given in <code>AnalysisConfig</code> (<code>ri_peep_high</code>, <code>ri_peep_low</code>): 15 and 5 in the original
+method, for example 14 and 4 in a trial with steps of 2 from 16. There is no R/I without
+the two levels, or when the trial does not have exactly one step at each of them (a
+warning). The steps are never chosen by nearness: with steps of 2, 16 and 14 are equally
+near to 15, and a measured drop of 9.99 instead of 10 skipped the step at 4, so the pair
+changed between patients of the same study. The drop of PEEP in the formula is computed
+on <code>peep</code>: the change of pressure that happened, or the levels typed when the pressure
+curve is not reliable.</p>
 <div class="highlight"><pre><span></span><code><span class="n">dEELV</span> <span class="o">=</span> <span class="p">(</span><span class="n">EELI_high</span> <span class="o">-</span> <span class="n">EELI_low</span><span class="p">)</span> <span class="n">x</span> <span class="n">Vt_low</span> <span class="o">/</span> <span class="n">TIV_low</span>        <span class="p">(</span><span class="n">Wang</span> <span class="mi">2020</span><span class="p">)</span>
 <span class="n">recruited</span> <span class="n">volume</span> <span class="o">=</span> <span class="n">dEELV</span> <span class="o">-</span> <span class="n">C_low</span> <span class="n">x</span> <span class="n">dPEEP</span>                 <span class="n">C_low</span> <span class="o">=</span> <span class="n">Vt_low</span> <span class="o">/</span> <span class="n">driving_low</span>
 <span class="n">R</span><span class="o">/</span><span class="n">I</span> <span class="o">=</span> <span class="p">(</span><span class="n">recruited</span> <span class="n">volume</span> <span class="o">/</span> <span class="n">dPEEP</span><span class="p">)</span> <span class="o">/</span> <span class="n">C_low</span> <span class="o">=</span> <span class="p">(</span><span class="n">EELI_high</span> <span class="o">-</span> <span class="n">EELI_low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">C_EIT</span><span class="p">,</span><span class="n">low</span> <span class="n">x</span> <span class="n">dPEEP</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>

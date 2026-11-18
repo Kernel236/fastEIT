@@ -1521,7 +1521,8 @@ Only recordings that can be analysed (Dräger <code>.bin</code>, Timpel) have ta
 </ol>
 <hr />
 <h2 id="1-entry-point">1. Entry point<a class="headerlink" href="#1-entry-point" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.export</span><span class="w"> </span><span class="kn">import</span> <span class="n">combine_tables</span><span class="p">,</span> <span class="n">recording_tables</span><span class="p">,</span> <span class="n">write_csv</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalysisConfig</span><span class="p">,</span> <span class="n">SegmentationConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.export</span><span class="w"> </span><span class="kn">import</span> <span class="n">combine_tables</span><span class="p">,</span> <span class="n">recording_tables</span><span class="p">,</span> <span class="n">write_csv</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.features</span><span class="w"> </span><span class="kn">import</span> <span class="n">peep_trial_features</span><span class="p">,</span> <span class="n">tidal_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordingContext</span><span class="p">,</span> <span class="n">Segment</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
@@ -1533,8 +1534,10 @@ Only recordings that can be analysed (Dräger <code>.bin</code>, Timpel) have ta
 
 <span class="c1"># A baseline, then a PEEP trial, in the same recording: one analysis per phase.</span>
 <span class="n">baseline</span> <span class="o">=</span> <span class="n">tidal_features</span><span class="p">(</span><span class="n">recording</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="n">Segment</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">290</span><span class="p">,</span> <span class="s2">"phase"</span><span class="p">,</span> <span class="s2">"tidal"</span><span class="p">))</span>
+<span class="n">protocol</span> <span class="o">=</span> <span class="n">SegmentationConfig</span><span class="p">(</span><span class="n">peep_levels</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 <span class="n">trial</span> <span class="o">=</span> <span class="n">peep_trial_features</span><span class="p">(</span>
-    <span class="n">segment_peep_trial</span><span class="p">(</span><span class="n">recording</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="n">Segment</span><span class="p">(</span><span class="mi">320</span><span class="p">,</span> <span class="mi">1500</span><span class="p">,</span> <span class="s2">"phase"</span><span class="p">,</span> <span class="s2">"peep_trial"</span><span class="p">))</span>
+    <span class="n">segment_peep_trial</span><span class="p">(</span><span class="n">recording</span><span class="p">,</span> <span class="n">protocol</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="n">Segment</span><span class="p">(</span><span class="mi">320</span><span class="p">,</span> <span class="mi">1500</span><span class="p">,</span> <span class="s2">"phase"</span><span class="p">,</span> <span class="s2">"peep_trial"</span><span class="p">)),</span>
+    <span class="n">AnalysisConfig</span><span class="p">(</span><span class="n">ri_peep_high</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">ri_peep_low</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>   <span class="c1"># R/I between these two levels</span>
 <span class="p">)</span>
 
 <span class="n">tables</span> <span class="o">=</span> <span class="n">combine_tables</span><span class="p">([</span>
@@ -1597,17 +1600,17 @@ recording here, one row per patient in R or SPSS (<code>tidyr::pivot_wider()</co
 <tr>
 <td><code>recordings</code></td>
 <td>analysis</td>
-<td><code>protocol</code>, <code>file</code>, <code>vendor</code>, <code>fs</code>, <code>start_time</code> and <code>end_time</code> of the breaths of the phase, <code>n_breaths</code>, <code>n_used</code>, typed <code>tidal_volume_ml</code>, <code>cardiac_filter</code>, <code>fasteit_version</code>; for a PEEP trial its results: crossing PEEP, best PEEP, R/I and recruited volume (global and by half)</td>
+<td><code>protocol</code>, <code>file</code>, <code>vendor</code>, <code>fs</code>, <code>start_time</code> and <code>end_time</code> of the breaths of the phase, <code>n_breaths</code>, <code>n_used</code>, typed <code>tidal_volume_ml</code>, <code>cardiac_filter</code>, <code>fasteit_version</code>; for a PEEP trial its results: crossing PEEP, best PEEP, R/I and recruited volume (global and by half; R/I only with the two levels of <code>AnalysisConfig</code>)</td>
 </tr>
 <tr>
 <td><code>breaths</code></td>
 <td>breath of the phase</td>
-<td>times, quality flags, <code>excluded</code>, <code>exclusion_label</code>, <code>is_valid</code>, <code>used</code>, PEEP, plateau, driving pressure and where they were read on the curve (to check the method), measured tidal volume (preprocessing); <code>peep_step</code>, <code>peep_set</code> (PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume used, compliance (clinical indices); regional values as columns</td>
+<td>times, quality flags, <code>excluded</code>, <code>exclusion_label</code>, <code>is_valid</code>, <code>used</code>, PEEP, plateau, driving pressure and where they were read on the curve (to check the method), measured tidal volume (preprocessing); <code>peep_step</code>, <code>peep_set</code> (PEEP trials); EELI, TIV, GI, centre of ventilation, respiratory rate, tidal volume and driving pressure used with their sources (<code>driving_pressure_used</code>, <code>driving_pressure_source</code>: typed for the step or read on the breath), compliance (clinical indices); regional values as columns</td>
 </tr>
 <tr>
 <td><code>steps</code></td>
 <td>PEEP step (PEEP trials)</td>
-<td><code>step</code>, measured <code>peep</code>, <code>peep_set</code>, times, breaths analysed, driving pressure and tidal volume with their sources (segmentation); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (clinical indices); regional values as columns</td>
+<td><code>step</code>, <code>peep</code> (measured for the steps found from the pressure, typed for the steps placed by hand), <code>peep_measured</code>, <code>peep_set</code>, times, breaths analysed, driving pressure and tidal volume with their sources (segmentation); medians of the breath indices, compliance and % of the best, collapse, overdistension, changes vs the previous and the first step (clinical indices); regional values as columns</td>
 </tr>
 <tr>
 <td><code>settings</code></td>

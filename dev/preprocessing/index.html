@@ -1686,6 +1686,10 @@ count nowhere; eitprocessing uses the whole recording, where a step of EELI can 
 of the lung out of the mask. Gross outliers are found around the median of the signal, not
 its mean, which an artifact on a few percent of the recording can move enough to make every
 sample invalid.</p>
+<p>There is one lung mask per recording, from the valid breaths of the whole recording:
+<code>preprocess()</code> does not know the phases. When a recording holds more than the part to
+analyse (a baseline before a PEEP trial, a part at another setting), exclude what is
+outside it if the mask must come from that part only.</p>
 <p>Breaths are <strong>flagged, never removed</strong>: the clinician decides what to use. Every
 exclusion is widened by 0.5 s on each side (<code>exclusion_margin_seconds</code>) and a breath that
 touches it is excluded. In the later layers a breath belongs to a phase or a PEEP step
@@ -1706,7 +1710,7 @@ when it starts and ends inside it. The user-facing rules are in
 </tr>
 <tr>
 <td><code>flag_suspect_ti_ratio</code></td>
-<td>Ti/Ttot (from impedance) outside 0.2-0.6</td>
+<td>Ti/Ttot (from impedance) outside 0.1-0.6 (0.1: I:E up to 1:9, below slow breathing)</td>
 </tr>
 <tr>
 <td><code>flag_amplitude_outlier</code></td>
@@ -1722,6 +1726,8 @@ when it starts and ends inside it. The user-facing rules are in
 </tr>
 </tbody>
 </table>
+<p>The medians of the surrounding breaths leave the excluded breaths out: an artefact
+inside an exclusion does not flag the good breaths next to it.</p>
 <h2 id="3-ventilator-values-of-each-breath">3. Ventilator values of each breath<a class="headerlink" href="#3-ventilator-values-of-each-breath" title="Permanent link">&para;</a></h2>
 <p>The auxiliary signals get the same units for every vendor, once, in <code>auxiliary</code>:</p>
 <table>

@@ -1575,10 +1575,14 @@ chosen on the figure), with the PEEP level of the step (cmH2O):</p>
 <p>Steps placed by hand replace the automatic ones, and a segment is the selection of
 breaths to analyse: every valid breath entirely inside it is analysed, with no time left
 out after the change of PEEP and no limit of 10 (those rules apply only to the steps found
-from the pressure). A breath cut by the edge of the segment, or with a quality flag, is
-left out: draw the segment a little wider than the breaths chosen. An inspiratory hold is
-looked for only inside the segment: include its breath, or type the plateau or the
-driving pressure.
+from the pressure). With a pressure curve, a warning says when a step analyses breaths
+that the steps found from the pressure would leave out: less than 15 s after the end of
+the PEEP before, or more than 0.5 cmH2O from the PEEP of the step (e.g. a segment that
+crosses a change; the PEEP of a step of 1-2 breaths is its typed level plus the offset common to
+the steps). A breath cut by the edge of the segment, or with a
+quality flag, is left out: draw the segment a little wider than the breaths chosen. An
+inspiratory hold is looked for only inside the segment: include its breath, or type the
+plateau or the driving pressure.
 When the pressure curve is missing or not reliable, the plateau read on the ventilator
 can be typed with the step, <code>parameters={"peep": 16, "plateau": 28}</code>, or directly the
 driving pressure, <code>parameters={"peep": 16, "driving_pressure": 12}</code> (e.g. in pressure
@@ -1603,12 +1607,12 @@ control, where it is set), and so can the tidal volume,
 </tr>
 <tr>
 <td>2</td>
-<td>Steps: a new step when 3 breaths in a row are more than 1 cmH2O (half of the step of the protocol) from the current level and within 1 cmH2O of each other; level = median PEEP. Excluded breaths (maneuvers) do not count</td>
+<td>Steps: a new step when 3 breaths in a row are more than 1 cmH2O (half of the step of the protocol) from the current level and within 1 cmH2O of each other; level = median PEEP. Excluded breaths (maneuvers) do not count: they take the PEEP of the next breath</td>
 <td><code>peep_steps</code></td>
 </tr>
 <tr>
 <td>3</td>
-<td>Breaths analysed: the first 15 s after each change are left out; then the last valid breaths whose PEEP is within 0.5 cmH2O of the step level (a breath without a PEEP reading is not analysed), up to 10; fewer than 5 give a warning</td>
+<td>Breaths analysed: the first 15 s after each change are left out, counted from the first breath of the step measured at its PEEP and away from the PEEP of the step before (excluded or not, its PEEP is read), after the last excluded breath still at the PEEP before (without exclusions, the first breath of the step); then the last valid breaths whose PEEP is within 0.5 cmH2O of the step level (a breath without a PEEP reading is not analysed), up to 10; fewer than 5 give a warning</td>
 <td><code>peep_steps</code></td>
 </tr>
 <tr>
@@ -1653,7 +1657,7 @@ usual protocols. In order, as for the tidal volume:</p>
 </tr>
 <tr>
 <td>Volume control with one inspiratory hold per step</td>
-<td>median of the breaths with a hold, one is enough</td>
+<td>when fewer than 5 analysed breaths have a plateau: median of every breath of the step with one that is not excluded (a hold, but also breaths of the first 15 s, or a single breath), one is enough; <code>n_driving_pressure</code> says how many</td>
 <td><code>"hold"</code></td>
 </tr>
 <tr>
@@ -1667,8 +1671,10 @@ usual protocols. In order, as for the tidal volume:</p>
 missing or not reliable (an offset sensor, a damped line, an end-inspiratory pause too
 short). The curve is still read: <code>driving_pressure_measured</code> is the driving pressure of
 the curve (NaN without one), and a typed value more than 2 cmH2O from it gives a
-warning. <code>peep_measured</code> is the median PEEP of the breaths of the step: the measured
-level of a step placed by hand, close to <code>peep</code> for a step found from the pressure.</p>
+warning. <code>peep_measured</code> is the median PEEP of the breaths of the step that are not
+excluded: the measured level of a step placed by hand, close to <code>peep</code> for a step found
+from the pressure. A level of the protocol between the highest and the lowest step found
+that has no step (a step inside an exclusion, or too short to be found) gives a warning.</p>
 <p>The tidal volume of each step turns compliance into mL/cmH2O and EELI changes into
 mL. In order (<code>tidal_volume_source</code>):</p>
 <table>
