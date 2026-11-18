@@ -1,8 +1,7 @@
 # fastEIT - Data Model
 
-Specifications for all data containers. For parser details, calibration
-constants, and loader utilities see [`parsers.md`](parsers.md). For architecture
-and extension recipes see [`parsing_layer.md`](parsing_layer.md).
+Specifications for all data containers. How a file is recognised and read is in
+[parsers](parsers.md); how to add a format, in [extending the parsers](parsing_layer.md).
 
 All containers of layer 1 inherit from `BaseData` (`models/base_data.py`). The
 objects of the later layers are in [section 5](#5-from-a-file-to-the-clinical-indices).
@@ -106,8 +105,9 @@ table   pd.DataFrame   One row per EIT frame. Snake_case column names.
 ```
 measurements   np.ndarray   shape (N_frames, 208)
                             Calibrated transimpedances (not raw ADC counts, not
-                            yet image-reconstructed). For Dräger:
-                            vv = FT_A*trans_A - FT_B*trans_B (EIDORS, Adler 2016)
+                            yet image-reconstructed). For Dräger: the primary set
+                            minus the reference set, each scaled by an empirical
+                            constant (values from EIDORS, A. Adler 2016)
                             208 = 16 electrodes × 13 measurement pairs
                             (adjacent drive, standard Dräger pattern)
 

@@ -164,8 +164,8 @@ Dräger mbar, 1 mbar = 1.02 cmH2O). The channels they come from are
 
 ## 6. Limits
 
-- Tested on four decremental trials from two patients (volume control with an
-  end-inspiratory pause, Dräger PressurePod); other ventilation modes and pressure
-  sources on synthetic data only.
+- Real recordings are decremental trials in volume control with an end-inspiratory
+  pause and the Dräger PressurePod; other ventilation modes and pressure sources are
+  tested on synthetic data only.
 
 *Research use only - not a medical device.*

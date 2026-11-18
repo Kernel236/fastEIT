@@ -1,292 +1,144 @@
-# fastEIT - Parser Reference
+# fastEIT - Parsing Layer
 
-Specifications for all parsers: input formats, output containers, calibration
-details, and the pyEIT reconstruction bridge.
+The parsing layer (layer 1) reads a file as it is. It recognises the device and the
+format by itself, chooses the parser and returns a data container, without changing a
+value: the "no data" values, the units of the device and the timestamps stay as in the
+file, and the preprocessing layer cleans them. Large `.bin` and `.eit` files are
+memory-mapped: the frames are read from disk when they are used.
 
-For **data container field specifications** see [`data_model.md`](data_model.md).
-For **architecture and extension recipes** see [`parsing_layer.md`](parsing_layer.md).
-
----
-
-## 1. Overview
-
-| File | Vendor | Parser | Container |
-|------|--------|--------|-----------|
-| `.bin` | Dräger | `DragerBinParser` | `ReconstructedFrameData` |
-| `.asc` / `.txt` / `.csv` | Dräger | `DragerAscParser` | `ContinuousSignalData` |
-| `.eit` | Dräger | `DragerEitParser` | `RawImpedanceData` |
-| `.csv` / `.txt` / `.asc` | Timpel | `TimpelTabularParser` | `ReconstructedFrameData` |
-
-All parsers inherit from `BaseParser` and are accessible via `load_data(path)`.
+1. [Entry point](#1-entry-point)
+2. [Steps](#2-steps)
+3. [Output](#3-output)
+4. [More than one file](#4-more-than-one-file)
+5. [The `.eit` file](#5-the-eit-file)
+6. [File layout](#6-file-layout)
 
 ---
 
-## 2. `DragerBinParser` - `.bin`
-
-**File:** `parsers/draeger/bin/bin_parser.py`
-
-Reads vendor-reconstructed 32×32 pixel frames exported by the PulmoVista 500.
-Two frame formats are registered; detection is size-based (no header).
-
-### Frame formats
-
-| Name | Frame size | Medibus channels | Notes |
-|------|-----------|-----------------|-------|
-| `Draeger_base_4358` | 4358 bytes | 52 | Standard export |
-| `Draeger_ext_4382` | 4382 bytes | 58 | BiLevel parameters + 4 PressurePod channels; the channels are there whether or not a Pod is connected, `metadata["has_pressure_pod"]` says if they hold values |
-
-### Binary frame layout (base format)
-
-| Field | Type | Size | Content |
-|-------|------|------|---------|
-| `ts` | float64 | 8 B | Wall-clock timestamp as fraction of day (kept as-is; × 86400 gives seconds) |
-| `dummy` | float32 | 4 B | Unknown - ignored |
-| `pixels` | float32 × 1024 | 4096 B | Reconstructed 32×32 image (C-order) |
-| `min_max_flag` | int32 | 4 B | +1 = inspiratory peak, −1 = expiratory trough, 0 = none |
-| `event_marker` | int32 | 4 B | Event counter |
-| `event_text` | S30 | 30 B | ASCII event label, padded with spaces (or nulls on frames without an event) |
-| `timing_error` | int32 | 4 B | 0 = frame timing OK |
-| `medibus_data` | float32 × 52 | 208 B | Ventilator Medibus channels; sentinel −3.4×10³⁸ = disconnected |
-
-The two formats share Medibus indices 0-50 and differ from index 51 onward:
-
-| Index | Base (52 channels) | PressurePod (58 channels) |
-|-------|--------------------|---------------------------|
-| 51 | `time_at_low_pressure` | `high_pressure` (BiLevel PHigh) |
-| 52 | - | `low_pressure` (BiLevel Plow) |
-| 53 | - | `time_at_low_pressure` (BiLevel Tlow) |
-| 54-57 | - | Pod waveforms: `airway_pressure_pod`, `esophageal_pressure_pod`, `transpulmonary_pressure_pod`, `gastric_pressure_pod` |
-
-Full field list with units: `parsers/draeger/bin/draeger_dtypes.py`.
-
-### Sentinel values
-
-Disconnected Medibus channels carry the sentinel `−3.4×10³⁸` (IEEE 754 bit
-pattern `0xFF7FC99E`); BiLevel fields (51-53 in the PressurePod format) read
-`−1000.0` when the ventilator is not in BiLevel mode. The parser returns these
-values unchanged. Replacing them with `NaN` is a preprocessing step;
-`bin_utils.replace_no_data_sentinels()` is available for it.
-
-### Sampling frequency
-
-Not stored in the binary. Estimated from the timestamps:
-`fs = (N − 1) / (t_last − t_first)`, with timestamps converted to seconds and
-unwrapped across midnight, rounded to the nearest integer Hz. Falls back to
-50 Hz (recorded in `metadata["warnings"]`) when the estimate fails.
-
----
-
-## 3. `DragerEitParser` - `.eit`
-
-**File:** `parsers/draeger/eit/eit_parser.py`
-
-Reads raw transimpedance measurements from the PulmoVista 500 proprietary
-binary format. We are not aware of another open-source Python parser for it.
-
-### File structure
-
-```
-Bytes 0-11          : preamble - 3 × int32 LE
-                        [0:4]  format_version (always 51)
-                        [4:8]  sep_offset      (file-specific, variable)
-                        [8:12] unknown_int
-Bytes 12-sep_offset : ASCII header ("key: value\r\n" lines, latin-1)
-Bytes sep_offset-+7 : separator b'**\r\n\r\n\r\n' (8 bytes)
-Bytes sep_offset+8… : binary frames, 5495 bytes each
-```
-
-### ASCII header fields
-
-| Header key | Metadata key | Type | Notes |
-|-----------|-------------|------|-------|
-| `Framerate [Hz]` | `fs` | float | Acquisition rate (typically 50.0 Hz) |
-| `Date` | `date` | str | DD.MM.YYYY |
-| `Time` | `time` | str | HH:MM:SS.mmm |
-| `Frequency [kHz]` | `frequency_khz` | float | Excitation frequency (≈101.5 kHz) |
-| `Amplitude [uA]` | `amplitude_ua` | float | Injection current amplitude (≈9100 µA) |
-| `Gain` | `gain` | int | Hardware amplifier gain |
-| `Samples` | `samples_per_period` | int | ADC samples per excitation period |
-| `Periods` | `periods` | int | Excitation periods per measurement |
-
-### Binary frame layout (5495 bytes)
-
-| Field | Type | Size | Content |
-|-------|------|------|---------|
-| `timestamp` | float64 | 8 B | Fraction of day |
-| `unknown_f8` | float64 | 8 B | Unknown |
-| `trans_A` | float64 × 208 | 1664 B | Primary transimpedance set (ADC counts) |
-| `unknown_16a` | float64 × 16 | 128 B | Unknown |
-| `injection_current` | float64 × 16 | 128 B | Injected current per drive pattern (ADC counts) |
-| `unknown_16b` | float64 × 16 | 128 B | Unknown |
-| `voltage_A` | float64 × 16 | 128 B | Electrode voltage A (ADC counts) |
-| `unknown_50` | float64 × 50 | 400 B | Unknown |
-| `trans_B` | float64 × 208 | 1664 B | Reference transimpedance set (ADC counts) |
-| `unknown_48` | float64 × 48 | 384 B | Unknown |
-| `voltage_B` | float64 × 16 | 128 B | Electrode voltage B (ADC counts) |
-| `unknown_6` | float64 × 6 | 48 B | Unknown |
-| `gugus` | float64 × 44 | 352 B | Ignored (EIDORS terminology) |
-| `unknown_byte` | uint8 | 1 B | Unknown |
-| `medibus` | float32 × 67 | 268 B | Ventilator Medibus channels (67 in `.eit`, 52 in `.bin`) |
-| `event_text` | S30 | 30 B | ASCII event label |
-| `mixed` | uint8 × 24 | 24 B | Mixed content |
-| `frame_counter` | uint16 | 2 B | Rolling frame counter |
-| `padding` | uint8 × 2 | 2 B | Alignment padding |
-
-### Calibration pipeline
-
-Empirical constants from EIDORS `read_draeger_file.m` (A. Adler, estimated 2016-04-07).
-These are not present in the `.eit` header - they are hardware-specific and hardcoded.
-
-| Constant | Value | Role |
-|----------|-------|------|
-| `FT_A` | 0.00098242 | Transimpedance scaling - primary channel |
-| `FT_B` | 0.00019607 | Transimpedance scaling - reference channel |
-| `FC_CURRENT` | 194326.3536 | ADC counts → Ampere |
-| `FV_VOLTAGE` | 0.11771 | ADC counts → Volt |
-
-```python
-vv      = FT_A * trans_A - FT_B * trans_B   # (N_frames, 208) calibrated transimpedance [Ω]
-I_real  = injection_current / FC_CURRENT     # (N_frames, 16)  injected current [A]
-V_diff  = (voltage_A - voltage_B) / FV_VOLTAGE  # (N_frames, 16) differential voltage [V]
-```
-
-### Measurement protocol
-
-208 measurements per frame = 16 electrodes × 13 measurement pairs.
-Adjacent current injection (drive distance = 1 electrode), adjacent voltage
-measurement (step = 1 electrode).
-
----
-
-## 4. `DragerAscParser` - `.asc`
-
-**File:** `parsers/draeger/asc/asc_parser.py`
-
-Reads the PulmoVista 500 continuous waveform export (tab-separated text).
-Returns `ContinuousSignalData` with one row per EIT frame.
-
-Detection: looks for the `DraegerEIT Software` header string in the first 40 lines
-(read as latin-1). Sampling frequency is estimated from the `time` column
-(fraction of day) when present, otherwise `fs` is `None`.
-
-Typical columns: `image`, `time`, `global`, `local_1_x_16_y_29` … `local_4_x_16_y_05`,
-`minmax`, `event`, `eventtext`, `timing_error`, plus Medibus channel columns when
-the ventilator is connected via Medibus.
-
----
-
-## 5. `TimpelTabularParser` - `.csv` / `.txt` / `.asc`
-
-**File:** `parsers/timpel/timpel_parser.py`
-
-Reads Timpel EIT device tabular exports. Each row is one EIT frame;
-columns 0-1023 are the 32×32 pixel values (C-order); columns 1024-1029
-are auxiliary signals (airway_pressure, flow, volume, min_flag, max_flag, qrs_flag).
-
-Returns `ReconstructedFrameData`. The export has no timestamp column, so `fs`
-is fixed at 50 Hz and `ts` is generated as `(frame_index + first_frame) / 50`.
-
-Detection: the keyword `timpel` in the first 40 lines, or a first data row with
-at least 1029 separators (comma, tab or semicolon), i.e. the 1030-column layout.
-
----
-
-## 6. GREIT reconstruction bridge
-
-This function is far from reliable. It was written only to show one possible
-application of the `.eit` parser output: passing it to a reconstruction library
-such as pyEIT.
-
-**File:** `parsers/draeger/eit/eit_pyeit_bridge.py`
-**Optional dependency:** `pip install fasteit[pyeit]`
-
-Converts `RawImpedanceData.measurements` (N_frames, 208) to reconstructed
-32×32 images (N_frames, 32, 32) using the GREIT algorithm.
-
-Reference: Adler A et al., "GREIT: a unified approach to 2D linear EIT
-reconstruction of lung images." *Physiol. Meas.* 30 (2009) S35-S55.
-DOI: [10.1088/0967-3334/30/6/S03](https://doi.org/10.1088/0967-3334/30/6/S03)
-
-### `build_greit(n_el, h0, p, lamb, n) → (solver, protocol)`
-
-Builds a pyEIT GREIT solver on a circular unit-disk mesh.
-
-| Parameter | Default | Meaning |
-|-----------|---------|---------|
-| `n_el` | 16 | Number of electrodes |
-| `h0` | 0.1 | Mesh density |
-| `p` | 0.2 | GREIT noise figure (Adler 2009 recommendation) |
-| `lamb` | 1e-2 | Tikhonov regularisation |
-| `n` | 32 | Output image side length in pixels |
-
-### `reconstruct_greit(measurements, ref_frame, …) → ndarray`
-
-| `ref_frame` value | Behaviour |
-|-------------------|-----------|
-| `None` | Mean of all frames in this recording (default) |
-| `int` | Single frame index |
-| `(start, end)` | Mean of `measurements[start:end]` |
-| `np.ndarray (208,)` | External reference - for cross-recording EELI comparison |
-
-**Sign convention**: GREIT outputs conductivity change (Δσ); the function negates
-it to match the Dräger impedance convention (air → impedance rises → positive peak).
-
-**Image orientation** - three steps applied inside `reconstruct_greit()`, all
-sourced from PulmoVista 500 IFU SW 1.3n:
-1. **Negate** (sign flip): impedance convention - see above.
-2. **`rot90(k=1)`** (90° CCW): electrode 1 sits at 12 o'clock on the PulmoVista
-   belt (anterior/ventral wall); pyEIT places electrode 0 at 3 o'clock. Rotation
-   moves the anterior region to the top of the image. Source: IFU p. 144.
-3. **`fliplr`** (horizontal mirror): Dräger displays images in caudal-cranial
-   projection (CT convention viewed from feet): left side of image = right side
-   of patient. pyEIT produces the anatomical mirror; `fliplr` corrects this.
-   Source: IFU p. 146.
-
-**Spatial quality note**: a generic circular mesh does not replicate Dräger's
-proprietary reconstruction. Both algorithms produce correct relative distributions,
-but the vendor `.bin` uses a device-specific mesh and matrix.
-
----
-
-## 7. Loader utilities
-
-**File:** `parsers/loader.py`
-
-### `load_data(path) → BaseData`
-
-Single entry point. Auto-detects vendor and format, selects the right parser,
-returns the appropriate container. Raises `ValueError` for an unsupported
-extension or unrecognised content, `NotImplementedError` when no parser is
-registered for the detected vendor/extension, and a `ParserError` subclass for
-`.bin` files with an unknown or ambiguous frame size.
+## 1. Entry point
 
 ```python
 from fasteit.parsers.loader import load_data
 
-data = load_data("patient01.bin")   # → ReconstructedFrameData
-data = load_data("patient01.eit")   # → RawImpedanceData
-data = load_data("patient01.asc")   # → ContinuousSignalData
+data = load_data("patient01.bin")   # Dräger .bin  -> ReconstructedFrameData
+data = load_data("patient01.eit")   # Dräger .eit  -> RawImpedanceData
+data = load_data("export.asc")      # Dräger .asc  -> ContinuousSignalData
 ```
 
-### `load_many(paths) → list[BaseData]`
+`load_data(path)` is the only function needed: the caller never chooses the parser. A
+file that cannot be read stops with an error that says why:
 
-Parses an explicit list of paths in order. Formats can be mixed.
+| Problem | Error |
+|---------|-------|
+| The file does not exist | `FileNotFoundError` |
+| Extension not supported, device not recognised, or the file fails the check of its parser | `ValueError` |
+| A `.bin` whose size fits no known frame layout, or more than one | `UnsupportedFrameSizeError`, `AmbiguousFormatError` (both `ParserError`) |
+| No parser for the device and extension found | `NotImplementedError` |
 
-```python
-from fasteit.parsers.loader import load_many
+## 2. Steps
 
-recordings = load_many(["patient01.bin", "patient02.bin", "patient01.asc"])
+```
+load_data(path)
+ ├─ 1. detect_vendor_and_format(path)      what file is this?
+ ├─ 2. build_parser_from_detection(...)    which parser reads it?
+ ├─ 3. parser.parse_safe(path)             check the file, then read it
+ └─ 4. what was detected goes in data.metadata
 ```
 
-### `load_folder(folder, pattern="*") → list[BaseData]`
+| # | Step | Module |
+|---|------|--------|
+| 1 | Recognise the file. The extension says the family, the content says the device: a `.bin` has no header, so its layout is the frame size that divides the file size exactly (one layout fits: that one; none or two: an error); a `.eit` is recognised by a text string at the start of its header; a `.csv`, `.txt` or `.asc` by its first 40 lines (`DraegerEIT Software` for Dräger; `timpel`, or a first row of 1030 values, for Timpel) | `detection` |
+| 2 | Choose the parser in the registry, by device and extension. Spellings of the device (`Drager`, `Dräger`, `DRAEGER`) are the same device | `loader` |
+| 3 | `parse_safe`: the parser checks the file (`validate`), then reads it (`parse`) | `base` and the parser of the format |
+| 4 | The device, the extension and, for a `.bin`, the frame layout found are written in `data.metadata` (`detected_vendor`, `detected_extension`, `detected_bin_format`) | `loader` |
 
-Scans a directory, parses every file with a registered parser.
-Files that raise an error are skipped and a one-line message is printed to stderr.
+The same extension can belong to two devices (a `.csv` from Dräger or from Timpel): the
+content decides, and the pair (device, extension) chooses the parser. A Dräger `.bin`
+comes in two layouts, with and without the PressurePod channels; the channels are in the
+file whether or not a Pod was connected, and `data.metadata["has_pressure_pod"]` says
+whether they hold values.
+
+Reading a Dräger `.bin`, step by step:
+
+```
+load_data("patient01.bin")
+ ├─ detect_vendor_and_format()     the file size is a whole number of frames
+ │                                 of one known layout -> Dräger, that layout
+ ├─ build_parser_from_detection()  -> DragerBinParser
+ ├─ parse_safe()
+ │   ├─ validate()                 the size still fits the layout
+ │   └─ parse()                    frames memory-mapped, sampling frequency from
+ │                                 the timestamps -> ReconstructedFrameData
+ └─ metadata: detected_vendor, detected_extension, detected_bin_format
+```
+
+**Sampling frequency.** A Dräger `.bin` does not store it: it is estimated from the
+timestamps (50 Hz, with a note in `metadata["warnings"]`, when that fails). A `.eit`
+has it in its header; a Dräger `.asc` gets it from its time column (none without one); a
+Timpel export has no time column, so it is 50 Hz.
+
+## 3. Output
+
+| File | Parser | Container | What it holds |
+|------|--------|-----------|---------------|
+| Dräger PulmoVista 500 `.bin` | `DragerBinParser` | `ReconstructedFrameData` | 32x32 images reconstructed by the device, timestamps, the device markers of each breath and the event texts, the ventilator (Medibus) and PressurePod signals |
+| Timpel `.csv`, `.txt`, `.asc` | `TimpelTabularParser` | `ReconstructedFrameData` | 32x32 images, airway pressure, flow, volume and the device markers |
+| Dräger `.eit` | `DragerEitParser` | `RawImpedanceData` | 208 calibrated transimpedances per frame (16 electrodes, adjacent drive) and the ventilator signals: no images |
+| Dräger `.asc` | `DragerAscParser` | `ContinuousSignalData` | the signals exported by the device software (global and regional impedance, markers, Medibus): no images |
+
+Only `ReconstructedFrameData` goes on to `preprocess()`. The fields of each container
+are in the [data model](data_model.md).
+
+## 4. More than one file
+
+`load_many(paths)` reads a list of files, in order, with `load_data()`; devices and
+formats can be mixed. `load_folder(folder, pattern="*")` reads every file of a folder,
+sorted by name, and skips a file it cannot read with a one-line message on `stderr`, so
+one bad file does not stop the others.
 
 ```python
-from fasteit.parsers.loader import load_folder
+from fasteit.parsers.loader import load_folder, load_many
 
-all_bin  = load_folder("/data/session01/", pattern="*.bin")
-all_data = load_folder("/data/session01/")          # mixed formats
+recordings = load_many(["patient01.bin", "patient02.bin"])
+all_bin = load_folder("/data/session01/", pattern="*.bin")
 recursive = load_folder("/data/", pattern="**/*.bin")
 ```
+
+All three functions take an optional `registry=`, to add a parser without changing the
+library ([extending the parsers](parsing_layer.md)).
+
+## 5. The `.eit` file
+
+A Dräger `.eit` holds the raw measurements of the belt, not images. fastEIT reads it
+(we are not aware of another open-source Python reader), but the analysis starts from
+images. As an example of what the measurements allow,
+`fasteit.parsers.draeger.eit.eit_pyeit_bridge` reconstructs them with GREIT through pyEIT
+(`pip install "fasteit[pyeit]"`; Adler et al., *Physiol. Meas.* 2009;30:S35-S55, DOI:
+[10.1088/0967-3334/30/6/S03](https://doi.org/10.1088/0967-3334/30/6/S03)). It uses a
+generic circular mesh, not the device's: its images are not those of the `.bin`, and
+the pipeline does not use them.
+
+## 6. File layout
+
+```
+src/fasteit/
+├── models/
+│   ├── base_data.py              BaseData: fields common to every container
+│   ├── reconstructed_data.py     ReconstructedFrameData: images
+│   ├── continuous_data.py        ContinuousSignalData: signals only
+│   └── raw_impedance_data.py     RawImpedanceData: raw measurements
+└── parsers/
+    ├── loader.py                 load_data, load_many, load_folder, the registry
+    ├── detection.py              detect_vendor_and_format: what file is this?
+    ├── base.py                   BaseParser: validate, parse, parse_safe
+    ├── bin_formats.py            the known .bin frame layouts
+    ├── header_formats.py         the known .eit headers
+    ├── errors.py                 ParserError and its subclasses
+    ├── draeger/
+    │   ├── bin/                  DragerBinParser, frame layouts, timestamps
+    │   ├── eit/                  DragerEitParser, header and calibration, GREIT bridge
+    │   └── asc/                  DragerAscParser
+    └── timpel/                   TimpelTabularParser, auxiliary columns
+```
+
+*Research use only - not a medical device.*

@@ -10,7 +10,11 @@ import pytest
 from fasteit.models.raw_impedance_data import RawImpedanceData
 from fasteit.parsers.draeger.eit.eit_dtypes import FRAME_EIT_DTYPE
 from fasteit.parsers.draeger.eit.eit_parser import DragerEitParser
-from fasteit.parsers.draeger.eit.eit_utils import FT_A, FT_B, SEPARATOR
+from fasteit.parsers.draeger.eit.eit_utils import (
+    PRIMARY_TRANSIMPEDANCE_SCALE,
+    REFERENCE_TRANSIMPEDANCE_SCALE,
+    SEPARATOR,
+)
 
 # ── real test files (skipped on CI if absent) ─────────────────────────────────
 
@@ -149,14 +153,14 @@ def test_parse_metadata_date(tmp_path):
     assert data.metadata["date"] == "01.01.2024"
 
 
-# ── parse() - calibration vv = FT_A*trans_A - FT_B*trans_B ──────────────────
+# ── parse() - calibrated transimpedance ───────────────────────────────────────
 
 
 def test_parse_measurements_calibration(tmp_path):
-    """vv must equal FT_A*trans_A - FT_B*trans_B."""
+    """The measurements are the scaled primary set minus the scaled reference set."""
     p = _write_eit(tmp_path, trans_A_val=2.0, trans_B_val=1.0)
     data = DragerEitParser().parse(p)
-    expected = FT_A * 2.0 - FT_B * 1.0
+    expected = PRIMARY_TRANSIMPEDANCE_SCALE * 2.0 - REFERENCE_TRANSIMPEDANCE_SCALE * 1.0
     assert np.allclose(data.measurements, expected)
 
 
@@ -208,7 +212,7 @@ def test_parse_aux_signals_frame_counter(tmp_path):
 
 
 def test_parse_aux_signals_trans_a_raw(tmp_path):
-    """trans_A in aux_signals must be the raw values, not vv."""
+    """trans_A in aux_signals must be the raw values, not the calibrated transimpedance."""
     p = _write_eit(tmp_path, trans_A_val=3.0)
     data = DragerEitParser().parse(p)
     assert np.allclose(data.aux_signals["trans_A"], 3.0)

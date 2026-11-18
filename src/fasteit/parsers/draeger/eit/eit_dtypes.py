@@ -8,8 +8,8 @@ Key fields for EIT reconstruction:
     trans_A : float64[208] at offset 16    - primary transimpedance set
     trans_B : float64[208] at offset 2592  - reference transimpedance set
 
-Transimpedance (Task 2.4.2):
-    vv = calibration_factor[0] * trans_A - calibration_factor[1] * trans_B
+Calibrated transimpedance (``eit_utils``):
+    PRIMARY_TRANSIMPEDANCE_SCALE * trans_A - REFERENCE_TRANSIMPEDANCE_SCALE * trans_B
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ FRAME_EIT_DTYPE = np.dtype(
         ("unknown_48", "<f8", 48),  #  384 B
         ("voltage_B", "<f8", 16),  #  128 B
         ("unknown_6", "<f8", 6),  #   48 B
-        ("gugus", "<f8", 44),  #  352 B - ignored by EIDORS
+        ("unknown_44", "<f8", 44),  #  352 B - not used
         ("unknown_byte", "u1"),  #    1 B
         ("medibus", "<f4", 67),  #  268 B - 67 ventilator channels (.eit; .bin uses 52)
         ("event_text", "S30"),  #   30 B - ASCII, space-padded

@@ -22,8 +22,8 @@ class RawImpedanceData(BaseData):
 
     Attributes:
         measurements: Calibrated transimpedance array, shape (N_frames, 208).
-                      Values are gain-corrected (e.g. ``vv = FT_A*trans_A - FT_B*trans_B``
-                      for Dräger), not raw ADC counts and not yet image-reconstructed.
+                      Values are gain-corrected (for Dräger: the primary set minus the
+                      reference set, each scaled by an empirical constant), not raw ADC counts and not yet image-reconstructed.
                       208 = 16 electrodes × 13 measurement pairs
                       (adjacent drive, standard Dräger pattern).
         aux_signals:  Optional dict of auxiliary waveforms keyed by signal
