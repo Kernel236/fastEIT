@@ -27,7 +27,7 @@
     
     
       
-        <title>Parsing layer architecture - fastEIT</title>
+        <title>Extend the parsers - fastEIT</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fasteit---parsing-layer-how-it-works-and-how-to-extend-it" class="md-skip">
+        <a href="#fasteit---extending-the-parsers" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Parsing layer architecture
+              Extend the parsers
             
           </span>
         </div>
@@ -1230,7 +1230,7 @@
   <span class="md-ellipsis">
     
   
-    Parsing layer architecture
+    Extend the parsers
   
 
     
@@ -1248,7 +1248,7 @@
   <span class="md-ellipsis">
     
   
-    Parsing layer architecture
+    Extend the parsers
   
 
     
@@ -1274,98 +1274,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-how-the-parsing-layer-works" class="md-nav__link">
+  <a href="#1-add-a-new-dräger-bin-frame-size" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. How the parsing layer works
+        1. Add a new Dräger .bin frame size
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. How the parsing layer works">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#the-single-entry-point" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The single entry point
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#detection-parsersdetectionpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Detection (parsers/detection.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parser-registry-parsersloaderpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parser registry (parsers/loader.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#baseparser-and-parse_safe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        BaseParser and parse_safe
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#data-flow-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Data flow summary
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#multi-file-loaders" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Multi-file loaders
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-add-a-new-dräger-bin-frame-size" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Add a new Dräger .bin frame size
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Add a new Dräger .bin frame size">
+    <nav class="md-nav" aria-label="1. Add a new Dräger .bin frame size">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1396,15 +1313,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-add-a-new-parser" class="md-nav__link">
+  <a href="#2-add-a-new-parser" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Add a new parser
+        2. Add a new parser
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Add a new parser">
+    <nav class="md-nav" aria-label="2. Add a new parser">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1479,10 +1396,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-testing-checklist" class="md-nav__link">
+  <a href="#3-testing-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Testing checklist
+        3. Testing checklist
       
     </span>
   </a>
@@ -1490,10 +1407,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-file-layout" class="md-nav__link">
+  <a href="#4-where-a-new-device-goes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. File layout
+        4. Where a new device goes
       
     </span>
   </a>
@@ -1599,98 +1516,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-how-the-parsing-layer-works" class="md-nav__link">
+  <a href="#1-add-a-new-dräger-bin-frame-size" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. How the parsing layer works
+        1. Add a new Dräger .bin frame size
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. How the parsing layer works">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#the-single-entry-point" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The single entry point
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#detection-parsersdetectionpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Detection (parsers/detection.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#parser-registry-parsersloaderpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parser registry (parsers/loader.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#baseparser-and-parse_safe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        BaseParser and parse_safe
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#data-flow-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Data flow summary
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#multi-file-loaders" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Multi-file loaders
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-add-a-new-dräger-bin-frame-size" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Add a new Dräger .bin frame size
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Add a new Dräger .bin frame size">
+    <nav class="md-nav" aria-label="1. Add a new Dräger .bin frame size">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1721,15 +1555,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-add-a-new-parser" class="md-nav__link">
+  <a href="#2-add-a-new-parser" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Add a new parser
+        2. Add a new parser
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Add a new parser">
+    <nav class="md-nav" aria-label="2. Add a new parser">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1804,10 +1638,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-testing-checklist" class="md-nav__link">
+  <a href="#3-testing-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Testing checklist
+        3. Testing checklist
       
     </span>
   </a>
@@ -1815,10 +1649,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-file-layout" class="md-nav__link">
+  <a href="#4-where-a-new-device-goes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. File layout
+        4. Where a new device goes
       
     </span>
   </a>
@@ -1850,178 +1684,34 @@
   
 
 
-<h1 id="fasteit---parsing-layer-how-it-works-and-how-to-extend-it">fastEIT - Parsing Layer: How It Works and How to Extend It<a class="headerlink" href="#fasteit---parsing-layer-how-it-works-and-how-to-extend-it" title="Permanent link">&para;</a></h1>
-<p>This document explains the architecture of the parsing layer and provides
-step-by-step recipes for the most common extension tasks:</p>
+<h1 id="fasteit---extending-the-parsers">fastEIT - Extending the parsers<a class="headerlink" href="#fasteit---extending-the-parsers" title="Permanent link">&para;</a></h1>
+<p>How to add what the parsing layer does not read yet. How a file is recognised and read
+is in <a href="../parsers/">parsers</a>; every step below plugs into that flow.</p>
 <ol>
-<li><a href="#1-how-the-parsing-layer-works">How the parsing layer works</a></li>
-<li><a href="#2-add-a-new-dräger-bin-frame-size">Add a new Dräger <code>.bin</code> frame size</a></li>
-<li><a href="#3-add-a-new-parser">Add a new parser</a></li>
-<li><a href="#4-testing-checklist">Testing checklist</a></li>
-<li><a href="#5-file-layout">File layout</a></li>
+<li><a href="#1-add-a-new-dräger-bin-frame-size">Add a new Dräger <code>.bin</code> frame size</a></li>
+<li><a href="#2-add-a-new-parser">Add a new parser</a></li>
+<li><a href="#3-testing-checklist">Testing checklist</a></li>
+<li><a href="#4-where-a-new-device-goes">Where a new device goes</a></li>
 </ol>
 <hr />
-<h2 id="1-how-the-parsing-layer-works">1. How the parsing layer works<a class="headerlink" href="#1-how-the-parsing-layer-works" title="Permanent link">&para;</a></h2>
-<h3 id="the-single-entry-point">The single entry point<a class="headerlink" href="#the-single-entry-point" title="Permanent link">&para;</a></h3>
-<p>Everything starts from <code>load_data(path)</code> in <code>parsers/loader.py</code>. You call it
-with a file path; it returns the right data container without you knowing which
-parser was used.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
-
-<span class="n">data</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">)</span>   <span class="c1"># → ReconstructedFrameData</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.asc"</span><span class="p">)</span>   <span class="c1"># → ContinuousSignalData</span>
-</code></pre></div>
-<p>Internally it does three things in sequence:</p>
-<div class="highlight"><pre><span></span><code><span class="mf">1.</span> <span class="n">detect_vendor_and_format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>   <span class="err">←</span> <span class="n">What</span> <span class="n">file</span> <span class="ow">is</span> <span class="n">this</span><span class="err">?</span>
-<span class="mf">2.</span> <span class="n">build_parser_from_detection</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="err">←</span> <span class="n">Which</span> <span class="n">parser</span> <span class="n">handles</span> <span class="n">it</span><span class="err">?</span>
-<span class="mf">3.</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_safe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>           <span class="err">←</span> <span class="n">Read</span> <span class="ow">and</span> <span class="k">return</span> <span class="n">data</span>
-</code></pre></div>
-<h3 id="detection-parsersdetectionpy">Detection (<code>parsers/detection.py</code>)<a class="headerlink" href="#detection-parsersdetectionpy" title="Permanent link">&para;</a></h3>
-<p>Detection maps a file to <code>(vendor, extension, optional_bin_format)</code>.
-The strategy depends on the extension:</p>
-<table>
-<thead>
-<tr>
-<th>Extension</th>
-<th>Strategy</th>
-<th>How it works</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>.bin</code></td>
-<td>size-based</td>
-<td><code>file_size % frame_size == 0</code> for each registered <code>FormatSpec</code></td>
-</tr>
-<tr>
-<td><code>.eit</code></td>
-<td>header-based</td>
-<td>reads first bytes, looks for ASCII magic string for each registered <code>HeaderFormatSpec</code></td>
-</tr>
-<tr>
-<td><code>.asc</code> <code>.txt</code> <code>.csv</code></td>
-<td>content-based</td>
-<td>reads first 40 lines, looks for a vendor keyword; Timpel is also recognised by its 1030-column row</td>
-</tr>
-</tbody>
-</table>
-<p><code>.bin</code> is special: there is no header. The only way to identify the format is
-that the file size must be an exact multiple of the frame size in bytes. The
-<code>BIN_FORMAT_SPECS</code> list in <code>parsers/bin_formats.py</code> holds every known frame
-size. If only one spec matches → that's the format. If zero match → error.
-If more than one match → <code>AmbiguousFormatError</code> (rare, requires two frame
-sizes that divide the same file size).</p>
-<h3 id="parser-registry-parsersloaderpy">Parser registry (<code>parsers/loader.py</code>)<a class="headerlink" href="#parser-registry-parsersloaderpy" title="Permanent link">&para;</a></h3>
-<p><code>default_parser_registry()</code> returns a plain dict:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".bin"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerBinParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".eit"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerEitParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".asc"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerAscParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".txt"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerAscParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".csv"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">DragerAscParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"timpel"</span><span class="p">,</span>  <span class="s2">".csv"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">TimpelTabularParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"timpel"</span><span class="p">,</span>  <span class="s2">".txt"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">TimpelTabularParser</span><span class="p">(),</span>
-    <span class="p">(</span><span class="s2">"timpel"</span><span class="p">,</span>  <span class="s2">".asc"</span><span class="p">):</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">TimpelTabularParser</span><span class="p">(),</span>
-<span class="p">}</span>
-</code></pre></div>
-<p>Key = <code>(vendor_lowercase, extension_with_dot_lowercase)</code>.
-Value = zero-argument factory that returns a fresh parser instance.</p>
-<h3 id="baseparser-and-parse_safe"><code>BaseParser</code> and <code>parse_safe</code><a class="headerlink" href="#baseparser-and-parse_safe" title="Permanent link">&para;</a></h3>
-<p>Every parser inherits from <code>BaseParser</code> (Template Method pattern):</p>
-<div class="highlight"><pre><span></span><code><span class="n">BaseParser</span>
-  <span class="err">├──</span> <span class="n">validate</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="err">→</span> <span class="nb">bool</span>        <span class="err">←</span> <span class="n">you</span> <span class="n">implement</span> <span class="n">this</span>
-  <span class="err">├──</span> <span class="n">parse</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="err">→</span> <span class="n">BaseData</span>       <span class="err">←</span> <span class="n">you</span> <span class="n">implement</span> <span class="n">this</span>
-  <span class="err">└──</span> <span class="n">parse_safe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="err">→</span> <span class="n">BaseData</span>  <span class="err">←</span> <span class="n">free</span><span class="p">:</span> <span class="n">validates</span> <span class="n">then</span> <span class="n">parses</span>
-</code></pre></div>
-<p><code>parse_safe</code> raises <code>FileNotFoundError</code> if the file is missing and
-<code>ValueError</code> if <code>validate()</code> returns False. Callers always use <code>parse_safe</code>
-(or <code>load_data</code>, which calls it). Direct <code>parse()</code> skips validation and is
-used internally or in tests.</p>
-<h3 id="data-flow-summary">Data flow summary<a class="headerlink" href="#data-flow-summary" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">load_data</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">)</span>
-    <span class="err">│</span>
-    <span class="err">├─</span> <span class="n">detect_vendor_and_format</span><span class="p">()</span>
-    <span class="err">│</span>   <span class="err">└─</span> <span class="n">file_size</span> <span class="mi">4358000</span> <span class="o">%</span> <span class="mi">4358</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="err">│</span>       <span class="err">→</span> <span class="n">FormatSpec</span><span class="p">(</span><span class="s2">"Draeger_base_4358"</span><span class="p">,</span> <span class="n">vendor</span><span class="o">=</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="n">frame_size</span><span class="o">=</span><span class="mi">4358</span><span class="p">)</span>
-    <span class="err">│</span>       <span class="err">→</span> <span class="n">FileDetection</span><span class="p">(</span><span class="n">extension</span><span class="o">=</span><span class="s2">".bin"</span><span class="p">,</span> <span class="n">vendor</span><span class="o">=</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="n">bin_format</span><span class="o">=</span><span class="n">spec</span><span class="p">)</span>
-    <span class="err">│</span>
-    <span class="err">├─</span> <span class="n">build_parser_from_detection</span><span class="p">()</span>
-    <span class="err">│</span>   <span class="err">└─</span> <span class="n">registry</span><span class="p">[(</span><span class="s2">"draeger"</span><span class="p">,</span> <span class="s2">".bin"</span><span class="p">)]</span> <span class="err">→</span> <span class="n">DragerBinParser</span><span class="p">()</span>
-    <span class="err">│</span>
-    <span class="err">├─</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_safe</span><span class="p">(</span><span class="s2">"patient01.bin"</span><span class="p">)</span>
-    <span class="err">│</span>   <span class="err">├─</span> <span class="n">validate</span><span class="p">()</span> <span class="err">→</span> <span class="n">file</span> <span class="n">exists</span><span class="p">,</span> <span class="n">size</span> <span class="n">divisible</span> <span class="n">by</span> <span class="n">known</span> <span class="n">frame</span> <span class="n">size</span> <span class="err">→</span> <span class="kc">True</span>
-    <span class="err">│</span>   <span class="err">└─</span> <span class="n">parse</span><span class="p">()</span>
-    <span class="err">│</span>       <span class="err">├─</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span> <span class="k">with</span> <span class="n">spec</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="err">│</span>       <span class="err">├─</span> <span class="n">fs</span> <span class="n">estimation</span> <span class="kn">from</span><span class="w"> </span><span class="nn">timestamps</span>
-    <span class="err">│</span>       <span class="err">└─</span> <span class="n">ReconstructedFrameData</span><span class="p">(</span><span class="n">frames</span><span class="p">,</span> <span class="n">aux_signals</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
-    <span class="err">│</span>
-    <span class="err">└─</span> <span class="n">attach</span> <span class="n">detected</span> <span class="n">vendor</span><span class="o">/</span><span class="n">extension</span> <span class="n">to</span> <span class="n">data</span><span class="o">.</span><span class="n">metadata</span>
-       <span class="k">return</span> <span class="n">ReconstructedFrameData</span>
-</code></pre></div>
-<h3 id="multi-file-loaders">Multi-file loaders<a class="headerlink" href="#multi-file-loaders" title="Permanent link">&para;</a></h3>
-<p>Two convenience wrappers built on top of <code>load_data()</code>:</p>
-<p><strong><code>load_many(paths)</code></strong> - takes an explicit list of paths, returns a list of
-<code>BaseData</code> in the same order. Vendor and format can be mixed freely.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_many</span>
-
-<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_many</span><span class="p">([</span>
-    <span class="s2">"patient01.bin"</span><span class="p">,</span>
-    <span class="s2">"patient02.bin"</span><span class="p">,</span>
-    <span class="s2">"patient01.asc"</span><span class="p">,</span>
-<span class="p">])</span>
-</code></pre></div>
-<p><strong><code>load_folder(folder, pattern="*")</code></strong> - scans a directory (alphabetically),
-parses every file that has a registered parser, and <strong>skips</strong> files that raise
-an error (no registered parser, malformed file, wrong extension). Each skipped
-file prints a one-line message to <code>stderr</code>; the scan is never aborted.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_folder</span>
-
-<span class="c1"># All files in a folder (mixed formats)</span>
-<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_folder</span><span class="p">(</span><span class="s2">"/data/session01/"</span><span class="p">)</span>
-
-<span class="c1"># Only .bin files</span>
-<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_folder</span><span class="p">(</span><span class="s2">"/data/session01/"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">"*.bin"</span><span class="p">)</span>
-
-<span class="c1"># Recursive search</span>
-<span class="n">recordings</span> <span class="o">=</span> <span class="n">load_folder</span><span class="p">(</span><span class="s2">"/data/"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">"**/*.bin"</span><span class="p">)</span>
-</code></pre></div>
-<p>Both functions accept the same optional <code>registry=</code> argument as <code>load_data()</code>,
-making it easy to inject a custom parser registry for testing or for formats
-not yet registered by default.</p>
-<hr />
-<h2 id="2-add-a-new-dräger-bin-frame-size">2. Add a new Dräger <code>.bin</code> frame size<a class="headerlink" href="#2-add-a-new-dräger-bin-frame-size" title="Permanent link">&para;</a></h2>
+<h2 id="1-add-a-new-dräger-bin-frame-size">1. Add a new Dräger <code>.bin</code> frame size<a class="headerlink" href="#1-add-a-new-dräger-bin-frame-size" title="Permanent link">&para;</a></h2>
 <p>If a new PulmoVista firmware introduces a new frame layout (e.g., 4406
 bytes with 6 additional Medibus fields).</p>
 <p><strong>Files to change: 2. Everything else is automatic.</strong></p>
 <h3 id="step-1---define-the-dtype">Step 1 - Define the dtype<a class="headerlink" href="#step-1---define-the-dtype" title="Permanent link">&para;</a></h3>
 <p>File: <code>src/fasteit/parsers/draeger/bin/draeger_dtypes.py</code></p>
-<p>Add the new structured dtype and field list following the existing pattern.
-The layout must sum exactly to the new frame size - verify with a comment.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># New extended frame (4406 bytes) - hypothetical example</span>
-<span class="n">FRAME_NEWEXT_DTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
-    <span class="p">(</span><span class="s2">"ts"</span><span class="p">,</span>           <span class="s2">"&lt;f8"</span><span class="p">),</span>          <span class="c1">#   8 bytes</span>
-    <span class="p">(</span><span class="s2">"dummy"</span><span class="p">,</span>        <span class="s2">"&lt;f4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
-    <span class="p">(</span><span class="s2">"pixels"</span><span class="p">,</span>       <span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)),</span><span class="c1"># 4096 bytes</span>
-    <span class="p">(</span><span class="s2">"min_max_flag"</span><span class="p">,</span> <span class="s2">"&lt;i4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
-    <span class="p">(</span><span class="s2">"event_marker"</span><span class="p">,</span> <span class="s2">"&lt;i4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
-    <span class="p">(</span><span class="s2">"event_text"</span><span class="p">,</span>   <span class="s2">"S30"</span><span class="p">),</span>          <span class="c1">#  30 bytes</span>
-    <span class="p">(</span><span class="s2">"timing_error"</span><span class="p">,</span> <span class="s2">"&lt;i4"</span><span class="p">),</span>          <span class="c1">#   4 bytes</span>
-    <span class="p">(</span><span class="s2">"medibus_data"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="p">(</span><span class="mi">64</span><span class="p">,)),</span>   <span class="c1"># 256 bytes  ← was 208 or 232</span>
-<span class="p">])</span>
-<span class="c1"># Total: 8+4+4096+4+4+30+4+256 = 4406 bytes</span>
+<p>Add the new structured dtype and its Medibus field list, following the existing ones.
+The layout must add up exactly to the new frame size: check it with an assertion.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># New extended frame (4406 bytes) - hypothetical example: the fields of the existing</span>
+<span class="c1"># extended frame, with a larger Medibus block.</span>
+<span class="n">FRAME_NEWEXT_DTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span><span class="o">*</span><span class="n">FRAME_EXT_DTYPE</span><span class="o">.</span><span class="n">descr</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="s2">"medibus_data"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="p">(</span><span class="mi">64</span><span class="p">,))])</span>
+<span class="k">assert</span> <span class="n">FRAME_NEWEXT_DTYPE</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">==</span> <span class="mi">4406</span>
 
 <span class="n">MEDIBUS_NEWEXT_FIELDS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="n">_MEDIBUS_COMMON</span> <span class="o">+</span> <span class="p">[</span>
-    <span class="c1"># idx 51: first new field</span>
-    <span class="p">(</span><span class="s2">"high_pressure"</span><span class="p">,</span> <span class="s2">"mbar"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
-    <span class="c1"># idx 52-63: remaining new fields ...</span>
+    <span class="p">(</span><span class="s2">"high_pressure"</span><span class="p">,</span> <span class="s2">"mbar"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>  <span class="c1"># (name, unit, is_continuous) of each new channel</span>
+    <span class="c1"># ...</span>
 <span class="p">]</span>
-
-<span class="n">MEDIBUS_NEWEXT_INDEX</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">MEDIBUS_NEWEXT_FIELDS</span><span class="p">)</span>
-<span class="p">}</span>
 </code></pre></div>
-<p><strong>Rule:</strong> the frame layout must be byte-exact. Add the arithmetic comment
-(<code># Total: ...</code>) and verify it matches the new frame size before continuing.</p>
 <h3 id="step-2---register-the-format-spec">Step 2 - Register the format spec<a class="headerlink" href="#step-2---register-the-format-spec" title="Permanent link">&para;</a></h3>
 <p>File: <code>src/fasteit/parsers/bin_formats.py</code></p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fasteit.parsers.draeger.bin.draeger_dtypes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -2051,7 +1741,7 @@ The layout must sum exactly to the new frame size - verify with a comment.</p>
 <code>DragerBinParser.parse()</code> uses <code>spec.dtype</code> and <code>spec.medibus_fields</code> from
 the spec - no parser changes needed.</p>
 <hr />
-<h2 id="3-add-a-new-parser">3. Add a new parser<a class="headerlink" href="#3-add-a-new-parser" title="Permanent link">&para;</a></h2>
+<h2 id="2-add-a-new-parser">2. Add a new parser<a class="headerlink" href="#2-add-a-new-parser" title="Permanent link">&para;</a></h2>
 <p>This recipe covers any combination: new vendor or existing vendor, binary or
 tabular. The five steps are always the same; only the content of steps 1 and 2
 differs by format type.</p>
@@ -2156,7 +1846,7 @@ no changes to <code>detection.py</code> needed.</p>
 <p>Then add the <code>HeaderFormatSpec</code> to <code>HEADER_FORMAT_SPECS</code> as above.</p>
 <hr />
 <p><strong>Binary without a header (size-based, <code>.bin</code>)</strong></p>
-<p>Add a <code>FormatSpec</code> to <code>BIN_FORMAT_SPECS</code> (see <a href="#2-add-a-new-dräger-bin-frame-size">section 2</a>).
+<p>Add a <code>FormatSpec</code> to <code>BIN_FORMAT_SPECS</code> (see <a href="#1-add-a-new-dräger-bin-frame-size">section 2</a>).
 No changes to <code>detection.py</code> needed.</p>
 <hr />
 <p><strong>Tabular (CSV / TXT / ASC)</strong></p>
@@ -2303,7 +1993,7 @@ to the same parser factory.</p>
 vendor string for each. The registry key <code>(vendor, extension)</code> ensures the
 correct parser is called.</p>
 <hr />
-<h2 id="4-testing-checklist">4. Testing checklist<a class="headerlink" href="#4-testing-checklist" title="Permanent link">&para;</a></h2>
+<h2 id="3-testing-checklist">3. Testing checklist<a class="headerlink" href="#3-testing-checklist" title="Permanent link">&para;</a></h2>
 <p>Every new parser must have tests before it is considered done.
 Minimal coverage for a tabular parser:</p>
 <ul>
@@ -2319,43 +2009,11 @@ Minimal coverage for a tabular parser:</p>
 <li>[ ] <code>test_load_data_routes_to_parser</code> - <code>load_data(path).vendor == "myvendor"</code></li>
 </ul>
 <hr />
-<h2 id="5-file-layout">5. File layout<a class="headerlink" href="#5-file-layout" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="n">src</span><span class="o">/</span><span class="n">fasteit</span><span class="o">/</span>
-<span class="err">├──</span> <span class="n">models</span><span class="o">/</span>
-<span class="err">│</span>   <span class="err">├──</span> <span class="n">base_data</span><span class="o">.</span><span class="n">py</span>              <span class="n">BaseData</span> <span class="o">-</span> <span class="n">common</span> <span class="n">fields</span> <span class="k">for</span> <span class="nb">all</span> <span class="n">containers</span>
-<span class="err">│</span>   <span class="err">├──</span> <span class="n">reconstructed_data</span><span class="o">.</span><span class="n">py</span>     <span class="n">ReconstructedFrameData</span> <span class="o">-</span> <span class="mi">32</span><span class="err">×</span><span class="mi">32</span> <span class="n">pixel</span> <span class="n">frames</span>
-<span class="err">│</span>   <span class="err">├──</span> <span class="n">continuous_data</span><span class="o">.</span><span class="n">py</span>        <span class="n">ContinuousSignalData</span> <span class="o">-</span> <span class="n">tabular</span> <span class="n">signal</span> <span class="n">export</span>
-<span class="err">│</span>   <span class="err">└──</span> <span class="n">raw_impedance_data</span><span class="o">.</span><span class="n">py</span>     <span class="n">RawImpedanceData</span> <span class="o">-</span> <span class="mi">208</span> <span class="n">transimpedances</span> <span class="n">per</span> <span class="n">frame</span>
-<span class="err">│</span>
-<span class="err">└──</span> <span class="n">parsers</span><span class="o">/</span>
-    <span class="err">├──</span> <span class="n">base</span><span class="o">.</span><span class="n">py</span>                   <span class="n">BaseParser</span> <span class="p">(</span><span class="n">validate</span> <span class="o">/</span> <span class="n">parse</span> <span class="o">/</span> <span class="n">parse_safe</span><span class="p">)</span>
-    <span class="err">├──</span> <span class="n">bin_formats</span><span class="o">.</span><span class="n">py</span>            <span class="n">BIN_FORMAT_SPECS</span> <span class="o">-</span> <span class="nb">all</span> <span class="n">known</span> <span class="o">.</span><span class="n">bin</span> <span class="n">frame</span> <span class="n">sizes</span>
-    <span class="err">├──</span> <span class="n">detection</span><span class="o">.</span><span class="n">py</span>              <span class="n">detect_vendor_and_format</span><span class="p">()</span> <span class="o">-</span> <span class="n">routes</span> <span class="nb">any</span> <span class="n">file</span>
-    <span class="err">├──</span> <span class="n">errors</span><span class="o">.</span><span class="n">py</span>                 <span class="n">ParserError</span> <span class="ow">and</span> <span class="n">subclasses</span> <span class="p">(</span><span class="n">UnsupportedFrameSize</span><span class="p">,</span> <span class="n">AmbiguousFormat</span><span class="p">,</span> <span class="n">InvalidSlice</span><span class="p">)</span>
-    <span class="err">├──</span> <span class="n">header_formats</span><span class="o">.</span><span class="n">py</span>         <span class="n">HEADER_FORMAT_SPECS</span> <span class="o">-</span> <span class="n">known</span> <span class="o">.</span><span class="n">eit</span> <span class="n">ASCII</span> <span class="n">headers</span>
-    <span class="err">├──</span> <span class="n">loader</span><span class="o">.</span><span class="n">py</span>                 <span class="n">load_data</span> <span class="o">/</span> <span class="n">load_many</span> <span class="o">/</span> <span class="n">load_folder</span>
-    <span class="err">│</span>
-    <span class="err">├──</span> <span class="n">draeger</span><span class="o">/</span>
-    <span class="err">│</span>   <span class="err">├──</span> <span class="n">asc</span><span class="o">/</span>
-    <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">asc_parser</span><span class="o">.</span><span class="n">py</span>     <span class="n">DragerAscParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">asc</span> <span class="n">continuous</span> <span class="n">export</span>
-    <span class="err">│</span>   <span class="err">├──</span> <span class="nb">bin</span><span class="o">/</span>
-    <span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">bin_parser</span><span class="o">.</span><span class="n">py</span>     <span class="n">DragerBinParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">bin</span> <span class="n">reconstructed</span> <span class="n">frames</span>
-    <span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">bin_utils</span><span class="o">.</span><span class="n">py</span>      <span class="n">Frame</span> <span class="n">slicing</span><span class="p">,</span> <span class="n">fs</span> <span class="n">estimation</span><span class="p">,</span> <span class="nb">sentinel</span> <span class="n">helpers</span>
-    <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">draeger_dtypes</span><span class="o">.</span><span class="n">py</span> <span class="n">FRAME_BASE_DTYPE</span><span class="p">,</span> <span class="n">FRAME_EXT_DTYPE</span><span class="p">,</span> <span class="n">MEDIBUS_</span><span class="o">*</span> <span class="n">fields</span>
-    <span class="err">│</span>   <span class="err">└──</span> <span class="n">eit</span><span class="o">/</span>
-    <span class="err">│</span>       <span class="err">├──</span> <span class="n">eit_parser</span><span class="o">.</span><span class="n">py</span>     <span class="n">DragerEitParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">eit</span> <span class="n">raw</span> <span class="n">transimpedances</span>
-    <span class="err">│</span>       <span class="err">├──</span> <span class="n">eit_dtypes</span><span class="o">.</span><span class="n">py</span>     <span class="n">FRAME_EIT_DTYPE</span> <span class="p">(</span><span class="mi">5495</span><span class="o">-</span><span class="n">byte</span> <span class="n">frame</span> <span class="n">layout</span><span class="p">)</span>
-    <span class="err">│</span>       <span class="err">├──</span> <span class="n">eit_utils</span><span class="o">.</span><span class="n">py</span>      <span class="n">Header</span> <span class="n">parsing</span><span class="p">,</span> <span class="n">calibration</span> <span class="n">constants</span> <span class="n">FT_A</span><span class="o">/</span><span class="n">FT_B</span><span class="o">/</span><span class="n">FC_CURRENT</span><span class="o">/</span><span class="n">FV_VOLTAGE</span>
-    <span class="err">│</span>       <span class="err">└──</span> <span class="n">eit_pyeit_bridge</span><span class="o">.</span><span class="n">py</span>  <span class="n">build_greit</span><span class="p">()</span> <span class="o">/</span> <span class="n">reconstruct_greit</span><span class="p">()</span> <span class="o">-</span> <span class="n">pyEIT</span> <span class="n">bridge</span>
-    <span class="err">│</span>
-    <span class="err">└──</span> <span class="n">timpel</span><span class="o">/</span>
-        <span class="err">├──</span> <span class="n">timpel_parser</span><span class="o">.</span><span class="n">py</span>      <span class="n">TimpelTabularParser</span> <span class="o">-</span> <span class="o">.</span><span class="n">csv</span><span class="o">/.</span><span class="n">txt</span><span class="o">/.</span><span class="n">asc</span> <span class="n">reconstructed</span> <span class="n">frames</span>
-        <span class="err">└──</span> <span class="n">timpel_dtypes</span><span class="o">.</span><span class="n">py</span>      <span class="n">TIMPEL_AUX_FIELDS</span> <span class="o">-</span> <span class="n">auxiliary</span> <span class="n">signal</span> <span class="n">columns</span>
-</code></pre></div>
-<p><strong>Where to add a new vendor</strong> - create <code>parsers/&lt;vendor&gt;/</code> mirroring the structure above:
-one <code>&lt;vendor&gt;_parser.py</code>, one <code>&lt;vendor&gt;_dtypes.py</code>, one <code>__init__.py</code>.
-Then follow steps 1-5 in <a href="#3-add-a-new-parser">section 3</a>.</p>
-<hr />
+<h2 id="4-where-a-new-device-goes">4. Where a new device goes<a class="headerlink" href="#4-where-a-new-device-goes" title="Permanent link">&para;</a></h2>
+<p>Create <code>parsers/&lt;vendor&gt;/</code> like the existing ones (<a href="../parsers/#6-file-layout">file layout</a>):
+one <code>&lt;vendor&gt;_parser.py</code>, one <code>&lt;vendor&gt;_dtypes.py</code>, one <code>__init__.py</code>. Then follow the
+steps of <a href="#2-add-a-new-parser">section 2</a>.</p>
+<p><em>Research use only - not a medical device.</em></p>
 
 
 

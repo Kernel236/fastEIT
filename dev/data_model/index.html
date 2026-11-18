@@ -1323,7 +1323,7 @@
   <span class="md-ellipsis">
     
   
-    Parsing layer architecture
+    Extend the parsers
   
 
     
@@ -1507,9 +1507,8 @@
 
 
 <h1 id="fasteit---data-model">fastEIT - Data Model<a class="headerlink" href="#fasteit---data-model" title="Permanent link">&para;</a></h1>
-<p>Specifications for all data containers. For parser details, calibration
-constants, and loader utilities see <a href="../parsers/"><code>parsers.md</code></a>. For architecture
-and extension recipes see <a href="../parsing_layer/"><code>parsing_layer.md</code></a>.</p>
+<p>Specifications for all data containers. How a file is recognised and read is in
+<a href="../parsers/">parsers</a>; how to add a format, in <a href="../parsing_layer/">extending the parsers</a>.</p>
 <p>All containers of layer 1 inherit from <code>BaseData</code> (<code>models/base_data.py</code>). The
 objects of the later layers are in <a href="#5-from-a-file-to-the-clinical-indices">section 5</a>.</p>
 <hr />
@@ -1604,8 +1603,9 @@ values included. On the parsed file, <code>fasteit.preprocessing.pipeline</code>
 <strong>Produced by:</strong> <code>DragerEitParser</code> (<code>.eit</code>)</p>
 <div class="highlight"><pre><span></span><code><span class="n">measurements</span>   <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>   <span class="n">shape</span> <span class="p">(</span><span class="n">N_frames</span><span class="p">,</span> <span class="mi">208</span><span class="p">)</span>
                             <span class="n">Calibrated</span> <span class="n">transimpedances</span> <span class="p">(</span><span class="ow">not</span> <span class="n">raw</span> <span class="n">ADC</span> <span class="n">counts</span><span class="p">,</span> <span class="ow">not</span>
-                            <span class="n">yet</span> <span class="n">image</span><span class="o">-</span><span class="n">reconstructed</span><span class="p">)</span><span class="o">.</span> <span class="n">For</span> <span class="n">Dräger</span><span class="p">:</span>
-                            <span class="n">vv</span> <span class="o">=</span> <span class="n">FT_A</span><span class="o">*</span><span class="n">trans_A</span> <span class="o">-</span> <span class="n">FT_B</span><span class="o">*</span><span class="n">trans_B</span> <span class="p">(</span><span class="n">EIDORS</span><span class="p">,</span> <span class="n">Adler</span> <span class="mi">2016</span><span class="p">)</span>
+                            <span class="n">yet</span> <span class="n">image</span><span class="o">-</span><span class="n">reconstructed</span><span class="p">)</span><span class="o">.</span> <span class="n">For</span> <span class="n">Dräger</span><span class="p">:</span> <span class="n">the</span> <span class="n">primary</span> <span class="nb">set</span>
+                            <span class="n">minus</span> <span class="n">the</span> <span class="n">reference</span> <span class="nb">set</span><span class="p">,</span> <span class="n">each</span> <span class="n">scaled</span> <span class="n">by</span> <span class="n">an</span> <span class="n">empirical</span>
+                            <span class="n">constant</span> <span class="p">(</span><span class="n">values</span> <span class="kn">from</span><span class="w"> </span><span class="nn">EIDORS</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span> <span class="n">Adler</span> <span class="mi">2016</span><span class="p">)</span>
                             <span class="mi">208</span> <span class="o">=</span> <span class="mi">16</span> <span class="n">electrodes</span> <span class="err">×</span> <span class="mi">13</span> <span class="n">measurement</span> <span class="n">pairs</span>
                             <span class="p">(</span><span class="n">adjacent</span> <span class="n">drive</span><span class="p">,</span> <span class="n">standard</span> <span class="n">Dräger</span> <span class="n">pattern</span><span class="p">)</span>
 

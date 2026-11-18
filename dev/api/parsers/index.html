@@ -1564,7 +1564,7 @@
   <span class="md-ellipsis">
     
   
-    Parsing layer architecture
+    Extend the parsers
   
 
     
@@ -2906,17 +2906,7 @@ extension or naming convention (standard <code>glob</code> syntax).</p>
 
     <div class="doc doc-contents first">
 
-        <p>Dräger <code>.eit</code> parser.</p>
-<p>Format summary (reverse-engineered from PulmoVista 500 output,
-cross-referenced with EIDORS read_draeger_header/read_draeger_file):</p>
-<div class="highlight"><pre><span></span><code><span class="n">Byte</span> <span class="mf">0..11</span>            <span class="p">:</span> <span class="n">preamble</span> <span class="o">-</span> <span class="mi">3</span> <span class="err">×</span> <span class="n">int32</span> <span class="n">LE</span>
-                        <span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>  <span class="n">format_version</span> <span class="p">(</span><span class="n">always</span> <span class="mi">51</span><span class="p">)</span>
-                        <span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">8</span><span class="p">]</span>  <span class="n">sep_offset</span>      <span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">file</span><span class="o">-</span><span class="n">specific</span><span class="p">)</span>
-                        <span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">12</span><span class="p">]</span> <span class="n">unknown_int</span>
-<span class="n">Byte</span> <span class="mf">12.</span><span class="o">.</span><span class="n">sep_offset</span><span class="o">-</span><span class="mi">1</span> <span class="p">:</span> <span class="n">ASCII</span> <span class="n">header</span> <span class="p">(</span><span class="n">latin</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"key: value</span><span class="se">\r\n</span><span class="s2">"</span> <span class="n">lines</span><span class="p">)</span>
-<span class="n">Byte</span> <span class="n">sep_offset</span><span class="o">..+</span><span class="mi">7</span>   <span class="p">:</span> <span class="n">separator</span> <span class="sa">b</span><span class="s1">'**</span><span class="se">\r\n\r\n\r\n</span><span class="s1">'</span> <span class="p">(</span><span class="mi">8</span> <span class="nb">bytes</span><span class="p">)</span>
-<span class="n">Byte</span> <span class="n">sep_offset</span><span class="o">+</span><span class="mf">8.</span><span class="o">.</span>   <span class="p">:</span> <span class="n">binary</span> <span class="n">frames</span><span class="p">,</span> <span class="n">each</span> <span class="mi">5495</span> <span class="nb">bytes</span>
-</code></pre></div>
+        <p>Dräger <code>.eit</code> parser: the raw transimpedances of the PulmoVista 500 file.</p>
 
 
 
