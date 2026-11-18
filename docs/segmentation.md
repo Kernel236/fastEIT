@@ -56,8 +56,8 @@ breaths to analyse: every valid breath entirely inside it is analysed, with no t
 out after the change of PEEP and no limit of 10 (those rules apply only to the steps found
 from the pressure). With a pressure curve, a warning says when a step analyses breaths
 that the steps found from the pressure would leave out: less than 15 s after the end of
-the PEEP before, or more than 0.5 cmH2O from the PEEP of the step (a segment that crosses
-a change; the PEEP of a step of 1-2 breaths is its typed level plus the offset common to
+the PEEP before, or more than 0.5 cmH2O from the PEEP of the step (e.g. a segment that
+crosses a change; the PEEP of a step of 1-2 breaths is its typed level plus the offset common to
 the steps). A breath cut by the edge of the segment, or with a
 quality flag, is left out: draw the segment a little wider than the breaths chosen. An
 inspiratory hold is looked for only inside the segment: include its breath, or type the

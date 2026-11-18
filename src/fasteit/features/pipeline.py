@@ -532,8 +532,9 @@ def _recruitment_rows(
     )  # fmt: skip
     if np.isnan(ri):
         log.warning(
-            f"No R/I between {pair_text}: the step at {low_level:g} has no compliance "
-            "(no driving pressure or no analysed breaths), or the drop is not positive."
+            f"No R/I between {pair_text}: one of the two steps has no EELI (no analysed "
+            f"breaths), the step at {low_level:g} has no compliance (no driving "
+            "pressure), or the drop is not positive."
         )
     else:
         log.ok(f"R/I between {pair_text}.")

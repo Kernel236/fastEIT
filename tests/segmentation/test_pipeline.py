@@ -299,7 +299,7 @@ def test_a_level_of_the_protocol_without_a_step_is_warned():
     levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
     trial = segment_peep_trial(recording, levels)
     assert trial.steps.peep_set.tolist() == [12, 10, 6]
-    assert any("PEEP levels 8 of the protocol have no step" in m for m in trial.log)
+    assert any("PEEP level 8 of the protocol has no step" in m for m in trial.log)
 
 
 def test_a_step_excluded_whole_does_not_start_the_wait_of_the_next():
@@ -686,6 +686,27 @@ def test_two_breaths_far_from_their_median_do_not_break_the_check():
         log,
     )
     assert any("2 of 2 breaths analysed more" in m for m in log.messages)
+    # Of 2 breaths, the PEEP of the step is the typed one plus the common offset.
+    assert any("(15.3, typed 15 plus the offset common" in m for m in log.messages)
+
+
+def test_a_wait_just_under_15_s_is_not_written_as_15():
+    # PEEP 16.3 ends at 12 s; the step at 14.3 starts its breaths at 26.97 s.
+    peep = np.array([16.3, 16.3, 16.3, 14.3, 14.3, 14.3, 14.3])
+    starts = np.array([0, 4, 8, 12, 26.97, 30.97, 34.97])
+    step = np.array([-1, -1, -1, -1, 0, 0, 0])
+    log = RunLog(logging.getLogger(__name__))
+    _check_manual_breaths(
+        peep,
+        step,
+        np.array([14.0]),
+        step >= 0,
+        starts,
+        starts + 4,
+        SegmentationConfig(),
+        log,
+    )
+    assert any("starts 14.9 s after the change" in m for m in log.messages)
 
 
 def test_a_step_by_hand_of_two_breaths_across_a_change_is_warned(recording):

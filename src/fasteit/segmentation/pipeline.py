@@ -251,14 +251,21 @@ def _check_manual_breaths(
     warned = False
     for k, typed in enumerate(levels):
         used = np.flatnonzero(analysed & (step == k) & np.isfinite(peep))
-        level = measured[k] if len(used) >= STEP_MIN_BREATHS else typed + offset
+        if len(used) >= STEP_MIN_BREATHS:
+            level, level_text = measured[k], f"{measured[k]:.1f}"
+        else:
+            level = typed + offset
+            level_text = (
+                f"{level:.1f}, typed {typed:g} plus the offset common to the steps "
+                f"{offset:.1f}"
+            )
         away = np.abs(peep[used] - level) > threshold / 2
         if away.any():
             warned = True
             log.warning(
                 f"Step {k}: {away.sum()} of {len(used)} breaths analysed more than "
-                f"{threshold / 2:g} cmH2O from the PEEP of the step ({level:.1f}): the "
-                "step placed by hand crosses a change of PEEP."
+                f"{threshold / 2:g} cmH2O from the PEEP of the step ({level_text}); "
+                "the steps found from the pressure leave such breaths out."
             )
         at_level = used[~away]
         if not len(at_level):
@@ -267,10 +274,11 @@ def _check_manual_breaths(
         change = _end_of_peep_before(peep, ends, first, level, threshold)
         if change is not None and starts[first] - change < skip:
             warned = True
+            seconds = np.floor((starts[first] - change) * 10) / 10  # 14.97: 14.9
             log.warning(
-                f"Step {k}: the first breath analysed starts "
-                f"{starts[first] - change:.1f} s after the change of PEEP, less than "
-                f"the {skip:g} s left out by the steps found from the pressure."
+                f"Step {k}: the first breath analysed starts {seconds:.1f} s after the "
+                f"change of PEEP, less than the {skip:g} s left out by the steps found "
+                "from the pressure."
             )
     if not warned:
         log.ok(
@@ -460,9 +468,14 @@ def _check_missing_levels(
     inside = [lv for lv in protocol if found.min() < lv < found.max()]
     missing = [lv for lv in inside if not np.isclose(found, lv).any()]
     if missing:
+        names = ", ".join(f"{lv:g}" for lv in missing)
+        if len(missing) > 1:
+            which = f"levels {names} of the protocol have"
+        else:
+            which = f"level {names} of the protocol has"
         log.warning(
-            f"PEEP levels {', '.join(f'{lv:g}' for lv in missing)} of the protocol have "
-            "no step: a step inside an exclusion, or too short to be found?"
+            f"PEEP {which} no step: a step inside an exclusion, or too short to be "
+            "found?"
         )
 
 
