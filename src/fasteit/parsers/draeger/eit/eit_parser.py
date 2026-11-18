@@ -1,16 +1,12 @@
-"""Dräger `.eit` parser.
+"""Dräger `.eit` parser: the raw transimpedances of the PulmoVista 500 file."""
 
-Format summary (reverse-engineered from PulmoVista 500 output,
-cross-referenced with EIDORS read_draeger_header/read_draeger_file):
-
-    Byte 0..11            : preamble - 3 × int32 LE
-                            [0:4]  format_version (always 51)
-                            [4:8]  sep_offset      (variable, file-specific)
-                            [8:12] unknown_int
-    Byte 12..sep_offset-1 : ASCII header (latin-1, "key: value\\r\\n" lines)
-    Byte sep_offset..+7   : separator b'**\\r\\n\\r\\n\\r\\n' (8 bytes)
-    Byte sep_offset+8..   : binary frames, each 5495 bytes
-"""
+# File layout (reverse-engineered from PulmoVista 500 output, cross-referenced with
+# EIDORS read_draeger_header/read_draeger_file, format study only):
+#   bytes 0-11                 preamble, 3 x int32 LE: format_version (always 51),
+#                              sep_offset (file-specific), unknown
+#   bytes 12 to sep_offset-1   ASCII header (latin-1, "key: value\r\n" lines)
+#   sep_offset, 8 bytes        separator b"**\r\n\r\n\r\n"
+#   from sep_offset+8          binary frames, 5495 bytes each (eit_dtypes)
 
 from __future__ import annotations
 
