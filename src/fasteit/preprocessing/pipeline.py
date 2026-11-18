@@ -6,7 +6,8 @@ Fixed order of the steps (notebooks/05_preprocessing_choices.ipynb):
 3. respiratory rate from the spectrum, cardiac step (MDN with a heart rate given by
    the user, otherwise only a moving average);
 4. breath detection on the global signal (sum of all pixels);
-5. quality flags and exclusions of each breath;
+5. exclusions, then quality flags of each breath (local medians without the excluded
+   breaths);
 6. lung mask from the valid breaths, regions of interest, regional signals;
 7. auxiliary signals (pressures, flow, volume, device markers) with "no data" as NaN,
    in the same units for every vendor (cmH2O, L/s, mL);
@@ -614,7 +615,16 @@ def preprocess(
     if len(breaths) == 0:
         raise ValueError("No breaths found: the recording cannot be preprocessed.")
 
-    # 5. Quality flags and exclusions.
+    # 5. Exclusions, then quality flags (their local medians leave the excluded breaths
+    # out).
+    segments = merge_overlapping(
+        widen(
+            [*exclusions, *device_segments], config.exclusion_margin_seconds, duration
+        )
+    )
+    excluded, labels = breaths_in_segments(
+        time[breaths[:, 0]], time[breaths[:, 2]], segments
+    )
     flags = quality_flags(
         detection_signal,
         fs,
@@ -629,14 +639,9 @@ def preprocess(
         amplitude_ratio_low=config.amplitude_ratio_low,
         amplitude_ratio_high=config.amplitude_ratio_high,
         duration_ratio_high=config.duration_ratio_high,
+        excluded=excluded,
     )
     table = _breath_table(time, breaths, flags)
-    segments = merge_overlapping(
-        widen(
-            [*exclusions, *device_segments], config.exclusion_margin_seconds, duration
-        )
-    )
-    excluded, labels = breaths_in_segments(table.start_time, table.end_time, segments)
     flagged = flags.any(axis=1).to_numpy()
     table["excluded"] = excluded
     table["exclusion_label"] = pd.Series(labels, dtype="string")

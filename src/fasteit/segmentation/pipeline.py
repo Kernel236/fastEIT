@@ -145,12 +145,35 @@ def _automatic_steps(
     tolerance = config.step_threshold / 2
     at_level = np.abs(peep - level_of_breath) <= tolerance
 
+    # The wait after a change is counted from the first breath measured away from the
+    # PEEP of the step before and near the PEEP of its own step: ``peep`` is read on
+    # every breath, excluded ones too (a breath without a reading is not known to have
+    # changed). Near: within 1.5 thresholds, so that a breath halfway between the two
+    # PEEP counts and an excluded breath at another level of the protocol (two
+    # thresholds away, e.g. a step excluded whole) does not.
+    level_before = np.full(len(peep), np.nan)
+    in_later_step = step >= 1
+    level_before[in_later_step] = levels[step[in_later_step] - 1]
+    near_own = np.abs(peep - level_of_breath) <= 1.5 * config.step_threshold
+    away_before = np.abs(peep - level_before) > config.step_threshold
+    changed = (step == 0) | (away_before & near_own)
+    # The excluded breaths before the first kept breath of a step came before the change
+    # (the backward fill puts them in the new step): when one of them still reads the
+    # PEEP before, the change came after it, whatever was read earlier (e.g. a leak).
+    still_before = np.abs(peep - level_before) <= tolerance
+    for number in range(1, n_steps):
+        in_step = np.flatnonzero(step == number)
+        leading = in_step[: np.argmax(~excluded[in_step])]
+        if still_before[leading].any():
+            changed[in_step[in_step <= leading[still_before[leading]][-1]]] = False
+
     analysed = analysed_breaths(
         breath_starts,
         step,
         valid & at_level,
         config.analysis_skip_seconds,
         config.analysis_max_breaths,
+        changed=changed,
     )
     return step, levels, analysed
 
@@ -176,6 +199,99 @@ def _check_manual_levels(
             )
     if compared == len(levels) and not differ:
         log.ok("PEEP typed for each step agrees with the PEEP measured in it.")
+
+
+def _end_of_peep_before(
+    peep: np.ndarray, ends: np.ndarray, first: int, level: float, threshold: float
+) -> float | None:
+    """When the PEEP before ``level`` ended, before breath ``first``: the end of the
+    last breath still at it (within half of ``threshold``). The PEEP before is the
+    median of the last breath more than ``threshold`` from ``level`` and of the two
+    breaths with a reading before it. A breath halfway between the two PEEP is counted
+    in the new step, so the time from the change is never shorter than for the steps
+    found from the pressure. None if no breath before is at another PEEP."""
+    read = np.flatnonzero(np.isfinite(peep[:first]))
+    away = read[np.abs(peep[read] - level) > threshold]
+    if not len(away):
+        return None
+    peep_before = np.median(peep[read[read <= away[-1]][-3:]])
+    still = read[np.abs(peep[read] - peep_before) <= threshold / 2]
+    return float(ends[still[-1] if len(still) else away[-1]])
+
+
+def _check_manual_breaths(
+    peep: np.ndarray,
+    step: np.ndarray,
+    levels: np.ndarray,
+    analysed: np.ndarray,
+    starts: np.ndarray,
+    ends: np.ndarray,
+    config: SegmentationConfig,
+    log: RunLog,
+) -> None:
+    """Warn when a step placed by hand analyses breaths that a step found from the
+    pressure would leave out: at another PEEP, or less than ``analysis_skip_seconds``
+    after the change of PEEP.
+
+    By hand the step is the choice of the breaths, so they are analysed, with a
+    warning. The PEEP of a step is the median of its analysed breaths, as for the steps
+    found from the pressure, or with fewer than ``STEP_MIN_BREATHS`` of them its typed
+    level plus the offset common to the steps (median over the steps of measured minus
+    typed PEEP: mbar, PEEP valve). A breath more than half of ``step_threshold`` from it
+    is at another PEEP; the change is the end of the PEEP before
+    (``_end_of_peep_before``).
+    """
+    measured = np.array(
+        [_median_or_nan(peep[analysed & (step == k)]) for k in range(len(levels))]
+    )
+    if np.isnan(measured).all():
+        return  # no pressure, or no reading in the analysed breaths
+    offset = np.nanmedian(measured - levels)
+    threshold, skip = config.step_threshold, config.analysis_skip_seconds
+    warned = False
+    for k, typed in enumerate(levels):
+        used = np.flatnonzero(analysed & (step == k) & np.isfinite(peep))
+        if len(used) >= STEP_MIN_BREATHS:
+            level, level_text = measured[k], f"{measured[k]:.1f}"
+        else:
+            level = typed + offset
+            level_text = (
+                f"{level:.1f}, typed {typed:g} plus the offset common to the steps "
+                f"{offset:.1f}"
+            )
+        away = np.abs(peep[used] - level) > threshold / 2
+        if away.any():
+            warned = True
+            log.warning(
+                f"Step {k}: {away.sum()} of {len(used)} breaths analysed more than "
+                f"{threshold / 2:g} cmH2O from the PEEP of the step ({level_text}); "
+                "the steps found from the pressure leave such breaths out."
+            )
+        at_level = used[~away]
+        if not len(at_level):
+            continue
+        first = at_level[0]
+        change = _end_of_peep_before(peep, ends, first, level, threshold)
+        if change is not None and starts[first] - change < skip:
+            warned = True
+            seconds = np.floor((starts[first] - change) * 10) / 10  # 14.97: 14.9
+            log.warning(
+                f"Step {k}: the first breath analysed starts {seconds:.1f} s after the "
+                f"change of PEEP, less than the {skip:g} s left out by the steps found "
+                "from the pressure."
+            )
+    if not warned:
+        log.ok(
+            "Breaths analysed in the steps placed by hand: within "
+            f"{threshold / 2:g} cmH2O of the PEEP of their step, none less than "
+            f"{skip:g} s after a change of PEEP measured."
+        )
+
+
+def _median_or_nan(values: np.ndarray) -> float:
+    """Median of the values that are not NaN, NaN if there are none."""
+    known = values[np.isfinite(values)]
+    return float(np.median(known)) if len(known) else np.nan
 
 
 def _check_typed_pressures(segments: Sequence[Segment], log: RunLog) -> None:
@@ -341,6 +457,28 @@ def _step_tidal_volume(
     return np.nan, None
 
 
+def _check_missing_levels(
+    peep_set: np.ndarray, protocol: Sequence[float] | None, log: RunLog
+) -> None:
+    """Warn about levels of the protocol, between the highest and the lowest step
+    found, that have no step (a step inside an exclusion, or too short to be found)."""
+    found = peep_set[np.isfinite(peep_set)]
+    if protocol is None or not len(found):
+        return
+    inside = [lv for lv in protocol if found.min() < lv < found.max()]
+    missing = [lv for lv in inside if not np.isclose(found, lv).any()]
+    if missing:
+        names = ", ".join(f"{lv:g}" for lv in missing)
+        if len(missing) > 1:
+            which = f"levels {names} of the protocol have"
+        else:
+            which = f"level {names} of the protocol has"
+        log.warning(
+            f"PEEP {which} no step: a step inside an exclusion, or too short to be "
+            "found?"
+        )
+
+
 def _steps_table(
     breaths: pd.DataFrame,
     levels: np.ndarray,
@@ -351,8 +489,9 @@ def _steps_table(
     log: RunLog,
 ) -> pd.DataFrame:
     """One row per step, with its level of the protocol, PEEP measured (median of its
-    breaths), plateau, driving pressure and tidal volume."""
+    breaths not excluded), plateau, driving pressure and tidal volume."""
     peep_set = protocol_levels(levels, config.peep_levels, config.step_threshold)
+    _check_missing_levels(peep_set, config.peep_levels, log)
     if config.peep_levels is None:
         log.warning(
             "No PEEP levels of the protocol (SegmentationConfig.peep_levels): "
@@ -372,7 +511,8 @@ def _steps_table(
         )
         volume = _step_tidal_volume(analysed, typed_volumes[k], recording_volume)
         rows.append([
-            k, float(level), float(peep_set[k]), float(in_step.peep.median()),
+            k, float(level), float(peep_set[k]),
+            float(in_step.peep[~in_step.excluded].median()),
             float(in_step.start_time.min()) if len(in_step) else np.nan,
             float(in_step.end_time.max()) if len(in_step) else np.nan,
             len(in_step), len(analysed), len(analysed) >= config.analysis_min_breaths,
@@ -483,6 +623,7 @@ def segment_peep_trial(
         source = "manual"
         log.info(f"{len(levels)} PEEP steps placed by hand.")
         _check_manual_levels(peep, step, levels, config, log)
+        _check_manual_breaths(peep, step, levels, analysed, starts, ends, config, log)
         _check_typed_pressures(peep_steps, log)
     elif channel is not None:
         step, levels, analysed = _automatic_steps(

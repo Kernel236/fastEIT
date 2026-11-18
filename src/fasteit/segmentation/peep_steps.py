@@ -28,8 +28,10 @@ def find_steps(
     ``threshold`` from the level of the current step and within ``agreement`` of each
     other; the level of the current step is the median PEEP of its breaths so far (of
     the first ``min_breaths`` breaths at the start). With ``min_breaths`` of 2 or more a
-    single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN) takes
-    the PEEP of the next breath that has one.
+    single odd breath (a maneuver) cannot open a step. A breath without PEEP (NaN, e.g.
+    excluded) takes the PEEP of the next breath that has one, so a step can start
+    inside an exclusion; the time left out after the change is counted from the change
+    measured on the breaths (``analysed_breaths``).
 
     Args:
         peep:        PEEP of each breath.
@@ -226,12 +228,18 @@ def analysed_breaths(
     valid: np.ndarray,
     skip_seconds: float,
     max_breaths: int,
+    changed: np.ndarray | None = None,
 ) -> np.ndarray:
     """Breaths analysed in each automatic step.
 
-    The breaths in the first ``skip_seconds`` of the step (from its first breath) are
-    left out, as EELI is still moving; then the last ``max_breaths`` valid breaths of
-    the step are analysed (notebook 06, section 5).
+    The breaths in the first ``skip_seconds`` of the step are left out, as EELI is
+    still moving; then the last ``max_breaths`` valid breaths of the step are analysed
+    (notebook 06, section 5). The time is counted from the first breath of the step
+    whose PEEP was measured at the PEEP of the step and away from the PEEP of the step
+    before, excluded or not, and after the last excluded breath still at the PEEP before
+    (without exclusions, the first breath of the step): an exclusion just before the
+    change of PEEP (its breaths are in the new step) does not shorten the wait, and one
+    just after it does not lengthen it.
 
     Args:
         breath_starts: Start time of each breath, in seconds.
@@ -239,6 +247,10 @@ def analysed_breaths(
         valid:         ``is_valid`` of each breath.
         skip_seconds:  Time left out after the change of PEEP.
         max_breaths:   Most breaths analysed per step.
+        changed:       True for the breaths that can start the wait: measured at
+                       the PEEP of their step, away from the PEEP of the step before,
+                       after the last excluded breath still at it; None: the time is
+                       counted from the first breath of the step.
 
     Returns:
         Boolean array, True for the analysed breaths.
@@ -251,7 +263,8 @@ def analysed_breaths(
     analysed = np.zeros(len(step), dtype=bool)
     for step_number in np.unique(step[step >= 0]):
         in_step = np.flatnonzero(step == step_number)  # breaths of the step, in order
-        step_start = breath_starts[in_step[0]]
+        after = in_step if changed is None else in_step[changed[in_step]]
+        step_start = breath_starts[after[0] if len(after) else in_step[0]]
         after_skip = breath_starts[in_step] >= step_start + skip_seconds
         usable = in_step[after_skip & valid[in_step]]
         last_usable = usable[-max_breaths:]

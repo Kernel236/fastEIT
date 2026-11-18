@@ -92,20 +92,25 @@ def _pct_of_best(values: pd.Series) -> pd.Series:
 
 
 def _breath_indices(
-    recording: EITRecording, tidal_volume: np.ndarray, source: np.ndarray
+    recording: EITRecording,
+    tidal_volume: np.ndarray,
+    source: np.ndarray,
+    driving_pressure: np.ndarray,
+    driving_source: np.ndarray,
 ) -> pd.DataFrame:
     """Global indices of each breath, one row per breath.
 
     Args:
-        recording:    The preprocessed recording.
-        tidal_volume: Tidal volume used for each breath (mL), NaN if none.
-        source:       Where the tidal volume of each breath comes from.
+        recording:        The preprocessed recording.
+        tidal_volume:     Tidal volume used for each breath (mL), NaN if none.
+        source:           Where the tidal volume of each breath comes from.
+        driving_pressure: Driving pressure used for each breath (cmH2O), NaN if none.
+        driving_source:   Where the driving pressure of each breath comes from.
     """
     breath_table = recording.breaths
     start_frame = breath_table.start_idx.to_numpy()
     peak_frame = breath_table.peak_idx.to_numpy()
     lung_signal = recording.global_signal  # sum of the pixels inside the lung mask
-    driving_pressure = breath_table.driving_pressure.to_numpy()
 
     eeli = lung_signal[start_frame]
     tiv = lung_signal[peak_frame] - lung_signal[start_frame]
@@ -129,13 +134,17 @@ def _breath_indices(
             "cov_rl": centres[:, 1],
             "tidal_volume_used": tidal_volume,
             "tidal_volume_source": source,
+            "driving_pressure_used": driving_pressure,
+            "driving_pressure_source": driving_source,
             "compliance": _ratio(tiv, driving_pressure),
             "compliance_ml": _ratio(tidal_volume, driving_pressure),
         }
     )
 
 
-def _region_indices(recording: EITRecording, tidal_volume: np.ndarray) -> pd.DataFrame:
+def _region_indices(
+    recording: EITRecording, tidal_volume: np.ndarray, driving_pressure: np.ndarray
+) -> pd.DataFrame:
     """Indices of each breath in each region, one row per breath and region.
 
     The rows of a region are in the order of the breath table. The compliance of a
@@ -147,7 +156,6 @@ def _region_indices(recording: EITRecording, tidal_volume: np.ndarray) -> pd.Dat
     peak_frame = breath_table.peak_idx.to_numpy()
     lung_signal = recording.global_signal
     lung_tiv = lung_signal[peak_frame] - lung_signal[start_frame]
-    driving_pressure = breath_table.driving_pressure.to_numpy()
 
     tables = []
     for region in recording.roi_signals.columns:
@@ -194,6 +202,21 @@ def _recording_tidal_volume(
     source[np.isnan(measured)] = None
     if not np.isnan(measured).all():
         log.info(f"Tidal volume measured on {recording.tidal_volume_channel}.")
+    return measured, source
+
+
+def _recording_driving_pressure(
+    recording: EITRecording,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Driving pressure of each breath read on the pressure curve (layer 2).
+
+    Returns:
+        The driving pressure (cmH2O, NaN if none) and its source (``"breaths"`` or
+        None) for each breath.
+    """
+    measured = recording.breaths.driving_pressure.to_numpy(dtype=float)
+    source = np.full(len(measured), "breaths", dtype=object)
+    source[np.isnan(measured)] = None
     return measured, source
 
 
@@ -273,8 +296,9 @@ def tidal_features(
         log.warning(
             "No tidal volume (none typed, no volume or flow curve): no values in mL."
         )
-    breaths = _breath_indices(recording, volume, source)
-    regions = _region_indices(recording, volume)
+    driving, driving_source = _recording_driving_pressure(recording)
+    breaths = _breath_indices(recording, volume, source, driving, driving_source)
+    regions = _region_indices(recording, volume, driving)
     breaths.insert(1, "in_phase", _in_phase(breath_table, phase, log))
 
     # The summary uses the valid breaths of the phase.
@@ -308,18 +332,20 @@ def tidal_features(
 # --- PEEP trials ---
 
 
-def _step_breath_volumes(
-    trial: PeepTrial, volume: np.ndarray, source: np.ndarray
+def _typed_for_steps(
+    trial: PeepTrial, column: str, values: np.ndarray, source: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """A tidal volume typed for a step goes to the breaths of that step."""
-    volume, source = volume.copy(), source.copy()
+    """A value typed for a step (``"tidal_volume"`` or ``"driving_pressure"``) goes to
+    the breaths of that step: typed on purpose, it wins over the curve, as for the step
+    itself, so that breaths and steps give the same compliance."""
+    values, source = values.copy(), source.copy()
     step_of_breath = trial.breaths.peep_step.to_numpy()
-    typed_steps = trial.steps[trial.steps.tidal_volume_source == "typed"]
+    typed_steps = trial.steps[trial.steps[f"{column}_source"] == "typed"]
     for _, step in typed_steps.iterrows():
         in_step = step_of_breath == step.step
-        volume[in_step] = step.tidal_volume
+        values[in_step] = step[column]
         source[in_step] = "typed"
-    return volume, source
+    return values, source
 
 
 def _steps_with_breaths(trial: PeepTrial):
@@ -462,43 +488,56 @@ def _recruitment_rows(
     trial: PeepTrial,
     steps: pd.DataFrame,
     step_regions: pd.DataFrame,
-    result_peep: np.ndarray,
     config: AnalysisConfig,
     log: RunLog,
 ) -> list[dict]:
-    """R/I and recruited volume between the steps nearest to the two PEEP levels of the
-    config, globally and for each region (rows of the summary).
+    """R/I and recruited volume between the steps at the two PEEP levels of the config,
+    globally and for each region (rows of the summary).
 
-    The steps are chosen and the drop of PEEP is computed on ``steps.peep``: the
-    measured PEEP of the steps found from the pressure (the change of pressure that
-    happened), the typed level of the steps placed by hand; the two steps are reported
-    on ``result_peep``."""
-    pair = ri_steps(
-        steps.peep.to_numpy(),
-        config.ri_peep_high,
-        config.ri_peep_low,
-        config.ri_min_peep_drop,
-    )
+    The steps are those at the two levels of the protocol (``peep_set``); the drop of
+    PEEP of the formula is computed on ``steps.peep``: the measured PEEP of the steps
+    found from the pressure (the change of pressure that happened), the typed level of
+    the steps placed by hand."""
+    high_level, low_level = config.ri_peep_high, config.ri_peep_low
+    if high_level is None:
+        log.info(
+            "No R/I: no PEEP levels for it (AnalysisConfig.ri_peep_high, ri_peep_low)."
+        )
+        return []
+    levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
+    pair = ri_steps(levels.peep_set.to_numpy(dtype=float), high_level, low_level)
     if pair is None:
         log.warning(
-            f"No two steps near PEEP {config.ri_peep_high:g} and {config.ri_peep_low:g} "
-            f"with a drop of at least {config.ri_min_peep_drop:g}: no R/I."
+            f"No R/I: not one step at each of the PEEP levels {high_level:g} and "
+            f"{low_level:g} of the protocol (peep_set, from "
+            "SegmentationConfig.peep_levels)."
         )
         return []
     high, low = pair
     peep_high, peep_low = steps.peep[high], steps.peep[low]
     driving_low = trial.steps.driving_pressure[low]
     volume_low = trial.steps.tidal_volume[low]
-    log.ok(f"R/I between the steps at PEEP {peep_high:.1f} and {peep_low:.1f}.")
+    pair_text = (
+        f"the steps at PEEP {high_level:g} and {low_level:g} of the protocol (PEEP "
+        f"{peep_high:.1f} and {peep_low:.1f}, drop {peep_high - peep_low:.1f})"
+    )
 
     rows = [
-        {"region": "global", "feature": "ri_peep_high", "value": result_peep[high]},
-        {"region": "global", "feature": "ri_peep_low", "value": result_peep[low]},
+        {"region": "global", "feature": "ri_peep_high", "value": high_level},
+        {"region": "global", "feature": "ri_peep_low", "value": low_level},
     ]
     ri, recruited = recruitment_to_inflation(
         steps.eeli[high], steps.eeli[low], steps.tiv[low], driving_low,
         peep_high - peep_low, volume_low,
     )  # fmt: skip
+    if np.isnan(ri):
+        log.warning(
+            f"No R/I between {pair_text}: one of the two steps has no EELI (no analysed "
+            f"breaths), the step at {low_level:g} has no compliance (no driving "
+            "pressure), or the drop is not positive."
+        )
+    else:
+        log.ok(f"R/I between {pair_text}.")
     rows += [
         {"region": "global", "feature": "ri", "value": ri},
         {"region": "global", "feature": "recruited_volume_ml", "value": recruited},
@@ -525,13 +564,11 @@ def _result_peep(trial: PeepTrial, steps: pd.DataFrame, log: RunLog) -> np.ndarr
     levels = steps[["step"]].merge(trial.steps[["step", "peep_set"]], on="step")
     peep_set = levels.peep_set.to_numpy(dtype=float)
     if np.isfinite(peep_set).all():
-        log.ok(
-            "Crossing PEEP, best PEEP and R/I steps on the PEEP levels of the protocol."
-        )
+        log.ok("Crossing PEEP and best PEEP on the PEEP levels of the protocol.")
         return peep_set
     log.info(
-        "Crossing PEEP, best PEEP and R/I steps on the PEEP of the steps (measured, or "
-        "typed with the steps placed by hand)."
+        "Crossing PEEP and best PEEP on the PEEP of the steps (measured, or typed with "
+        "the steps placed by hand)."
     )
     return steps.peep.to_numpy(dtype=float)
 
@@ -593,8 +630,8 @@ def peep_trial_features(
     pressure of the step, in mL/cmH2O = tidal volume / driving pressure of the step
     (both kept: the EIT compliance also sees what changes in the slice); Costa
     collapse and overdistension from the median tidal image of each step; the
-    recruitment-to-inflation ratio between the steps nearest to the PEEP levels of the
-    config, globally and by region.
+    recruitment-to-inflation ratio between the steps at the two PEEP levels of the
+    protocol given in the config (none without them), globally and by region.
 
     Args:
         trial:  Output of ``segment_peep_trial()``.
@@ -609,11 +646,16 @@ def peep_trial_features(
     if len(trial.breaths) != len(recording.breaths):
         raise ValueError("The breaths of the trial are not those of its recording.")
 
-    # 1. Indices of each breath, with the tidal volume typed for its step if any.
+    # 1. Indices of each breath, with the tidal volume and the driving pressure typed
+    # for its step if any.
     volume, source = _recording_tidal_volume(recording, log)
-    volume, source = _step_breath_volumes(trial, volume, source)
-    breaths = _breath_indices(recording, volume, source)
-    regions = _region_indices(recording, volume)
+    volume, source = _typed_for_steps(trial, "tidal_volume", volume, source)
+    driving, driving_source = _recording_driving_pressure(recording)
+    driving, driving_source = _typed_for_steps(
+        trial, "driving_pressure", driving, driving_source
+    )
+    breaths = _breath_indices(recording, volume, source, driving, driving_source)
+    regions = _region_indices(recording, volume, driving)
 
     # 2. Indices of each step, from its analysed breaths.
     steps = _step_indices(trial, breaths)
@@ -641,9 +683,7 @@ def peep_trial_features(
     _check_steps(steps, trial, crossing, log)
 
     # 5. Recruitment-to-inflation ratio, globally and by region.
-    summary_rows += _recruitment_rows(
-        trial, steps, step_regions, result_peep, config, log
-    )
+    summary_rows += _recruitment_rows(trial, steps, step_regions, config, log)
     summary = pd.DataFrame(summary_rows)
 
     return PeepTrialFeatures(

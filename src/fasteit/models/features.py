@@ -34,7 +34,9 @@ class TidalFeatures:
         breaths:   One row per breath of the recording: ``breath_id``,
                    ``in_phase``, ``respiratory_rate``, ``eeli``, ``tiv``, ``gi``,
                    ``cov_vd``, ``cov_rl``, ``tidal_volume_used`` (typed or
-                   measured) and its ``tidal_volume_source``, ``compliance`` (EIT
+                   measured) and its ``tidal_volume_source``,
+                   ``driving_pressure_used`` (measured; typed for a step of a PEEP
+                   trial) and its ``driving_pressure_source``, ``compliance`` (EIT
                    units per cmH2O), ``compliance_ml`` (mL/cmH2O). Times, quality and
                    pressures: ``recording.breaths``.
         regions:   One row per breath and region: ``breath_id``, ``region``,

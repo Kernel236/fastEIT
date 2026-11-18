@@ -24,6 +24,7 @@ Steps for a user: [analyse a recording](guide/analyse.md).
 ## 1. Entry points
 
 ```python
+from fasteit.config import AnalysisConfig, SegmentationConfig
 from fasteit.features import peep_trial_features, tidal_features
 from fasteit.models import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
@@ -38,10 +39,12 @@ tidal.breaths    # one row per breath
 tidal.regions    # one row per breath and region
 tidal.summary    # median and quartiles over the valid breaths, by region and index
 
-# A PEEP trial.
+# A PEEP trial, with the PEEP levels of its protocol and the two levels of R/I.
 context = RecordingContext(protocol="peep_trial", tidal_volume_ml=450)
-trial = segment_peep_trial(preprocess(load_data("peep_trial.bin"), context=context))
-features = peep_trial_features(trial)   # parameters in features.config (AnalysisConfig)
+protocol = SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0))
+trial = segment_peep_trial(preprocess(load_data("peep_trial.bin"), context=context),
+                           protocol)
+features = peep_trial_features(trial, AnalysisConfig(ri_peep_high=14, ri_peep_low=4))
 features.steps          # one row per PEEP step
 features.step_regions   # one row per step and region
 features.summary        # crossing PEEP, best PEEP, R/I (global and by region)
@@ -69,8 +72,9 @@ end-expiratory valley, peak = end-inspiratory peak.
 | `cov_vd`, `cov_rl` | centre of ventilation on the image grid: 0 = ventral / patient right, 1 = dorsal / patient left | Frerichs 2006, DOI: 10.1164/rccm.200512-1942OC |
 | `respiratory_rate` | 60 / duration of the EIT breath (breaths/min) | - |
 | `tidal_volume_used`, `tidal_volume_source` | tidal volume used for the values in mL: typed for the step, typed for the recording, or measured | layer 2 and 2b |
+| `driving_pressure_used`, `driving_pressure_source` | driving pressure used for the compliance: typed for the step (it wins, as in the step table), or read on the curve for the breath | layer 2 and 2b |
 | `compliance` | TIV / driving pressure (EIT units per cmH2O) | - |
-| `compliance_ml` | tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume typed or measured | - |
+| `compliance_ml` | tidal volume / driving pressure (mL/cmH2O): static compliance of the respiratory system, with the tidal volume and the driving pressure typed or measured | - |
 
 By region (`regions`, one row per breath and region; regions of layer 2: ventral and
 dorsal halves, layers, right and left, quadrants):
@@ -129,21 +133,25 @@ The summary is a long table (`region`, `feature`, `value`):
 |---------|--------|------------|
 | `crossing_peep` | global | PEEP where collapse and overdistension cross (linear interpolation; the lowest if they cross more than once) |
 | `best_peep_compliance`, `best_peep_compliance_ml` | global | PEEP of the best global compliance, in EIT units and in mL/cmH2O |
-| `ri_peep_high`, `ri_peep_low` | global | PEEP of the two steps used for R/I |
+| `ri_peep_high`, `ri_peep_low` | global | levels of the protocol of the two steps used for R/I |
 | `ri` | global and each region | recruitment-to-inflation ratio |
 | `recruited_volume_ml` | global and each region | recruited volume (mL, with a tidal volume) |
 
-The PEEP of `crossing_peep`, the best PEEP and the R/I steps are on the levels of the
-protocol (`peep_set`, from `SegmentationConfig.peep_levels`) when every step has one, so
-that they can be compared between patients; otherwise on the PEEP of the steps (`peep`:
-measured for the steps found from the pressure, typed for the steps placed by hand). The
-R/I steps are chosen, and the drop of PEEP in its formula is computed, on `peep`: the
-change of pressure that happened, or the levels typed when the pressure curve is not
-reliable.
+`crossing_peep` and the best PEEP are on the levels of the protocol
+(`peep_set`, from `SegmentationConfig.peep_levels`) when every step has one, so that they
+can be compared between patients; otherwise on the PEEP of the steps (`peep`: measured
+for the steps found from the pressure, typed for the steps placed by hand).
 
 **Recruitment-to-inflation ratio** (Chen et al., Am J Respir Crit Care Med 2020, DOI:
-10.1164/rccm.201902-0334OC), between the step nearest to PEEP 15 and the step nearest to
-PEEP 5 at least 10 below it (`AnalysisConfig`):
+10.1164/rccm.201902-0334OC), between the steps at the two PEEP levels of the protocol
+given in `AnalysisConfig` (`ri_peep_high`, `ri_peep_low`): 15 and 5 in the original
+method, for example 14 and 4 in a trial with steps of 2 from 16. There is no R/I without
+the two levels, or when the trial does not have exactly one step at each of them (a
+warning). The steps are never chosen by nearness: with steps of 2, 16 and 14 are equally
+near to 15, and a measured drop of 9.99 instead of 10 skipped the step at 4, so the pair
+changed between patients of the same study. The drop of PEEP in the formula is computed
+on `peep`: the change of pressure that happened, or the levels typed when the pressure
+curve is not reliable.
 
 ```
 dEELV = (EELI_high - EELI_low) x Vt_low / TIV_low        (Wang 2020)

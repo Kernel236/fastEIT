@@ -59,7 +59,10 @@ class PreprocessingConfig:
         ti_ratio_low, ti_ratio_high: A breath with Ti/Ttot outside this range is
             flagged (``flag_suspect_ti_ratio``). Ti/Ttot here is the rise fraction of
             the impedance curve, a plausibility check on the detection, not a clinical
-            judgement (roadmap task 4.11, section 8).
+            judgement (roadmap task 4.11, section 8). The low limit, 0.1 (I:E of the
+            impedance curve up to 1:9), is below the slow breathing of anaesthesia: at
+            8 breaths/min with I:E 1:4 the impedance Ti/Ttot is about 0.2, and a limit
+            of 0.2 flagged about half of those breaths at random.
         local_window_breaths: Breaths, centred on each breath, whose median is the
             reference for the outlier flags: 21 are about 40 s at 30 breaths/min, long
             enough to ignore one event, short enough to follow a PEEP change (section 8).
@@ -81,7 +84,7 @@ class PreprocessingConfig:
     moving_average_seconds: float = 0.1
     breath_short_seconds: float = 0.5
     breath_long_seconds: float = 20.0
-    ti_ratio_low: float = 0.2
+    ti_ratio_low: float = 0.1
     ti_ratio_high: float = 0.6
     local_window_breaths: int = 21
     amplitude_ratio_low: float = 0.5
@@ -160,21 +163,24 @@ class AnalysisConfig:
     only the recruitment-to-inflation ratio has parameters.
 
     Attributes:
-        ri_peep_high, ri_peep_low, ri_min_peep_drop: The R/I of a PEEP trial compares the
-            step nearest to ``ri_peep_high`` with the step nearest to ``ri_peep_low``
-            among those at least ``ri_min_peep_drop`` below it (cmH2O). 15 and 5 are the
-            levels of the original method (Chen et al., Am J Respir Crit Care Med
-            2020;201:178-187, DOI: 10.1164/rccm.201902-0334OC).
+        ri_peep_high, ri_peep_low: The two PEEP levels of the protocol (cmH2O) between
+            which the recruitment-to-inflation ratio (R/I) of a PEEP trial is computed:
+            15 and 5 in the original method (Chen et al., Am J Respir Crit Care Med
+            2020;201:178-187, DOI: 10.1164/rccm.201902-0334OC), for example 14 and 4 in
+            a trial with steps of 2 from 16. The steps are those at these levels of the
+            protocol (``peep_set``, from ``SegmentationConfig.peep_levels``), never the
+            nearest ones: chosen by nearness, the pair changed between patients of the
+            same study (16 and 14 equally near to 15; a measured drop of 9.99 instead of
+            10 skipped the step at 4). None (the default): no R/I.
     """
 
-    ri_peep_high: float = 15.0
-    ri_peep_low: float = 5.0
-    ri_min_peep_drop: float = 10.0
+    ri_peep_high: float | None = None
+    ri_peep_low: float | None = None
 
     def __post_init__(self) -> None:
-        if not self.ri_min_peep_drop > 0:
-            raise ValueError("ri_min_peep_drop must be positive.")
-        if not self.ri_peep_high > self.ri_peep_low:
+        if (self.ri_peep_high is None) != (self.ri_peep_low is None):
+            raise ValueError("Give both ri_peep_high and ri_peep_low, or neither.")
+        if self.ri_peep_high is not None and not self.ri_peep_high > self.ri_peep_low:
             raise ValueError("ri_peep_high must be above ri_peep_low.")
 
 

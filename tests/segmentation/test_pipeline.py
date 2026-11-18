@@ -1,5 +1,7 @@
 """Tests for segment_peep_trial()."""
 
+import logging
+
 import numpy as np
 import pytest
 
@@ -8,7 +10,8 @@ from fasteit.models.eit_recording import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
 from fasteit.preprocessing import preprocess
 from fasteit.preprocessing.auxiliary import CMH2O_PER_MBAR
-from fasteit.segmentation.pipeline import segment_peep_trial
+from fasteit.run_log import RunLog
+from fasteit.segmentation.pipeline import _check_manual_breaths, segment_peep_trial
 
 from ..preprocessing.test_breath_pressures import pcv_pressure, vcv_pressure
 from ..preprocessing.test_breath_quality import TEST_FILES
@@ -242,6 +245,74 @@ def test_an_excluded_maneuver_at_another_peep_does_not_open_a_step():
     raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
     maneuver = Segment(72, 88, label="aop")  # the 4 breaths at 16
     trial = segment_peep_trial(preprocess(raw, exclusions=[maneuver]))
+    assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
+
+
+def trial_with_exclusion(exclusion, peeps=PEEPS):
+    """The synthetic trial (PEEP 12 -> 10 at 48 s, 10 -> 8 at 96 s, 8 -> 6 at 144 s)
+    with one exclusion."""
+    paw, _ = vcv_pressure(peeps, fs=FS, period=4.0)
+    raw, _ = synthetic_raw(seconds=200)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    return segment_peep_trial(preprocess(raw, exclusions=[exclusion]))
+
+
+def first_analysed(trial, step):
+    breaths = trial.breaths
+    return breaths[(breaths.peep_step == step) & breaths.analysed].start_time.min()
+
+
+def test_an_exclusion_next_to_a_change_of_peep_does_not_change_the_wait():
+    skip = SegmentationConfig().analysis_skip_seconds
+    # The last 8 s at PEEP 12 excluded (e.g. a hold): no breath analysed early.
+    before = trial_with_exclusion(Segment(40, 48, label="x"))
+    assert first_analysed(before, 1) >= 48 + skip
+    # The first 10 s at PEEP 10 excluded: the wait is not counted from its end.
+    after = trial_with_exclusion(Segment(48, 58, label="x"))
+    assert 48 + skip <= first_analysed(after, 1) < 48 + skip + 4
+
+
+def test_a_peep_read_low_inside_an_exclusion_before_the_change_does_not_start_the_wait():
+    # Inside an exclusion before the change 12 -> 10 (48 s), two breaths read 10.5 (e.g.
+    # a leak), then 12 again: the wait starts at the change, not at those breaths.
+    peeps = PEEPS.copy()
+    peeps[7:9] = [10.5, 10.5]  # 28-36 s
+    trial = trial_with_exclusion(Segment(24, 47.4, label="x"), peeps)
+    assert first_analysed(trial, 1) >= 48 + SegmentationConfig().analysis_skip_seconds
+
+
+def test_the_measured_peep_of_a_step_leaves_its_excluded_breaths_out():
+    # 4-48 s excluded: the breaths at PEEP 12 take the PEEP of the next breath (10).
+    trial = trial_with_exclusion(Segment(4, 48, label="x"))
+    first = trial.breaths[trial.breaths.peep_step == 0]
+    assert first.excluded.sum() >= 8 and (first.peep[first.excluded] > 11).any()
+    expected = first.peep[~first.excluded].median()
+    assert trial.steps.peep_measured[0] == pytest.approx(expected)
+
+
+def test_a_level_of_the_protocol_without_a_step_is_warned():
+    # Every breath at PEEP 8 excluded: the step is not found.
+    paw, _ = vcv_pressure(PEEPS, fs=FS, period=4.0)
+    raw, _ = synthetic_raw(seconds=200)
+    raw.aux_signals = {"airway_pressure_pod": paw.astype(np.float32)}
+    recording = preprocess(raw, exclusions=[Segment(94, 142, label="x")])
+    levels = SegmentationConfig(peep_levels=(12, 10, 8, 6))
+    trial = segment_peep_trial(recording, levels)
+    assert trial.steps.peep_set.tolist() == [12, 10, 6]
+    assert any("PEEP level 8 of the protocol has no step" in m for m in trial.log)
+
+
+def test_a_step_excluded_whole_does_not_start_the_wait_of_the_next():
+    # Every breath at PEEP 10 excluded: they join the step at 8 (their PEEP is 10, not
+    # 8), so its wait starts at the change to 8 (96 s), not at the change to 10.
+    trial = trial_with_exclusion(Segment(48, 94, label="x"))
+    assert trial.steps.peep.round().tolist() == [12, 8, 6]
+    assert first_analysed(trial, 1) >= 96 + SegmentationConfig().analysis_skip_seconds
+
+
+def test_a_step_mostly_inside_an_exclusion_is_still_found():
+    # Every breath at PEEP 8 but the last excluded: the excluded breaths take its PEEP.
+    trial = trial_with_exclusion(Segment(96, 138, label="x"))
     assert trial.steps.peep.round().tolist() == [12, 10, 8, 6]
 
 
@@ -565,6 +636,86 @@ def test_typed_peep_and_tidal_volumes_that_agree_are_checks(recording):
         trial.log
     )
     assert "OK: Tidal volume typed for each step in the plausible range." in trial.log
+
+
+def warnings_of(trial):
+    return [m for m in trial.log if m.startswith("WARNING: ")]
+
+
+def test_breaths_analysed_by_hand_after_a_change_or_at_another_peep_are_warned(
+    recording,
+):
+    # PEEP 12 -> 10 at 48 s: step 0 (20-56 s) takes 2 breaths at PEEP 10, step 1 starts
+    # 12 s after the change.
+    steps = [
+        Segment(20, 56, category="peep_step", parameters={"peep": 12}),
+        Segment(60, 96, category="peep_step", parameters={"peep": 10}),
+    ]
+    warnings = warnings_of(segment_peep_trial(recording, peep_steps=steps))
+    assert any(
+        m.startswith("WARNING: Step 0: 2 of 8 breaths analysed more") for m in warnings
+    )
+    assert any(
+        m.startswith("WARNING: Step 1: the first breath analysed starts 12.0 s after")
+        for m in warnings
+    )
+    # Steps inside their PEEP and at least 15 s after its change: a check, no warning.
+    steps = [
+        Segment(1, 47, category="peep_step", parameters={"peep": 12}),
+        Segment(64, 95, category="peep_step", parameters={"peep": 10}),
+    ]
+    trial = segment_peep_trial(recording, peep_steps=steps)
+    assert not [m for m in warnings_of(trial) if m.startswith("WARNING: Step")]
+    assert any("none less than 15 s after a change" in m for m in checks(trial))
+
+
+def test_two_breaths_far_from_their_median_do_not_break_the_check():
+    # 16.31 and 14.28: both more than 1 cmH2O from their median (an IndexError before).
+    peep = np.array([16.3, 16.3, 16.31, 14.28, 14.3, 14.3])
+    starts = np.arange(6) * 4.0
+    step = np.array([-1, -1, 0, 0, -1, -1])
+    log = RunLog(logging.getLogger(__name__))
+    _check_manual_breaths(
+        peep,
+        step,
+        np.array([15.0]),
+        step >= 0,
+        starts,
+        starts + 4,
+        SegmentationConfig(),
+        log,
+    )
+    assert any("2 of 2 breaths analysed more" in m for m in log.messages)
+    # Of 2 breaths, the PEEP of the step is the typed one plus the common offset.
+    assert any("(15.3, typed 15 plus the offset common" in m for m in log.messages)
+
+
+def test_a_wait_just_under_15_s_is_not_written_as_15():
+    # PEEP 16.3 ends at 12 s; the step at 14.3 starts its breaths at 26.97 s.
+    peep = np.array([16.3, 16.3, 16.3, 14.3, 14.3, 14.3, 14.3])
+    starts = np.array([0, 4, 8, 12, 26.97, 30.97, 34.97])
+    step = np.array([-1, -1, -1, -1, 0, 0, 0])
+    log = RunLog(logging.getLogger(__name__))
+    _check_manual_breaths(
+        peep,
+        step,
+        np.array([14.0]),
+        step >= 0,
+        starts,
+        starts + 4,
+        SegmentationConfig(),
+        log,
+    )
+    assert any("starts 14.9 s after the change" in m for m in log.messages)
+
+
+def test_a_step_by_hand_of_two_breaths_across_a_change_is_warned(recording):
+    # One breath at PEEP 12 and one at 10: neither is at the PEEP of the step.
+    step = [Segment(43.8, 52.2, category="peep_step", parameters={"peep": 11})]
+    warnings = warnings_of(segment_peep_trial(recording, peep_steps=step))
+    assert any(
+        m.startswith("WARNING: Step 0: 2 of 2 breaths analysed more") for m in warnings
+    )
 
 
 def test_without_pressure_the_preprocessing_has_the_warning():

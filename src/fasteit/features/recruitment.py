@@ -27,34 +27,24 @@ from __future__ import annotations
 import numpy as np
 
 
-def ri_steps(
-    peep: np.ndarray, high: float, low: float, min_drop: float
-) -> tuple[int, int] | None:
-    """The two steps used for R/I: the nearest to the high and to the low PEEP.
-
-    The high step is the step nearest to ``high``; the low step is the step nearest to
-    ``low`` among those at least ``min_drop`` below the high step (the first one if two
-    are equally near).
+def ri_steps(levels: np.ndarray, high: float, low: float) -> tuple[int, int] | None:
+    """The two steps used for R/I: the steps at the two PEEP levels of the protocol.
 
     Args:
-        peep:     PEEP of each step.
-        high:     Target high PEEP (e.g. 15).
-        low:      Target low PEEP (e.g. 5).
-        min_drop: Smallest drop of PEEP between the two steps.
+        levels: PEEP level of the protocol of each step (``peep_set``), NaN if none.
+        high:   The high level (e.g. 14).
+        low:    The low level (e.g. 4).
 
     Returns:
-        Index of the high and of the low step, or None if no pair drops enough.
+        Index of the high and of the low step, or None unless exactly one step is at
+        each level.
     """
-    peep = np.asarray(peep, dtype=float)
-    known = np.flatnonzero(~np.isnan(peep))
-    if len(known) < 2:
+    levels = np.asarray(levels, dtype=float)
+    at_high = np.flatnonzero(np.isclose(levels, high))
+    at_low = np.flatnonzero(np.isclose(levels, low))
+    if len(at_high) != 1 or len(at_low) != 1:
         return None
-    high_step = known[np.argmin(np.abs(peep[known] - high))]
-    far_enough = known[peep[known] <= peep[high_step] - min_drop]
-    if len(far_enough) == 0:
-        return None
-    low_step = far_enough[np.argmin(np.abs(peep[far_enough] - low))]
-    return int(high_step), int(low_step)
+    return int(at_high[0]), int(at_low[0])
 
 
 def recruitment_to_inflation(

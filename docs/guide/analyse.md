@@ -43,7 +43,7 @@ curves) the values in mL stay empty and compliance is in EIT units only.
 ## 2. A PEEP trial
 
 ```python
-from fasteit.config import SegmentationConfig
+from fasteit.config import AnalysisConfig, SegmentationConfig
 from fasteit.features import peep_trial_features
 from fasteit.models import RecordingContext
 from fasteit.parsers.loader import load_data
@@ -59,7 +59,9 @@ trial = segment_peep_trial(
     recording,
     SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0)),   # the protocol
 )
-trial_features = peep_trial_features(trial)
+trial_features = peep_trial_features(
+    trial, AnalysisConfig(ri_peep_high=14, ri_peep_low=4)   # the two levels of R/I
+)
 ```
 
 | What | Where |
@@ -67,7 +69,7 @@ trial_features = peep_trial_features(trial)
 | PEEP steps: measured level, level of the protocol (`peep_set`), breaths analysed, driving pressure, tidal volume | `trial.steps` |
 | breaths with their step and whether they were analysed | `trial.breaths` |
 | each step: compliance and % of the best, Costa collapse and overdistension, changes between steps | `trial_features.steps` |
-| crossing PEEP, best PEEP, recruitment-to-inflation ratio (global and by region) | `trial_features.summary` |
+| crossing PEEP, best PEEP, recruitment-to-inflation ratio (global and by region; only with the two levels of `AnalysisConfig`) | `trial_features.summary` |
 
 The steps are found on the airway pressure. Without a pressure signal, or to choose the
 breaths yourself, place the steps by hand ([cut a recording](segments.md)). With the
@@ -75,7 +77,9 @@ levels of the protocol (`peep_levels`), each step also gets the level of the pro
 (`peep_set`), and crossing PEEP and best PEEP are given on those levels when every step
 matches one; otherwise they are given on the PEEP of the steps (measured, or typed with
 the steps placed by hand), and the log says which. Without `peep_levels`, `peep_set` is
-empty and the PEEP of the steps is used.
+empty and the PEEP of the steps is used. The recruitment-to-inflation ratio needs both:
+it is computed between the steps at the two levels of `AnalysisConfig`, which must be
+levels of the protocol (no R/I without them).
 
 ## 3. A recording with two parts
 
@@ -84,6 +88,7 @@ A baseline at one PEEP and a PEEP trial in the same file: preprocess the whole f
 start of the file; [cut a recording](segments.md) shows how to find them.
 
 ```python
+from fasteit.config import AnalysisConfig, SegmentationConfig
 from fasteit.features import peep_trial_features, tidal_features
 from fasteit.models import RecordingContext, Segment
 from fasteit.parsers.loader import load_data
@@ -96,8 +101,12 @@ recording = preprocess(
     context=RecordingContext(patient_id="P02", label="T0", tidal_volume_ml=450),
 )
 baseline = tidal_features(recording, phase=Segment(0, 290, "phase", "tidal"))
-trial = segment_peep_trial(recording, phase=Segment(300, 1500, "phase", "peep_trial"))
-trial_features = peep_trial_features(trial)
+trial = segment_peep_trial(
+    recording,
+    SegmentationConfig(peep_levels=(16, 14, 12, 10, 8, 6, 4, 2, 0)),
+    phase=Segment(300, 1500, "phase", "peep_trial"),
+)
+trial_features = peep_trial_features(trial, AnalysisConfig(ri_peep_high=14, ri_peep_low=4))
 ```
 
 Each part is an analysis of its own. A breath belongs to a part when it starts and ends

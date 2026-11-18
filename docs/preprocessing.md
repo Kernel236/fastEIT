@@ -79,6 +79,11 @@ of the lung out of the mask. Gross outliers are found around the median of the s
 its mean, which an artifact on a few percent of the recording can move enough to make every
 sample invalid.
 
+There is one lung mask per recording, from the valid breaths of the whole recording:
+`preprocess()` does not know the phases. When a recording holds more than the part to
+analyse (a baseline before a PEEP trial, a part at another setting), exclude what is
+outside it if the mask must come from that part only.
+
 Breaths are **flagged, never removed**: the clinician decides what to use. Every
 exclusion is widened by 0.5 s on each side (`exclusion_margin_seconds`) and a breath that
 touches it is excluded. In the later layers a breath belongs to a phase or a PEEP step
@@ -90,10 +95,13 @@ Quality flags of each breath:
 | Column | Rule |
 |--------|------|
 | `flag_short`, `flag_long` | duration below 0.5 s or above 20 s |
-| `flag_suspect_ti_ratio` | Ti/Ttot (from impedance) outside 0.2-0.6 |
+| `flag_suspect_ti_ratio` | Ti/Ttot (from impedance) outside 0.1-0.6 (0.1: I:E up to 1:9, below slow breathing) |
 | `flag_amplitude_outlier` | amplitude below 0.5× or above 2× the median of the 21 surrounding breaths |
 | `flag_duration_outlier` | duration above 2× the median of the 21 surrounding breaths |
 | `flag_invalid_data` | within 0.5 s of a gross outlier of the signal |
+
+The medians of the surrounding breaths leave the excluded breaths out: an artefact
+inside an exclusion does not flag the good breaths next to it.
 
 ## 3. Ventilator values of each breath
 
