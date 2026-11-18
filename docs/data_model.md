@@ -105,8 +105,9 @@ table   pd.DataFrame   One row per EIT frame. Snake_case column names.
 ```
 measurements   np.ndarray   shape (N_frames, 208)
                             Calibrated transimpedances (not raw ADC counts, not
-                            yet image-reconstructed). For Dräger:
-                            vv = FT_A*trans_A - FT_B*trans_B (EIDORS, Adler 2016)
+                            yet image-reconstructed). For Dräger: the primary set
+                            minus the reference set, each scaled by an empirical
+                            constant (values from EIDORS, A. Adler 2016)
                             208 = 16 electrodes × 13 measurement pairs
                             (adjacent drive, standard Dräger pattern)
 

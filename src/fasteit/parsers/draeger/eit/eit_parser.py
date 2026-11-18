@@ -25,7 +25,14 @@ from fasteit.parsers.detection import detect_vendor_from_eit_header
 from fasteit.parsers.header_formats import get_eit_specs
 
 from .eit_dtypes import FRAME_EIT_DTYPE, PREAMBLE_DTYPE, PREAMBLE_N_FIELDS
-from .eit_utils import FC_CURRENT, FT_A, FT_B, FV_VOLTAGE, SEPARATOR, parse_eit_header
+from .eit_utils import (
+    CURRENT_COUNTS_PER_AMPERE,
+    PRIMARY_TRANSIMPEDANCE_SCALE,
+    REFERENCE_TRANSIMPEDANCE_SCALE,
+    SEPARATOR,
+    VOLTAGE_COUNTS_PER_VOLT,
+    parse_eit_header,
+)
 
 
 class DragerEitParser(BaseParser):
@@ -113,22 +120,24 @@ class DragerEitParser(BaseParser):
         )
 
         # ── 5. Extract fields and compute calibrated transimpedance ──────────
-        # Calibration pipeline - EIDORS read_draeger_file.m (GPL, understanding
-        # only, no code copied). Empirical constants hardcoded in EIDORS by
-        # A. Adler, estimated 2016-04-07. Not present in the .eit header.
+        # Calibration with the empirical constants of ``eit_utils`` (values from
+        # EIDORS, A. Adler 2016; not present in the .eit header).
         trans_A = np.array(frames["trans_A"])  # (n_frames, 208) ADC counts
         trans_B = np.array(frames["trans_B"])  # (n_frames, 208) ADC counts
         inj_curr = np.array(frames["injection_current"])  # (n_frames, 16)  ADC counts
         voltage_A = np.array(frames["voltage_A"])  # (n_frames, 16)  ADC counts
         voltage_B = np.array(frames["voltage_B"])  # (n_frames, 16)  ADC counts
 
-        vv = (
-            FT_A * trans_A - FT_B * trans_B
+        transimpedance = (
+            PRIMARY_TRANSIMPEDANCE_SCALE * trans_A
+            - REFERENCE_TRANSIMPEDANCE_SCALE * trans_B
         )  # (n_frames, 208) calibrated transimpedance
-        I_real = inj_curr / FC_CURRENT  # (n_frames, 16)  actual injected current [A]
+        I_real = (
+            inj_curr / CURRENT_COUNTS_PER_AMPERE
+        )  # (n_frames, 16)  actual injected current [A]
         V_diff = (
             voltage_A - voltage_B
-        ) / FV_VOLTAGE  # (n_frames, 16)  differential voltage [V]
+        ) / VOLTAGE_COUNTS_PER_VOLT  # (n_frames, 16)  differential voltage [V]
 
         aux_signals: dict[str, np.ndarray] = {
             "timestamp": np.array(frames["timestamp"]),  # fraction of day
@@ -158,7 +167,7 @@ class DragerEitParser(BaseParser):
         metadata["n_measurements"] = spec.n_measurements
 
         return RawImpedanceData(
-            measurements=vv,
+            measurements=transimpedance,
             aux_signals=aux_signals,
             fs=fs,
             filename=str(path),

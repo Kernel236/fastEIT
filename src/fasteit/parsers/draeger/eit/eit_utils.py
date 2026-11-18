@@ -11,16 +11,17 @@ import numpy as np
 # 8-byte separator between ASCII header and binary frame data.
 SEPARATOR: bytes = b"**\r\n\r\n\r\n"
 
-# Empirical calibration constants - EIDORS read_draeger_file.m (GPL),
-# estimated 2016-04-07 by A. Adler. Understanding only - no code copied.
-# Not present in the .eit header; hardcoded from EIDORS best-guess estimates.
-#   FT_A, FT_B : transimpedance scaling  (vv = FT_A*trans_A - FT_B*trans_B)
-#   FC_CURRENT : ADC counts → Ampere     (injection_current / FC_CURRENT)
-#   FV_VOLTAGE : ADC counts → Volt       ((voltage_A - voltage_B) / FV_VOLTAGE)
-FT_A: float = 0.00098242
-FT_B: float = 0.00019607
-FC_CURRENT: float = 194326.3536
-FV_VOLTAGE: float = 0.11771
+# Empirical calibration constants of the PulmoVista 500, not stored in the .eit header:
+# the values estimated by A. Adler (2016-04-07) and published in EIDORS (GPL; values
+# only, no code copied).
+#   calibrated transimpedance = PRIMARY_TRANSIMPEDANCE_SCALE * trans_A
+#                               - REFERENCE_TRANSIMPEDANCE_SCALE * trans_B
+#   injected current [A]      = injection_current / CURRENT_COUNTS_PER_AMPERE
+#   differential voltage [V]  = (voltage_A - voltage_B) / VOLTAGE_COUNTS_PER_VOLT
+PRIMARY_TRANSIMPEDANCE_SCALE: float = 0.00098242
+REFERENCE_TRANSIMPEDANCE_SCALE: float = 0.00019607
+CURRENT_COUNTS_PER_AMPERE: float = 194326.3536
+VOLTAGE_COUNTS_PER_VOLT: float = 0.11771
 
 # Mapping of ASCII header field names → (metadata_key, type_converter).
 # Fields not listed here are kept verbatim in metadata["_raw_fields"].

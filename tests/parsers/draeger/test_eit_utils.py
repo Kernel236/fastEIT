@@ -5,12 +5,12 @@ import struct
 import pytest
 
 from fasteit.parsers.draeger.eit.eit_utils import (
-    FC_CURRENT,
-    FT_A,
-    FT_B,
-    FV_VOLTAGE,
+    CURRENT_COUNTS_PER_AMPERE,
     HEADER_FIELD_MAP,
+    PRIMARY_TRANSIMPEDANCE_SCALE,
+    REFERENCE_TRANSIMPEDANCE_SCALE,
     SEPARATOR,
+    VOLTAGE_COUNTS_PER_VOLT,
     parse_eit_header,
 )
 
@@ -52,20 +52,20 @@ def test_separator_length():
 # ── calibration constants ─────────────────────────────────────────────────────
 
 
-def test_ft_a_value():
-    assert FT_A == pytest.approx(0.00098242)
+def test_primary_transimpedance_scale_value():
+    assert PRIMARY_TRANSIMPEDANCE_SCALE == pytest.approx(0.00098242)
 
 
-def test_ft_b_value():
-    assert FT_B == pytest.approx(0.00019607)
+def test_reference_transimpedance_scale_value():
+    assert REFERENCE_TRANSIMPEDANCE_SCALE == pytest.approx(0.00019607)
 
 
-def test_fc_current_value():
-    assert FC_CURRENT == pytest.approx(194326.3536)
+def test_current_counts_per_ampere_value():
+    assert CURRENT_COUNTS_PER_AMPERE == pytest.approx(194326.3536)
 
 
-def test_fv_voltage_value():
-    assert FV_VOLTAGE == pytest.approx(0.11771)
+def test_voltage_counts_per_volt_value():
+    assert VOLTAGE_COUNTS_PER_VOLT == pytest.approx(0.11771)
 
 
 # ── HEADER_FIELD_MAP keys ─────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ def test_frequency_key_in_field_map():
 
 
 def test_no_calibration_factor_key():
-    """Calibration Factor is not in the header - hardcoded from EIDORS."""
+    """Calibration Factor is not in the header - hardcoded empirical constants."""
     assert "Calibration Factor" not in HEADER_FIELD_MAP
 
 
