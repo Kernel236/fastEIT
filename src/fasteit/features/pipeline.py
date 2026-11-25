@@ -11,9 +11,10 @@ Definitions and evidence: notebooks/07_clinical_indices.ipynb (section 5):
   (share x tidal volume);
 - tidal recording: median and quartiles over the valid breaths;
 - PEEP trial: per step, medians of the analysed breaths, compliance (also as % of the
-  best step), Costa collapse and overdistension, changes vs the previous and the
-  first step (EELI in tidal volumes and in mL, compliance); for the trial, the crossing
-  PEEP, the best PEEP and the recruitment-to-inflation ratio, global and by region.
+  best step), Costa collapse and overdistension (global and by region), changes vs
+  the previous and the first step (EELI in tidal volumes and in mL, compliance); for the
+  trial, the crossing PEEP, the best PEEP and the recruitment-to-inflation ratio, global
+  and by region, and the weight of each region in Costa.
 
 The tables hold the keys (``breath_id``, ``step``, ``peep``, ``region``) and what this
 layer computes; what layers 2 and 2b measured stays in ``recording.breaths``,
@@ -33,7 +34,11 @@ from fasteit.features.breath_indices import (
     global_inhomogeneity,
     tidal_images,
 )
-from fasteit.features.costa import collapse_and_overdistension, crossing_peep
+from fasteit.features.costa import (
+    collapse_and_overdistension,
+    costa_weight,
+    crossing_peep,
+)
 from fasteit.features.recruitment import recruitment_to_inflation, ri_steps
 from fasteit.models.eit_recording import PHASE, EITRecording, Segment
 from fasteit.models.features import PeepTrialFeatures, TidalFeatures
@@ -436,6 +441,34 @@ def _step_pixel_compliance(trial: PeepTrial) -> np.ndarray:
     return np.array(per_step)
 
 
+def _regional_costa(
+    recording: EITRecording,
+    steps: pd.DataFrame,
+    step_regions: pd.DataFrame,
+    pixel_compliance: np.ndarray,
+) -> tuple[pd.DataFrame, list[dict]]:
+    """Costa of each region, as % of the region, and its weight (``costa.py``).
+
+    Returns:
+        ``step_regions`` with ``collapse`` and ``overdistension``, and one summary row
+        ``costa_weight`` per region.
+    """
+    peep = steps.peep.to_numpy()
+    tables, rows = [], []
+    for region in step_regions.region.unique():
+        mask = recording.roi_masks[region]
+        table = collapse_and_overdistension(pixel_compliance, peep, mask)
+        tables.append(table.assign(step=steps.step.to_numpy(), region=region))
+        weight = costa_weight(pixel_compliance, mask, recording.lung_mask)
+        rows.append({"region": region, "feature": "costa_weight", "value": weight})
+    if not tables:
+        return step_regions, rows
+    step_regions = step_regions.merge(
+        pd.concat(tables), on=["step", "region"], how="left", validate="one_to_one"
+    )
+    return step_regions, rows
+
+
 def _eeli_change(
     steps: pd.DataFrame,
     reference: pd.DataFrame | pd.Series,
@@ -629,7 +662,8 @@ def peep_trial_features(
     medians of the breath indices; compliance in EIT units = median TIV / driving
     pressure of the step, in mL/cmH2O = tidal volume / driving pressure of the step
     (both kept: the EIT compliance also sees what changes in the slice); Costa
-    collapse and overdistension from the median tidal image of each step; the
+    collapse and overdistension from the median tidal image of each step, for the lung
+    and for each region (as % of the region, with its weight in the summary); the
     recruitment-to-inflation ratio between the steps at the two PEEP levels of the
     protocol given in the config (none without them), globally and by region.
 
@@ -661,12 +695,17 @@ def peep_trial_features(
     steps = _step_indices(trial, breaths)
     step_regions = _step_region_indices(trial, regions)
 
-    # 3. Costa, from the compliance of each pixel at each step.
+    # 3. Costa, from the compliance of each pixel at each step: the lung, then each
+    # region as % of the region, with its weight.
+    pixel_compliance = _step_pixel_compliance(trial)
     costa = collapse_and_overdistension(
-        _step_pixel_compliance(trial), steps.peep.to_numpy(), recording.lung_mask
+        pixel_compliance, steps.peep.to_numpy(), recording.lung_mask
     )
     steps["collapse"] = costa.collapse
     steps["overdistension"] = costa.overdistension
+    step_regions, weight_rows = _regional_costa(
+        recording, steps, step_regions, pixel_compliance
+    )
 
     # 4. Changes between steps, and the summary of the trial, on the PEEP levels of the
     # protocol when every step has one.
@@ -679,6 +718,7 @@ def peep_trial_features(
          "value": _best_peep(steps, "compliance", result_peep)},
         {"region": "global", "feature": "best_peep_compliance_ml",
          "value": _best_peep(steps, "compliance_ml", result_peep)},
+        *weight_rows,
     ]  # fmt: skip
     _check_steps(steps, trial, crossing, log)
 

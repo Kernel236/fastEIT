@@ -114,6 +114,7 @@ def test_the_step_table_has_the_curve_of_the_trial(composite, tables):
     assert steps.peep_set.tolist() == [16, 14, 12, 10]
     for column in ["driving_pressure", "tidal_volume", "compliance", "collapse",
                    "overdistension", "compliance__ventral", "share__dorsal",
+                   "collapse__dorsal", "overdistension__ventral",
                    "peep_measured", "driving_pressure_measured"]:  # fmt: skip
         assert column in steps.columns
     np.testing.assert_allclose(steps.collapse, composite[1].steps.collapse)
@@ -129,6 +130,10 @@ def test_the_recording_row_has_only_what_needs_the_methods(composite, tables):
         summary.loc[("crossing_peep", "global"), "value"]
     )
     assert not [c for c in trial.columns if "__peep" in c]
+    # The weight of each half in Costa, to read its % or its part of the lung.
+    assert trial["costa_weight__dorsal"].iloc[0] == pytest.approx(
+        summary.loc[("costa_weight", "dorsal"), "value"]
+    )
 
 
 def test_settings_and_log_of_every_layer(composite, tables):
