@@ -3,7 +3,11 @@
 import numpy as np
 import pytest
 
-from fasteit.features.costa import collapse_and_overdistension, crossing_peep
+from fasteit.features.costa import (
+    collapse_and_overdistension,
+    costa_weight,
+    crossing_peep,
+)
 
 # Pixel 1 has its best compliance at PEEP 16 and loses half of it at 6; pixel 2 has its
 # best at 6 and three times the best compliance of pixel 1 (notebook 07, section 4).
@@ -47,6 +51,45 @@ def test_with_one_step_only_nothing_can_be_compared():
 def test_without_any_compliance_everything_is_nan():
     table = collapse_and_overdistension(np.full((2, 1, 2), np.nan), PEEP, MASK)
     assert table.isna().all().all()
+
+
+def test_costa_weight_is_the_share_of_the_best_compliance_of_the_lung():
+    # Best compliance 1 for pixel 1 and 3 for pixel 2.
+    assert costa_weight(PIXELS, np.array([[True, False]]), MASK) == pytest.approx(0.25)
+    assert costa_weight(PIXELS, np.array([[False, True]]), MASK) == pytest.approx(0.75)
+
+
+def test_on_a_partition_the_regions_weighted_by_costa_weight_give_the_lung():
+    rng = np.random.default_rng(0)
+    pixels = rng.uniform(-0.2, 2.0, size=(5, 4, 4))  # some pixels never ventilated
+    pixels[2] = np.nan  # a step without a driving pressure
+    peep = np.array([12.0, 10.0, 8.0, 6.0, 4.0])
+    lung = np.ones((4, 4), dtype=bool)
+    lung[0, 0] = False
+    upper = lung.copy()
+    upper[2:] = False
+    lower = lung & ~upper
+    recomposed = sum(
+        costa_weight(pixels, region, lung)
+        * collapse_and_overdistension(pixels, peep, region)
+        for region in (upper, lower)
+    )
+    whole = collapse_and_overdistension(pixels, peep, lung)
+    np.testing.assert_allclose(recomposed.to_numpy(), whole.to_numpy())
+
+
+def test_a_region_without_ventilated_pixels_has_no_values_and_weight_0():
+    pixels = PIXELS.copy()
+    pixels[:, 0, 0] = -0.1  # pixel 1 never ventilated
+    region = np.array([[True, False]])
+    assert collapse_and_overdistension(pixels, PEEP, region).isna().all().all()
+    assert costa_weight(pixels, region, MASK) == 0
+
+
+def test_costa_weight_needs_two_steps_with_compliance():
+    pixels = np.concatenate([PIXELS[:1], np.full((1, 1, 2), np.nan)])
+    assert np.isnan(costa_weight(pixels, MASK, MASK))
+    assert np.isnan(costa_weight(np.full((2, 1, 2), -0.1), MASK, MASK))
 
 
 @pytest.mark.parametrize(

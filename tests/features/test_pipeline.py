@@ -186,6 +186,20 @@ def test_step_regions_and_summary(trial_features):
     assert any("No R/I" in line for line in trial_features.log)
 
 
+def test_costa_of_each_region_with_its_weight(trial_features):
+    regions, steps = trial_features.step_regions, trial_features.steps
+    summary = trial_features.summary
+    weights = summary[summary.feature == "costa_weight"].set_index("region").value
+    assert set(weights.index) == set(regions.region)
+    for halves in (["ventral", "dorsal"], ["right", "left"]):
+        assert weights[halves].sum() == pytest.approx(1)
+        part = regions[regions.region.isin(halves)]
+        for index in ("collapse", "overdistension"):
+            weighted = part[index] * part.region.map(weights)
+            recomposed = weighted.groupby(part.step).sum()
+            np.testing.assert_allclose(recomposed, steps.set_index("step")[index])
+
+
 def test_layer_3_tables_do_not_copy_what_layers_2_and_2b_measured(trial_features):
     trial = trial_features.trial
     breaths_before = set(trial.recording.breaths.columns) | set(trial.breaths.columns)

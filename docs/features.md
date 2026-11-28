@@ -125,7 +125,29 @@ Collapse and overdistension are read on their curves (one value per step); a cha
 two PEEP levels is the difference of two values of the curve.
 
 `step_regions` has, for each step and region, the medians of `eeli`, `tiv` and `share` of
-the analysed breaths, and `tiv_ml`, `compliance` and `compliance_ml` of the step.
+the analysed breaths, `tiv_ml`, `compliance` and `compliance_ml` of the step, and Costa
+`collapse` and `overdistension` of the region.
+
+**Costa by region.** The same formula on the pixels of the region only, its denominator
+included, so the value is a % of the region ("30 % of the dorsal lung collapsed"); the
+best of each pixel is its own, over all the steps:
+
+```
+collapse_region(step) = sum over the region's pixels below their best PEEP of (loss x best)
+                        / sum over the region's pixels of best
+costa_weight_region   = sum of best over the region's pixels / sum of best over the lung
+collapse_region x costa_weight_region = the region's part of the collapse of the lung
+```
+
+The regions of a partition (ventral and dorsal, right and left) therefore do not add up
+to the value of the lung: their mean weighted by `costa_weight` does. Costa has been
+reported by right and left lung (Mlcek et al., BMC Pulm Med 2021, DOI:
+10.1186/s12890-021-01501-x, as % of the whole lung: the value of the region x its weight)
+and by ventral and dorsal half (Jonkman et al., Am J Respir Crit Care Med 2023, DOI:
+10.1164/rccm.202212-2300OC, halves of the image; here the halves are cut on the lung,
+see the [regions](preprocessing.md)). In a lateral position the gravitational axis is
+right-left: the dependent lung is the side the patient lies on (`right` and `left` are
+the patient's).
 
 The summary is a long table (`region`, `feature`, `value`):
 
@@ -136,6 +158,7 @@ The summary is a long table (`region`, `feature`, `value`):
 | `ri_peep_high`, `ri_peep_low` | global | levels of the protocol of the two steps used for R/I |
 | `ri` | global and each region | recruitment-to-inflation ratio |
 | `recruited_volume_ml` | global and each region | recruited volume (mL, with a tidal volume) |
+| `costa_weight` | each region | best compliance of the region / that of the lung (0-1), over the pixels Costa uses |
 
 `crossing_peep` and the best PEEP are on the levels of the protocol
 (`peep_set`, from `SegmentationConfig.peep_levels`) when every step has one, so that they
@@ -183,6 +206,9 @@ first step has no analysed breaths, the changes vs the first step are NaN.
   tested: compare patients with the same steps.
 - Costa reads an error common to a step (its driving pressure, the share of the tidal
   volume seen by the slice) as collapse or overdistension.
+- Costa by region is a % of the region: with a small `costa_weight` (a small or little
+  ventilated region) a few pixels move it a lot. Pixels never ventilated in the trial are
+  outside the lung mask and count nowhere, globally or by region.
 - R/I mixes recruitment and overdistension (Zhao et al., Crit Care 2023, DOI:
   10.1186/s13054-023-04520-8) and becomes large in a region almost collapsed at the low
   PEEP.

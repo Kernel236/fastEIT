@@ -74,13 +74,15 @@ class PeepTrialFeatures:
                       and the first step. Driving pressure, tidal volume, breaths
                       analysed: ``trial.steps``.
         step_regions: One row per step and region: ``eeli``, ``tiv``, ``share``,
-                      ``tiv_ml``, ``compliance``, ``compliance_ml``.
+                      ``tiv_ml``, ``compliance``, ``compliance_ml``, and Costa
+                      ``collapse`` and ``overdistension`` as % of the region.
         summary:      One row per region and feature (``region``, ``feature``,
                       ``value``): for ``"global"`` the crossing PEEP of collapse and
                       overdistension, the PEEP of the best compliance in EIT units and
                       in mL/cmH2O, the two PEEP of the R/I; for every region (global
                       included) the recruitment-to-inflation ratio ``ri`` and the
-                      ``recruited_volume_ml``.
+                      ``recruited_volume_ml``; for every region the ``costa_weight``
+                      (its best compliance / that of the lung).
         log:          What was computed, with warnings.
     """
 
