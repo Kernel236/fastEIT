@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -1207,6 +1207,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fasteit.features.costa.costa_weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        costa_weight
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fasteit.features.costa.crossing_peep" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1651,6 +1662,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fasteit.features.costa.costa_weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        costa_weight
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fasteit.features.costa.crossing_peep" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1757,9 +1779,10 @@
   (share x tidal volume);</li>
 <li>tidal recording: median and quartiles over the valid breaths;</li>
 <li>PEEP trial: per step, medians of the analysed breaths, compliance (also as % of the
-  best step), Costa collapse and overdistension, changes vs the previous and the
-  first step (EELI in tidal volumes and in mL, compliance); for the trial, the crossing
-  PEEP, the best PEEP and the recruitment-to-inflation ratio, global and by region.</li>
+  best step), Costa collapse and overdistension (global and by region), changes vs
+  the previous and the first step (EELI in tidal volumes and in mL, compliance); for the
+  trial, the crossing PEEP, the best PEEP and the recruitment-to-inflation ratio, global
+  and by region, and the weight of each region in Costa.</li>
 </ul>
 <p>The tables hold the keys (<code>breath_id</code>, <code>step</code>, <code>peep</code>, <code>region</code>) and what this
 layer computes; what layers 2 and 2b measured stays in <code>recording.breaths</code>,
@@ -1948,7 +1971,8 @@ layer computes; what layers 2 and 2b measured stays in <code>recording.breaths</
 medians of the breath indices; compliance in EIT units = median TIV / driving
 pressure of the step, in mL/cmH2O = tidal volume / driving pressure of the step
 (both kept: the EIT compliance also sees what changes in the slice); Costa
-collapse and overdistension from the median tidal image of each step; the
+collapse and overdistension from the median tidal image of each step, for the lung
+and for each region (as % of the region, with its weight in the summary); the
 recruitment-to-inflation ratio between the steps at the two PEEP levels of the
 protocol given in the config (none without them), globally and by region.</p>
 
@@ -2342,6 +2366,15 @@ formulas as reported by Shono and Kotani, J Intensive Care 2019;7:4, DOI:
 <p>Compliance stays in EIT units: the method needs no tidal volume. An error common to
 all the pixels of a step (its driving pressure, the share of the tidal volume seen by
 the slice) shifts them together and appears as collapse or overdistension.</p>
+<p>By region: the same formula on the pixels of the region only, its denominator included,
+so the value is a % of the region ("30 % of the dorsal lung collapsed"); the best of each
+pixel is its own, over all the steps. Published by right and left lung (Mlcek et al., BMC
+Pulm Med 2021;21, DOI: 10.1186/s12890-021-01501-x, as % of the whole lung) and by
+ventral and dorsal half of the image (Jonkman et al., Am J Respir Crit Care Med
+2023;208:25-38, DOI: 10.1164/rccm.202212-2300OC). The weight of a region,
+<code>costa_weight</code> = its best compliance / that of the lung, gives the % of the whole lung
+(% of the region x weight), and on a partition of the lung the weighted mean of the
+regions is the value of the lung.</p>
 
 
 
@@ -2485,6 +2518,126 @@ pressure.</p>
             <td>
               <div class="doc-md-description">
                 <p>pixel has a positive best compliance.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fasteit.features.costa.costa_weight" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">costa_weight</span>
+
+
+<a href="#fasteit.features.costa.costa_weight" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">costa_weight</span><span class="p">(</span><span class="n">pixel_compliance</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">region</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">lung_mask</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Weight of a region in Costa: its best compliance / that of the lung (0-1).</p>
+<p>The sums of the best compliance of the pixels used by <code>collapse_and_overdistension</code>
+(positive best), in the region and in the lung mask. Collapse (overdistension) of the
+region x its weight = its part of the value of the lung; a small weight marks a
+region small or little ventilated, where its % is unstable.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>pixel_compliance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(n_steps, rows, cols), as in <code>collapse_and_overdistension</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>region</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(rows, cols) bool, inside the lung mask.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lung_mask</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="numpy.ndarray" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray">ndarray</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(rows, cols) bool.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The weight; 0 for a region without pixels used; NaN with fewer than 2 steps</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>with a compliance or no pixel used in the lung.</p>
               </div>
             </td>
           </tr>

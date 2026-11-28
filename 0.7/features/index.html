@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -1713,7 +1713,25 @@ curves.</p>
 <p>Collapse and overdistension are read on their curves (one value per step); a change between
 two PEEP levels is the difference of two values of the curve.</p>
 <p><code>step_regions</code> has, for each step and region, the medians of <code>eeli</code>, <code>tiv</code> and <code>share</code> of
-the analysed breaths, and <code>tiv_ml</code>, <code>compliance</code> and <code>compliance_ml</code> of the step.</p>
+the analysed breaths, <code>tiv_ml</code>, <code>compliance</code> and <code>compliance_ml</code> of the step, and Costa
+<code>collapse</code> and <code>overdistension</code> of the region.</p>
+<p><strong>Costa by region.</strong> The same formula on the pixels of the region only, its denominator
+included, so the value is a % of the region ("30 % of the dorsal lung collapsed"); the
+best of each pixel is its own, over all the steps:</p>
+<div class="highlight"><pre><span></span><code><span class="n">collapse_region</span><span class="p">(</span><span class="n">step</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span> <span class="n">over</span> <span class="n">the</span> <span class="n">region</span><span class="s1">'s pixels below their best PEEP of (loss x best)</span>
+                        <span class="o">/</span> <span class="nb">sum</span> <span class="n">over</span> <span class="n">the</span> <span class="n">region</span><span class="s1">'s pixels of best</span>
+<span class="n">costa_weight_region</span>   <span class="o">=</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">best</span> <span class="n">over</span> <span class="n">the</span> <span class="n">region</span><span class="s1">'s pixels / sum of best over the lung</span>
+<span class="n">collapse_region</span> <span class="n">x</span> <span class="n">costa_weight_region</span> <span class="o">=</span> <span class="n">the</span> <span class="n">region</span><span class="s1">'s part of the collapse of the lung</span>
+</code></pre></div>
+<p>The regions of a partition (ventral and dorsal, right and left) therefore do not add up
+to the value of the lung: their mean weighted by <code>costa_weight</code> does. Costa has been
+reported by right and left lung (Mlcek et al., BMC Pulm Med 2021, DOI:
+10.1186/s12890-021-01501-x, as % of the whole lung: the value of the region x its weight)
+and by ventral and dorsal half (Jonkman et al., Am J Respir Crit Care Med 2023, DOI:
+10.1164/rccm.202212-2300OC, halves of the image; here the halves are cut on the lung,
+see the <a href="../preprocessing/">regions</a>). In a lateral position the gravitational axis is
+right-left: the dependent lung is the side the patient lies on (<code>right</code> and <code>left</code> are
+the patient's).</p>
 <p>The summary is a long table (<code>region</code>, <code>feature</code>, <code>value</code>):</p>
 <table>
 <thead>
@@ -1748,6 +1766,11 @@ the analysed breaths, and <code>tiv_ml</code>, <code>compliance</code> and <code
 <td><code>recruited_volume_ml</code></td>
 <td>global and each region</td>
 <td>recruited volume (mL, with a tidal volume)</td>
+</tr>
+<tr>
+<td><code>costa_weight</code></td>
+<td>each region</td>
+<td>best compliance of the region / that of the lung (0-1), over the pixels Costa uses</td>
 </tr>
 </tbody>
 </table>
@@ -1791,6 +1814,9 @@ first step has no analysed breaths, the changes vs the first step are NaN.</p>
   tested: compare patients with the same steps.</li>
 <li>Costa reads an error common to a step (its driving pressure, the share of the tidal
   volume seen by the slice) as collapse or overdistension.</li>
+<li>Costa by region is a % of the region: with a small <code>costa_weight</code> (a small or little
+  ventilated region) a few pixels move it a lot. Pixels never ventilated in the trial are
+  outside the lung mask and count nowhere, globally or by region.</li>
 <li>R/I mixes recruitment and overdistension (Zhao et al., Crit Care 2023, DOI:
   10.1186/s13054-023-04520-8) and becomes large in a region almost collapsed at the low
   PEEP.</li>
